@@ -1,0 +1,133 @@
+.container {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 80vh;
+  direction: ltr;
+}
+
+.card {
+  width: 100%;
+  background: linear-gradient(180deg, #ffffffcc 0%, #f7fbffcc 100%);
+  border-radius: 12px;
+  padding: 28px;
+  box-shadow: 0 8px 30px rgba(20, 40, 80, 0.08);
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+}
+
+.title {
+  margin-top: 10px;
+  font-weight: 700;
+}
+
+.form {
+  width: 100%;
+  margin-top: 6px;
+}
+.container {
+  min-height: 100vh;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 2rem;
+  background: linear-gradient(135deg, #f7fbff 0%, #eef6ff 50%, #f7fff6 100%);
+}
+
+.card {
+  width: 100%;
+  max-width: 480px;
+  background: #ffffff;
+  border-radius: 12px;
+  box-shadow: 0 10px 30px rgba(13, 38, 76, 0.08);
+  padding: 2rem;
+  border: 1px solid rgba(15, 23, 42, 0.04);
+}
+
+.title {
+  font-size: 1.5rem;
+  font-weight: 700;
+  margin-bottom: 0.25rem;
+  color: #0f172a;
+}
+
+.subtitle {
+  font-size: 0.95rem;
+  color: #475569;
+  margin-bottom: 1.25rem;
+}
+
+.form {
+  display: grid;
+  gap: 0.75rem;
+}
+
+.field {
+  display: flex;
+  flex-direction: column;
+}
+
+.label {
+  font-size: 0.85rem;
+  color: #334155;
+  margin-bottom: 0.35rem;
+}
+
+.input {
+  padding: 0.6rem 0.8rem;
+  border-radius: 8px;
+  border: 1px solid #e6edf3;
+  background: #fbfdff;
+  outline: none;
+  font-size: 0.95rem;
+  color: #0f172a;
+}
+
+.input:focus {
+  box-shadow: 0 0 0 4px rgba(59,130,246,0.08);
+  border-color: #3b82f6;
+}
+
+.row {
+  display: flex;
+  gap: 0.75rem;
+}
+
+.button {
+  margin-top: 0.5rem;
+  padding: 0.7rem 1rem;
+  border-radius: 10px;
+  background: linear-gradient(90deg,#2563eb,#7c3aed);
+  color: white;
+  border: none;
+  cursor: pointer;
+  font-weight: 600;
+  box-shadow: 0 6px 18px rgba(37,99,235,0.18);
+}
+
+.link {
+  margin-top: 0.75rem;
+  text-align: center;
+  font-size: 0.9rem;
+  color: #475569;
+}
+
+.error {
+  color: #dc2626;
+  font-size: 0.85rem;
+  margin-top: 0.35rem;
+}
+
+.success {
+  color: #16a34a;
+  font-size: 0.95rem;
+  margin-top: 0.5rem;
+  text-align: center;
+}
+
+.small {
+  font-size: 0.8rem;
+  color: #64748b;
+}
+

@@ -1,0 +1,12 @@
+.link {
+  display: inline-block;
+  color: #cbd5e1;
+  text-decoration: none;
+  padding: 8px 12px;
+  border-radius: 6px;
+}
+
+.link:hover {
+  background: rgba(255,255,255,0.04);
+  color: #fff;
+}

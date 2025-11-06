@@ -1,0 +1,14 @@
+.container {
+  display: flex;
+  min-height: 100vh;
+  background: #f5f7fb;
+}
+
+.main {
+  flex: 1;
+  padding: 24px;
+}
+
+.main h1 {
+  margin: 0 0 12px 0;
+}

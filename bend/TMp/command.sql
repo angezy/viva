@@ -1,0 +1,1 @@
+GRANT SELECT ON [dbo].[header_tbl] TO [sa];
