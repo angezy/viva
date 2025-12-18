@@ -4,6 +4,7 @@ require('dotenv').config();
 const express = require("express");
 const cors = require("cors");
 const bodyParser = require("body-parser");
+const cookieParser = require("cookie-parser");
 const { ApolloServer } = require("apollo-server-express");
 const { typeDefs, resolvers } = require("./graphqlSchema.js");
 const router = require("./routes/homeroute");
@@ -11,11 +12,15 @@ const router = require("./routes/homeroute");
 
 
 const app = express();
-app.use(cors({
-	origin: "http://localhost:3000",
-	methods: ["GET", "POST", "PUT", "DELETE"],
-	credentials: true
-}));
+const corsOptions = {
+  origin: "http://localhost:3000",
+  methods: ["GET", "POST", "PUT", "DELETE", "PATCH", "OPTIONS"],
+  allowedHeaders: ["Content-Type", "Authorization"],
+  credentials: true,
+};
+app.use(cors(corsOptions));
+app.options("*", cors(corsOptions));
+app.use(cookieParser());
 app.use(bodyParser.json());
 app.use("/", router);
 

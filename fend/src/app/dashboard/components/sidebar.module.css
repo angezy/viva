@@ -1,22 +1,97 @@
 .sidebar {
-  width: 220px;
-  background: #0f1724;
-  color: #fff;
-  padding: 20px;
-  box-shadow: 2px 0 8px rgba(15,23,36,0.08);
+  width: 240px;
+  height: 100vh;
+  background: #ffffff;
+  color: #0f172a;
+  padding: 20px 16px;
+  box-shadow: 2px 0 18px rgba(15, 23, 36, 0.06);
+  border-right: 1px solid #e2e8f0;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
 }
 
 .logo {
   font-weight: 700;
-  margin-bottom: 20px;
+  font-size: 18px;
+  letter-spacing: 0.02em;
+  color: #0f172a;
 }
 
-.nav ul {
+.closeButton {
+  background: transparent;
+  border: 1px solid #e2e8f0;
+  border-radius: 8px;
+  width: 32px;
+  height: 32px;
+  cursor: pointer;
+  color: #0f172a;
+}
+
+.nav {
+  margin-top: 8px;
+  flex: 1;
+}
+
+.navList {
   list-style: none;
   padding: 0;
   margin: 0;
 }
 
-.nav li {
-  margin: 8px 0;
+.navItem {
+  margin: 4px 0;
+}
+
+.navLink {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 10px 12px;
+  border-radius: 12px;
+  text-decoration: none;
+  color: #0f172a;
+  font-weight: 600;
+  letter-spacing: 0.01em;
+  transition: background 150ms ease, box-shadow 150ms ease, color 150ms ease;
+}
+
+.navLink:hover {
+  background: #f8fafc;
+  color: #0f172a;
+  box-shadow: inset 0 0 0 1px #e2e8f0;
+}
+
+.iconBox {
+  width: 28px;
+  height: 28px;
+  border-radius: 8px;
+  border: 1px solid #e2e8f0;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  color: #64748b;
+  background: #ffffff;
+}
+
+.label {
+  flex: 1;
+}
+
+.active {
+  background: #f0f9ff;
+  color: #0b6c3a;
+  box-shadow: inset 0 0 0 1px #bbf7d0;
+}
+
+.active .iconBox {
+  border-color: #bbf7d0;
+  color: #0b6c3a;
+  background: #e3ffe3;
 }

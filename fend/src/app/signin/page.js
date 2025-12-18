@@ -1,9 +1,9 @@
 "use client";
-"use client";
 
 import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import Swal from 'sweetalert2';
+import { loginRequest, fetchSession } from "../lib/apiClient";
 
 export default function SignInPage() {
   const [email, setEmail] = useState('user@example.com');
@@ -24,48 +24,11 @@ export default function SignInPage() {
     setError('')
     setLoading(true)
     try {
-      const res = await fetch('http://localhost:5000/api/login', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ email, password }),
-        redirect: 'manual',
-        credentials: 'include'
-      });
-
+      await loginRequest(email, password, "user");
       try { localStorage.setItem('signinEmail', email) } catch (e) {}
-
-      const contentType = res.headers.get('content-type') || ''
-      let data = null
-      if (contentType.includes('application/json')) {
-        try { data = await res.json() } catch (err) { /* ignore malformed json */ }
-      }
-
-      if (res.redirected) {
-        Swal.fire({ icon: 'success', title: 'Logged in!', text: 'Redirecting to dashboard...', timer: 800, showConfirmButton: false })
-        setTimeout(() => router.push('/dashboard'), 800)
-        return
-      }
-
-      if (!res.ok) {
-        let message = data?.error || data?.message || ''
-        let raw = ''
-        if (!message) {
-          try { raw = (await res.text()) || '' } catch { raw = '' }
-          message = raw
-        }
-        const statusLine = `Status: ${res.status} ${res.statusText}`
-        message = (message || statusLine).toString().trim()
-        setError(message)
-        setLoading(false)
-        return
-      }
-
-      if (data && data.token) {
-        try { localStorage.setItem('token', data.token) } catch (e) {}
-      }
-
-      Swal.fire({ icon: 'success', title: 'Logged in!', text: 'Redirecting...', timer: 700, showConfirmButton: false })
-      setTimeout(() => router.push('/dashboard'), 700)
+      await fetchSession(); // prime session cache
+      Swal.fire({ icon: 'success', title: 'Logged in!', text: 'Redirecting to your panel...', timer: 700, showConfirmButton: false });
+      setTimeout(() => router.push('/account'), 700);
     } catch (err) {
       setError(err.message || 'Network error')
       Swal.fire({ icon: 'error', title: 'Network Error', text: err.message || 'Something went wrong' })
@@ -131,9 +94,14 @@ export default function SignInPage() {
                 {loading ? 'Signing in...' : 'Sign in'}
               </button>
 
-              <button type="button" onClick={() => { setEmail(''); setPassword(''); setError('') }} style={{ background: 'transparent', border: 'none', color: '#475569', cursor: 'pointer' }}>
-                Clear
-              </button>
+              <div style={{ display: 'flex', gap: 8 }}>
+                <button type="button" onClick={() => { setEmail(''); setPassword(''); setError('') }} style={{ background: 'transparent', border: 'none', color: '#475569', cursor: 'pointer' }}>
+                  Clear
+                </button>
+                <button type="button" onClick={() => router.push('/signup')} style={{ background: 'transparent', border: 'none', color: '#0ea5a4', cursor: 'pointer' }}>
+                  Create account
+                </button>
+              </div>
             </div>
           </div>
         </form>

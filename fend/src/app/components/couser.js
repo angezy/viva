@@ -7,6 +7,9 @@ import CardMedia from "@mui/material/CardMedia";
 import CardContent from "@mui/material/CardContent";
 import Typography from "@mui/material/Typography";
 import Skeleton from "@mui/material/Skeleton";
+import Chip from "@mui/material/Chip";
+import Stack from "@mui/material/Stack";
+import Link from "next/link";
 import "slick-carousel/slick/slick.css";
 import "slick-carousel/slick/slick-theme.css";
 
@@ -39,29 +42,47 @@ export default function MostChosenCarousel() {
   const renderSkeletons = () =>
     Array.from(new Array(3)).map((_, i) => (
       <Box key={i} px={1.5}>
-        <Card sx={{ borderRadius: 3, boxShadow: 3 }}>
-          <Skeleton variant="rectangular" height={180} />
+        <Card
+          sx={{
+            borderRadius: 4,
+            background: "rgba(255,255,255,0.1)",
+            border: "1px solid rgba(255,255,255,0.15)",
+            backdropFilter: "blur(18px)",
+          }}
+        >
+          <Skeleton variant="rectangular" height={210} sx={{ borderRadius: "12px 12px 0 0" }} />
           <CardContent>
-            <Skeleton variant="text" width="80%" />
-            <Skeleton variant="text" width="60%" />
+            <Skeleton variant="text" width="70%" />
+            <Skeleton variant="text" width="50%" />
           </CardContent>
         </Card>
       </Box>
     ));
 
   return (
-    <Box sx={{ maxWidth: 1200, mx: "auto", py: 6 }}>
-      <Typography
-        variant="h4"
-        sx={{ mb: 3, fontWeight: "bold", textAlign: "center" }}
-      >
-        Most Chosen
-      </Typography>
+    <Box
+      sx={{
+        maxWidth: 1300,
+        mx: "auto",
+        py: 7,
+        px: 2,
+        background: "linear-gradient(135deg, rgba(255,255,255,0.06), rgba(6,182,212,0.12))",
+        borderRadius: 6,
+      }}
+    >
+      <Box sx={{ textAlign: "center", mb: 4 }}>
+        <Typography variant="overline" sx={{ letterSpacing: 4, color: "secondary.light" }}>
+          Community Picks
+        </Typography>
+        <Typography variant="h4" sx={{ fontWeight: 700 }}>
+          Most Chosen Products
+        </Typography>
+        <Typography variant="body2" color="text.secondary">
+          Loved by thousands. Discover what the crowd can’t stop buying.
+        </Typography>
+      </Box>
 
-      <Slider
-        {...settings}
-        style={{ marginLeft: "-12px", marginRight: "-12px" }}
-      >
+      <Slider {...settings} style={{ marginLeft: "-12px", marginRight: "-12px" }}>
         {loading
           ? renderSkeletons()
           : items.map((item) => {
@@ -72,41 +93,55 @@ export default function MostChosenCarousel() {
 
               return (
                 <Box key={item.id ?? item.PID ?? title} px={1.5}>
-                  <Card
-                    sx={{
-                      borderRadius: 3,
-                      boxShadow: 3,
-                      overflow: "hidden",
-                      height: "100%",
-                      display: "flex",
-                      flexDirection: "column",
-                    }}
+                  <Link
+                    href={item.slug ? `/product/${item.slug}` : "/shop"}
+                    style={{ textDecoration: "none" }}
+                    prefetch={false}
                   >
-                    {image ? (
-                      <CardMedia component="img" height="180" image={image} alt={title} />
-                    ) : (
-                      <Skeleton variant="rectangular" height={180} />
-                    )}
+                    <Card
+                      sx={{
+                        borderRadius: 4,
+                        boxShadow: "0 25px 45px rgba(10,10,30,0.28)",
+                        overflow: "hidden",
+                        height: "100%",
+                        display: "flex",
+                        flexDirection: "column",
+                        border: "1px solid rgba(255,255,255,0.1)",
+                        background: "rgba(12,18,29,0.9)",
+                        color: "white",
+                        transition: "transform 0.35s ease, box-shadow 0.35s ease",
+                        "&:hover": { transform: "translateY(-8px)", boxShadow: "0 30px 60px rgba(10,10,30,0.4)" },
+                      }}
+                    >
+                      {image ? (
+                        <CardMedia component="img" height="210" image={image} alt={title} sx={{ objectFit: "cover" }} />
+                      ) : (
+                        <Skeleton variant="rectangular" height={210} />
+                      )}
 
-                    <CardContent sx={{ flexGrow: 1 }}>
-                      <Typography variant="h6" noWrap sx={{ fontWeight: "bold", mb: 1 }}>
-                        {title}
-                      </Typography>
-                      <Typography
-                        variant="body2"
-                        color="text.secondary"
-                        sx={{
-                          overflow: "hidden",
-                          textOverflow: "ellipsis",
-                          display: "-webkit-box",
-                          WebkitLineClamp: 2,
-                          WebkitBoxOrient: "vertical",
-                        }}
-                      >
-                        {desc || "No description available."}
-                      </Typography>
-                    </CardContent>
-                  </Card>
+                      <CardContent sx={{ flexGrow: 1, display: "flex", flexDirection: "column" }}>
+                        <Stack direction="row" alignItems="center" spacing={1} sx={{ mb: 1 }}>
+                          <Typography variant="h6" noWrap sx={{ fontWeight: 700 }}>
+                            {title}
+                          </Typography>
+                          <Chip size="small" label="Trending" color="secondary" />
+                        </Stack>
+                        <Typography
+                          variant="body2"
+                          sx={{
+                            color: "rgba(255,255,255,0.7)",
+                            overflow: "hidden",
+                            textOverflow: "ellipsis",
+                            display: "-webkit-box",
+                            WebkitLineClamp: 2,
+                            WebkitBoxOrient: "vertical",
+                          }}
+                        >
+                          {desc || "No description available."}
+                        </Typography>
+                      </CardContent>
+                    </Card>
+                  </Link>
                 </Box>
               );
             })}

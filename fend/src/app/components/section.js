@@ -19,6 +19,25 @@ import PlayArrowIcon from "@mui/icons-material/PlayArrow";
 import EditIcon from "@mui/icons-material/Edit";
 import Link from "next/link";
 
+const API_BASE_URL = process.env.NEXT_PUBLIC_API_BASE_URL || "http://localhost:5000";
+
+// Normalize various image shapes to a usable URL (supports DB /uploads paths)
+function resolveImage(value) {
+  if (!value) return "";
+  if (typeof value === "string") {
+    const trimmed = value.trim();
+    if (!trimmed) return "";
+    if (trimmed.startsWith("http://") || trimmed.startsWith("https://")) return trimmed;
+    if (trimmed.startsWith("/uploads/")) return `${API_BASE_URL}${trimmed}`;
+    return trimmed;
+  }
+  if (typeof value === "object") {
+    const candidate = value.url || value.uri || value.src || value.image || value.imageUrl || value.img || value.Img || value.path;
+    return resolveImage(candidate);
+  }
+  return "";
+}
+
 const FALLBACK = {
   heroCards: [
     {
@@ -378,7 +397,15 @@ export default function HeroSection({ initialContent = null, onEdit = {} }) {
             )}
             {products.map((item, idx) => {
               const title = item.title || item.name || `Product ${idx + 1}`;
-              const img = item.image || item.img || (Array.isArray(item.images) ? item.images[0] : null);
+              const rawImages = Array.isArray(item.images) ? item.images : [];
+              const gallery = rawImages.map(resolveImage).filter(Boolean);
+              const primaryCandidate =
+                item.image ||
+                item.img ||
+                item.imageUrl ||
+                item.Img ||
+                (Array.isArray(item.images) ? item.images[0] : null);
+              const img = gallery[0] || resolveImage(primaryCandidate);
               const rawPrice = item.price ?? item.Price ?? "";
               const price =
                 typeof rawPrice === "number"
@@ -409,6 +436,41 @@ export default function HeroSection({ initialContent = null, onEdit = {} }) {
                     <CardContent>
                       <Typography sx={{ fontWeight: 700 }}>{title}</Typography>
                       <Typography color="primary.light">{price}</Typography>
+                      <Button
+                        variant="contained"
+                        size="small"
+                        href="/cart"
+                        sx={{ mt: 1.5, borderRadius: 1.5, textTransform: "none" }}
+                      >
+                        Add to cart
+                      </Button>
+                      {gallery.length > 1 && (
+                        <Box
+                          sx={{
+                            display: "flex",
+                            gap: 1,
+                            mt: 1.5,
+                            overflowX: "auto",
+                            pb: 1,
+                          }}
+                        >
+                          {gallery.map((thumb, tIdx) => (
+                            <Box
+                              key={`${title}-thumb-${tIdx}`}
+                              component="img"
+                              src={thumb}
+                              alt={`${title} ${tIdx + 1}`}
+                              sx={{
+                                width: 56,
+                                height: 56,
+                                objectFit: "cover",
+                                borderRadius: 1,
+                                border: "1px solid rgba(255,255,255,0.1)",
+                              }}
+                            />
+                          ))}
+                        </Box>
+                      )}
                     </CardContent>
                   </Card>
                 </Grid>

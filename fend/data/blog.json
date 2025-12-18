@@ -1,0 +1,57 @@
+{
+  "hero": {
+    "title": "Smart Wellness Starts Here.",
+    "subtitle": "Stories, tips, and training insights from coaches and athletes.",
+    "ctaText": "Read the latest",
+    "ctaUrl": "/blog",
+    "image": "https://images.unsplash.com/photo-1518611012118-696072aa579a?auto=format&fit=crop&w=1200&q=80",
+    "alt": "Athlete with smart trainer"
+  },
+  "posts": [
+    {
+      "id": "post-1",
+      "title": "Ergonomic Design That Powers Every Move",
+      "excerpt": "We broke down the biomechanics behind our latest release\u00e2\u20ac\u201dhere\u00e2\u20ac\u2122s how it keeps you stable and strong.",
+      "author": "Coach Alex",
+      "date": "2024-12-01",
+      "image": "https://images.unsplash.com/photo-1540497077202-7c8a3999166f?auto=format&fit=crop&w=800&q=80",
+      "alt": "Closeup of training gear",
+      "tags": [
+        "Gear",
+        "Design"
+      ],
+      "slug": "/blog/ergonomic-design",
+      "body": "<p>We took apart every angle to keep your joints stacked and your core engaged. Here&rsquo;s how the new handle geometry distributes load and keeps you stable under fatigue.</p>"
+    },
+    {
+      "id": "post-2",
+      "title": "Smarter Recovery: Mobility That Sticks",
+      "excerpt": "A 10-minute recovery flow that fits between sessions\u00e2\u20ac\u201dand why consistency beats intensity.",
+      "author": "Dr. Lee",
+      "date": "2024-11-18",
+      "image": "https://images.unsplash.com/photo-1579751626657-72bc17010498?auto=format&fit=crop&w=800&q=80",
+      "alt": "Athlete stretching",
+      "tags": [
+        "Recovery",
+        "Mobility"
+      ],
+      "slug": "/blog/smarter-recovery",
+      "body": "<p>Mobility isn&rsquo;t a marathon. Stack short, daily sessions and you&rsquo;ll feel better by Friday. Here&rsquo;s a simple protocol to follow.</p>"
+    },
+    {
+      "id": "post-3",
+      "title": "Coach-Built Plans for Busy Weeks",
+      "excerpt": "How to stack short sessions for real progress when your calendar is packed.",
+      "author": "Coach Nina",
+      "date": "2024-11-05",
+      "image": "https://images.unsplash.com/photo-1541537103745-ea3429c65dc1?auto=format&fit=crop&w=800&q=80",
+      "alt": "Training program notes",
+      "tags": [
+        "Programming",
+        "Coaching"
+      ],
+      "slug": "/blog/coach-built-plans",
+      "body": "<p>Progress doesn&rsquo;t stop when life gets busy. Use micro-sessions, prioritize compound moves, and keep intensity honest. Here&rsquo;s the weekly outline.</p>"
+    }
+  ]
+}

@@ -1,0 +1,5 @@
+[
+  { "id": 1, "type": "text", "content": "Welcome to our site (sample)" },
+  { "id": 2, "type": "image", "src": "/favicon.ico", "alt": "Logo (sample)" },
+  { "id": 3, "type": "text", "content": "Contact us at contact@example.com" }
+]

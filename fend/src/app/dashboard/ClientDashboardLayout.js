@@ -1,8 +1,8 @@
 "use client"
 
 import React, { useState } from 'react'
-import AppBar from '../components/AppBar'
-import Sidebar from '../components/Sidebar'
+import AppBar from './components/AppBar'
+import Sidebar from './components/Sidebar'
 
 export default function ClientDashboardLayout({ children }) {
   const [open, setOpen] = useState(true)
@@ -17,10 +17,10 @@ export default function ClientDashboardLayout({ children }) {
   }
 
   return (
-    <div style={{ display: 'flex', flexDirection: 'column', minHeight: '100vh' }}>
+    <div style={{ display: 'flex', flexDirection: 'column', minHeight: '100vh', background: '#f8fafc' }}>
       <div style={{ display: 'flex', flex: 1 }}>
         <Sidebar open={open} onClose={close} />
-        <main style={{ flex: 1 }}>
+        <main style={{ flex: 1, minHeight: '100vh', background: '#f8fafc' }}>
           <AppBar onToggleSidebar={toggle} onSignOut={signOut} />
           {children}
         </main>

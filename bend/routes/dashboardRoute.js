@@ -1,5 +1,6 @@
 const express = require('express');
 const router = express.Router();
+const sql = require('mssql');
 const { getPool } = require('../utils/dbConnection');
 
 // Helper to normalize mssql result/result.recordset
@@ -8,6 +9,84 @@ function normalizeResult(result) {
   if (Array.isArray(result)) return result;
   if (result.recordset) return result.recordset;
   return [];
+}
+
+// Cache User_tbl columns so we can safely project optional fields
+const userColumnsCache = { loaded: false, columns: new Set() };
+async function loadUserColumns(pool) {
+  if (userColumnsCache.loaded) return userColumnsCache.columns;
+  try {
+    const result = await pool
+      .request()
+      .query(`SELECT COLUMN_NAME FROM INFORMATION_SCHEMA.COLUMNS WHERE TABLE_NAME = 'User_tbl'`);
+    const rows = normalizeResult(result);
+    rows.forEach((row) => {
+      const name = (row.COLUMN_NAME || row.column_name || "").toString().toLowerCase();
+      if (name) userColumnsCache.columns.add(name);
+    });
+  } catch (err) {
+    console.warn("Unable to read User_tbl columns", err && err.message ? err.message : err);
+  } finally {
+    userColumnsCache.loaded = true;
+  }
+  return userColumnsCache.columns;
+}
+
+async function tableExists(pool, tableName, schema = "dbo") {
+  try {
+    const result = await pool
+      .request()
+      .input("Table", tableName)
+      .input("Schema", schema)
+      .query(`
+        SELECT 1 AS ExistsFlag
+        FROM INFORMATION_SCHEMA.TABLES
+        WHERE TABLE_NAME = @Table AND TABLE_SCHEMA = @Schema
+      `);
+    const rows = normalizeResult(result);
+    return rows.length > 0;
+  } catch (err) {
+    console.warn("tableExists check failed for", tableName, err && err.message ? err.message : err);
+    return false;
+  }
+}
+
+function isUniqueConstraintError(err) {
+  return (
+    err &&
+    (err.number === 2627 ||
+      err.number === 2601 ||
+      /UNIQUE\s+KEY/i.test(err.message || "") ||
+      /duplicate key/i.test(err.message || ""))
+  );
+}
+
+function isForeignKeyConstraintError(err) {
+  return err && err.number === 547;
+}
+
+function deriveBanStatus(row = {}, cols = new Set()) {
+  const lowerCols = new Set(Array.from(cols).map((c) => c.toLowerCase()));
+  if (lowerCols.has("isbanned")) return !!(row.IsBanned ?? row.isbanned ?? row.ISBANNED);
+  if (lowerCols.has("banned")) return !!(row.Banned ?? row.banned);
+  if (lowerCols.has("status")) {
+    const status = String(row.Status ?? row.status ?? "").toLowerCase();
+    if (status === "banned" || status === "inactive" || status === "blocked") return true;
+    if (status === "active") return false;
+  }
+  if (lowerCols.has("active")) return !(row.Active === 1 || row.Active === true);
+  if (lowerCols.has("isactive")) return !(row.IsActive === 1 || row.IsActive === true);
+  return false;
+}
+
+function banUpdateClause(cols, banned) {
+  const lowerCols = new Set(Array.from(cols).map((c) => c.toLowerCase()));
+  if (lowerCols.has("isbanned")) return { clause: "IsBanned = @Banned", type: "bool" };
+  if (lowerCols.has("banned")) return { clause: "Banned = @Banned", type: "bool" };
+  if (lowerCols.has("status")) return { clause: "Status = @StatusVal", type: "status" };
+  if (lowerCols.has("active")) return { clause: "Active = @ActiveVal", type: "active" };
+  if (lowerCols.has("isactive")) return { clause: "IsActive = @ActiveVal", type: "active" };
+  return null;
 }
 
 // GET /api/dashboard/profile
@@ -40,17 +119,18 @@ router.get('/api/dashboard/orders', async (req, res) => {
   try {
     const pool = await getPool();
     const result = await pool.request().query(`
-      SELECT TOP 20 OrderId, OrderNumber, CreatedAt, TotalAmount, Status
-      FROM Orders
-      ORDER BY CreatedAt DESC
+      SELECT TOP 20 OrderId, UserId, PlacedAt, Total, Status
+      FROM Orders_tbl
+      ORDER BY PlacedAt DESC
     `);
     const rows = normalizeResult(result);
 
     const mapped = rows.map(r => ({
       id: r.OrderId ?? r.orderId ?? r.id,
-      number: r.OrderNumber ?? r.orderNumber ?? r.Number ?? '',
-      createdAt: r.CreatedAt ?? r.createdAt ?? null,
-      total: r.TotalAmount ?? r.total ?? 0,
+      number: r.OrderId ?? r.orderId ?? '',
+      userId: r.UserId ?? r.userId ?? null,
+      createdAt: r.PlacedAt ?? r.placedAt ?? r.CreatedAt ?? r.createdAt ?? null,
+      total: r.Total ?? r.total ?? r.TotalAmount ?? 0,
       status: r.Status ?? r.status ?? 'unknown',
     }));
 
@@ -110,6 +190,183 @@ router.get('/api/dashboard/settings', async (req, res) => {
   }
 });
 
+// GET /api/dashboard/users
+router.get('/api/dashboard/users', async (_req, res) => {
+  try {
+    const pool = await getPool();
+    const cols = await loadUserColumns(pool);
+    const hasOrdersTable = await tableExists(pool, "Orders_tbl");
+    const baseCols = ["UserID", "Username", "Email", "Role", "CreatedAt", "LastLogin"];
+    const optionalCols = [
+      { db: "FullName", key: "FullName" },
+      { db: "AvatarUrl", key: "AvatarUrl" },
+      { db: "Avatar", key: "Avatar" },
+      { db: "Country", key: "Country" },
+      { db: "State", key: "State" },
+      { db: "City", key: "City" },
+      { db: "Zip", key: "Zip" },
+      { db: "Address", key: "Address" },
+      { db: "SignupIP", key: "SignupIP" },
+      { db: "LastIP", key: "LastIP" },
+    ].filter((c) => cols.has(c.db.toLowerCase()));
+
+    const selectList = [...baseCols, ...optionalCols.map((c) => c.db)];
+    const selectClause = selectList.map((c) => `[${c}]`).join(", ");
+    const orderCountSelect = hasOrdersTable
+      ? "(SELECT COUNT(*) FROM Orders_tbl o WHERE o.UserId = CAST(u.UserID AS NVARCHAR(64))) AS OrderCount"
+      : "CAST(0 AS INT) AS OrderCount";
+
+    const result = await pool.request().query(`
+      SELECT ${selectClause},
+        ${orderCountSelect}
+      FROM User_tbl u
+      ORDER BY CreatedAt DESC
+    `);
+    const rows = normalizeResult(result);
+    const mapped = rows.map((u) => ({
+      id: u.UserID ?? u.userId ?? u.id,
+      username: u.Username ?? u.username ?? "",
+      email: u.Email ?? u.email ?? "",
+      role: u.Role ?? u.role ?? "user",
+      createdAt: u.CreatedAt ?? u.createdAt ?? null,
+      lastLogin: u.LastLogin ?? u.lastLogin ?? null,
+      name: u.FullName ?? u.Name ?? u.name ?? "",
+      avatar: u.AvatarUrl ?? u.Avatar ?? u.avatar ?? null,
+      country: u.Country ?? u.country ?? "",
+      state: u.State ?? u.state ?? "",
+      city: u.City ?? u.city ?? "",
+      zip: u.Zip ?? u.zip ?? "",
+      address: u.Address ?? u.address ?? "",
+      signupIp: u.SignupIP ?? u.signupIp ?? u.SignupIp ?? null,
+      lastIp: u.LastIP ?? u.lastIp ?? u.LastIp ?? null,
+      orderCount: u.OrderCount ?? u.orderCount ?? 0,
+      banned: deriveBanStatus(u, cols),
+    }));
+    res.json(mapped);
+  } catch (err) {
+    console.error("/api/dashboard/users error:", err);
+    res.status(500).json({ error: err.message });
+  }
+});
+
+// PATCH /api/dashboard/users/:userId - update role/address/ban
+router.patch('/api/dashboard/users/:userId', async (req, res) => {
+  const userId = Number(req.params.userId);
+  if (!Number.isFinite(userId)) return res.status(400).json({ error: "Invalid user id" });
+
+  const {
+    role,
+    country,
+    state,
+    city,
+    zip,
+    address,
+    name,
+    username,
+    email,
+    banned,
+  } = req.body || {};
+
+  try {
+    const pool = await getPool();
+    const cols = await loadUserColumns(pool);
+
+    const setClauses = [];
+    const warnings = [];
+    let request = pool.request().input("UserId", sql.Int, userId);
+
+    const addIfPresent = (columnName, paramName, value) => {
+      if (value === undefined || value === null || value === "") return;
+      if (!cols.has(columnName.toLowerCase())) return;
+      setClauses.push(`[${columnName}] = @${paramName}`);
+      request = request.input(paramName, sql.NVarChar, value);
+    };
+
+    addIfPresent("Role", "Role", role);
+    addIfPresent("Country", "Country", country);
+    addIfPresent("State", "State", state);
+    addIfPresent("City", "City", city);
+    addIfPresent("Zip", "Zip", zip);
+    addIfPresent("Address", "Address", address);
+    addIfPresent("FullName", "FullName", name);
+    addIfPresent("Username", "Username", username);
+    addIfPresent("Email", "Email", email);
+
+    if (banned !== undefined) {
+      const banInfo = banUpdateClause(cols, banned);
+      if (!banInfo) {
+        warnings.push("Ban/restrict field not available on this database");
+      } else {
+        if (banInfo.type === "bool") {
+          setClauses.push(banInfo.clause);
+          request = request.input("Banned", sql.Bit, !!banned);
+        } else if (banInfo.type === "status") {
+          setClauses.push(banInfo.clause);
+          request = request.input("StatusVal", sql.NVarChar, banned ? "banned" : "active");
+        } else if (banInfo.type === "active") {
+          setClauses.push(banInfo.clause);
+          request = request.input("ActiveVal", sql.Bit, banned ? 0 : 1);
+        }
+      }
+    }
+
+    if (!setClauses.length) {
+      return res.json({ ok: true, message: "No updatable fields provided or columns missing", warnings });
+    }
+
+    await request.query(`UPDATE User_tbl SET ${setClauses.join(", ")} WHERE UserID = @UserId`);
+    res.json({ ok: true, warnings });
+  } catch (err) {
+    console.error("/api/dashboard/users patch error:", err);
+    if (isUniqueConstraintError(err)) {
+      return res.status(409).json({ error: "Duplicate value conflicts with existing user" });
+    }
+    res.status(500).json({ error: err.message || "Update failed" });
+  }
+});
+
+// DELETE /api/dashboard/users/:userId
+router.delete('/api/dashboard/users/:userId', async (req, res) => {
+  const userId = Number(req.params.userId);
+  if (!Number.isFinite(userId)) return res.status(400).json({ error: "Invalid user id" });
+
+  try {
+    const pool = await getPool();
+    const cols = await loadUserColumns(pool);
+    const hasIsDeleted = cols.has("isdeleted");
+    const hasActive = cols.has("active") || cols.has("isactive");
+
+    if (hasIsDeleted) {
+      const result = await pool
+        .request()
+        .input("UserId", sql.Int, userId)
+        .query("UPDATE User_tbl SET IsDeleted = 1 WHERE UserID = @UserId");
+      return res.json({ ok: true, rowsAffected: result?.rowsAffected?.[0] ?? 0, softDeleted: true });
+    }
+
+    if (hasActive) {
+      const result = await pool
+        .request()
+        .input("UserId", sql.Int, userId)
+        .query("UPDATE User_tbl SET Active = 0 WHERE UserID = @UserId");
+      return res.json({ ok: true, rowsAffected: result?.rowsAffected?.[0] ?? 0, softDeleted: true });
+    }
+
+    const result = await pool
+      .request()
+      .input("UserId", sql.Int, userId)
+      .query("DELETE FROM User_tbl WHERE UserID = @UserId");
+
+    res.json({ ok: true, rowsAffected: result?.rowsAffected?.[0] ?? 0, softDeleted: false });
+  } catch (err) {
+    console.error("/api/dashboard/users delete error:", err);
+    if (isForeignKeyConstraintError(err)) {
+      return res.status(409).json({ error: "Cannot delete user with related records (orders, etc.)" });
+    }
+    res.status(500).json({ error: err.message || "Delete failed" });
+  }
+});
+
 // GET /api/dashboard/stats
 router.get('/api/dashboard/stats', async (req, res) => {
   try {
@@ -117,9 +374,9 @@ router.get('/api/dashboard/stats', async (req, res) => {
 
     // Example: aggregate counts for users, orders, products, recent revenue
     const usersRes = await pool.request().query(`SELECT COUNT(*) AS cnt FROM User_tbl`);
-    const ordersRes = await pool.request().query(`SELECT COUNT(*) AS cnt FROM Orders`);
+    const ordersRes = await pool.request().query(`SELECT COUNT(*) AS cnt FROM Orders_tbl`);
     const productsRes = await pool.request().query(`SELECT COUNT(*) AS cnt FROM Products_tbl`);
-    const revenueRes = await pool.request().query(`SELECT ISNULL(SUM(TotalAmount),0) AS totalRevenue FROM Orders WHERE CreatedAt >= DATEADD(day, -30, GETDATE())`);
+    const revenueRes = await pool.request().query(`SELECT ISNULL(SUM(Total),0) AS totalRevenue FROM Orders_tbl WHERE PlacedAt >= DATEADD(day, -30, GETDATE())`);
 
     const users = normalizeResult(usersRes)[0];
     const orders = normalizeResult(ordersRes)[0];

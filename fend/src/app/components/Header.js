@@ -10,16 +10,34 @@ import {
   Skeleton,
   Alert,
   Fade,
+  Popover,
+  List,
+  ListItem,
+  ListItemAvatar,
+  ListItemText,
+  Divider,
+  Stack,
 } from "@mui/material";
 import Link from "next/link";
+import { fetchCart, checkoutCart, fetchSession } from "../lib/apiClient";
 
-export default function Header() {
-  const [header, setHeader] = useState(null);
-  const [loading, setLoading] = useState(true);
+export default function Header({ initialHeader = null, disableNav = false }) {
+  const [header, setHeader] = useState(initialHeader);
+  const [loading, setLoading] = useState(!initialHeader);
   const [error, setError] = useState(null);
   const [fadeIn, setFadeIn] = useState(false); // controls fade
+  const [cartAnchor, setCartAnchor] = useState(null);
+  const [cartItems, setCartItems] = useState([]);
+  const [cartSubtotal, setCartSubtotal] = useState(0);
+  const [cartLoading, setCartLoading] = useState(false);
+  const [cartError, setCartError] = useState("");
 
   useEffect(() => {
+    if (initialHeader) {
+      setFadeIn(true);
+      return;
+    }
+
     const apiUrl = process.env.NEXT_PUBLIC_API_URL || "http://localhost:5000";
 
     fetch(`${apiUrl}/api/header`)
@@ -36,7 +54,51 @@ export default function Header() {
         setError("Failed to load header.");
       })
       .finally(() => setLoading(false));
-  }, []);
+  }, [initialHeader]);
+
+  const handleNav = (href) => (e) => {
+    if (disableNav) {
+      e.preventDefault();
+      e.stopPropagation();
+    }
+  };
+
+  const loadCart = async () => {
+    setCartError("");
+    setCartLoading(true);
+    try {
+      const session = await fetchSession();
+      if (!session) throw new Error("Sign in to view cart");
+      const cart = await fetchCart();
+      setCartItems(cart.items || []);
+      setCartSubtotal(cart.subtotal || 0);
+    } catch (err) {
+      setCartError(err.message || "Unable to load cart");
+    } finally {
+      setCartLoading(false);
+    }
+  };
+
+  const handleCartClick = (event) => {
+    if (disableNav) return;
+    setCartAnchor(event.currentTarget);
+    loadCart();
+  };
+
+  const handleCartClose = () => {
+    setCartAnchor(null);
+  };
+
+  const cartOpen = Boolean(cartAnchor);
+
+  const handleCheckout = async () => {
+    try {
+      await checkoutCart();
+      window.location.href = "/cart";
+    } catch (err) {
+      setCartError(err.message || "Checkout failed");
+    }
+  };
 
   // ❌ Error State
   if (error) {
@@ -86,14 +148,89 @@ export default function Header() {
               ))
             : (
                 <>
-                  <Button component={Link} href="/" color="inherit">{header.Home}</Button>
-                  <Button component={Link} href="/blog" color="inherit">{header.Blog}</Button>
-                  <Button component={Link} href="/shop" color="inherit">{header.Shop}</Button>
-                  <Button component={Link} href="/aboutus" color="inherit">{header.AboutUs}</Button>
+                  <Button component={Link} href="/" color="inherit" onClick={handleNav("/")}>
+                    {header.Home}
+                  </Button>
+                  <Button component={Link} href="/blog" color="inherit" onClick={handleNav("/blog")}>
+                    {header.Blog}
+                  </Button>
+                  <Button component={Link} href="/shop" color="inherit" onClick={handleNav("/shop")}>
+                    {header.Shop}
+                  </Button>
+                  <Button component={Link} href="/aboutus" color="inherit" onClick={handleNav("/aboutus")}>
+                    {header.AboutUs}
+                  </Button>
+                  <Button color="primary" variant="outlined" sx={{ ml: 1 }} onClick={handleCartClick}>
+                    Cart
+                  </Button>
+                  <Button component={Link} href="/account" color="primary" variant="contained" sx={{ ml: 1, borderRadius: 2 }} onClick={handleNav("/account")}>
+                    Account
+                  </Button>
                 </>
               )}
         </Box>
       </Toolbar>
+      <Popover
+        open={cartOpen}
+        anchorEl={cartAnchor}
+        onClose={handleCartClose}
+        anchorOrigin={{ vertical: "bottom", horizontal: "right" }}
+        transformOrigin={{ vertical: "top", horizontal: "right" }}
+        PaperProps={{
+          sx: { width: 360, p: 1.5, borderRadius: 2, boxShadow: 3 },
+        }}
+      >
+        <Typography sx={{ fontWeight: 700, mb: 1 }}>Cart</Typography>
+        {cartLoading ? (
+          <Typography sx={{ color: "text.secondary", fontSize: 14 }}>Loading...</Typography>
+        ) : cartError ? (
+          <Typography sx={{ color: "error.main", fontSize: 14 }}>{cartError}</Typography>
+        ) : cartItems.length === 0 ? (
+          <Typography sx={{ color: "text.secondary", fontSize: 14 }}>Cart is empty</Typography>
+        ) : (
+          <>
+            <List dense disablePadding>
+              {cartItems.map((item) => (
+                <ListItem key={item.productId} disableGutters>
+                  <ListItemAvatar>
+                    <Avatar
+                      src={item.image || undefined}
+                      alt={item.title || "item"}
+                      variant="rounded"
+                      sx={{ width: 40, height: 40, mr: 1 }}
+                    />
+                  </ListItemAvatar>
+                  <ListItemText
+                    primary={item.title || "Item"}
+                    secondary={`Qty ${item.quantity} · $${(item.price || 0).toFixed ? item.price.toFixed(2) : item.price}`}
+                    primaryTypographyProps={{ fontWeight: 600, fontSize: 14 }}
+                    secondaryTypographyProps={{ fontSize: 12 }}
+                  />
+                </ListItem>
+              ))}
+            </List>
+            <Divider sx={{ my: 1 }} />
+            <Stack direction="row" alignItems="center" justifyContent="space-between">
+              <Typography sx={{ fontWeight: 700 }}>Subtotal</Typography>
+              <Typography sx={{ fontWeight: 700 }}>${(cartSubtotal || 0).toFixed(2)}</Typography>
+            </Stack>
+            <Stack direction="row" spacing={1} sx={{ mt: 1 }}>
+              <Button
+                fullWidth
+                variant="outlined"
+                component={Link}
+                href="/cart"
+                onClick={handleNav("/cart")}
+              >
+                View cart
+              </Button>
+              <Button fullWidth variant="contained" onClick={handleCheckout}>
+                Checkout
+              </Button>
+            </Stack>
+          </>
+        )}
+      </Popover>
     </AppBar>
   );
 }

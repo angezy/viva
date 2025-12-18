@@ -18,7 +18,8 @@ export function verifyToken(token) {
 export function cookieOptions() {
   return {
     httpOnly: true,
-    secure: process.env.NODE_ENV,
+    // ensure secure is a boolean (true in production)
+    secure: process.env.NODE_ENV === 'production',
     path: '/',
     sameSite: 'lax',
     maxAge: 60 * 60 * 8, 
