@@ -166,7 +166,10 @@ export default function ShopPage() {
                 <Grid item xs={12} sm={6} md={4} key={product.id ?? product.PID ?? title}>
                   <Card
                     sx={{
-                      height: "100%",
+                      width: 300,
+                      minWidth: 300,
+                      maxWidth: 300,
+                      height: 500,
                       borderRadius: 4,
                       overflow: "hidden",
                       background: "linear-gradient(180deg, rgba(15,23,42,0.95), rgba(2,6,23,0.9))",

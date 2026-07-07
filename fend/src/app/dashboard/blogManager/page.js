@@ -319,10 +319,10 @@ export default function BlogManager() {
                 <Grid item xs={12} sm={6} md={4} lg={3} key={post.id} sx={{ display: "flex" }}>
                   <Card
                     sx={{
-                      height: BLOG_CARD_HEIGHT,
+                      width: "300px",
+                      height: "300px",
                       display: "flex",
                       flexDirection: "column",
-                      width: "100%",
                       overflow: "hidden",
                       borderRadius: 4,
                       border: "1px solid rgba(15,23,42,0.12)",

@@ -206,26 +206,39 @@ export default function HeroSection({ initialContent = null, onEdit = {} }) {
         fontFamily: "'Space Grotesk','Segoe UI',sans-serif",
       }}
     >
-      <Box sx={{ maxWidth: 1200, mx: "auto", px: { xs: 2, md: 4 }, py: 6 }}>
-        <Box
-          sx={{
-            bgcolor: "#2563eb",
-            color: "white",
-            borderRadius: 2,
-            px: 3,
-            py: 1.5,
-            textAlign: "center",
-            fontWeight: 700,
-            letterSpacing: 1,
-            mb: 3,
-            position: "relative",
-          }}
-        >
-          {renderEditButton("banner")}
-          {data.bannerText || FALLBACK.bannerText}
-        </Box>
+      <Box
+        sx={{
+          maxWidth: 1200,
+          mx: "auto",
+          px: { xs: 2, md: 4 },
+          pt: 6,
+          mb: 3,
+          bgcolor: "#2563eb",
+          color: "white",
+          borderRadius: 2,
+          py: 1.5,
+          textAlign: "center",
+          fontWeight: 700,
+          letterSpacing: 1,
+          position: "relative",
+        }}
+      >
+        {renderEditButton("banner")}
+        {data.bannerText || FALLBACK.bannerText}
+      </Box>
 
-        <Grid container spacing={3}>
+      <Grid
+        container
+        spacing={3}
+        sx={{
+          maxWidth: 1200,
+          mx: "auto",
+          px: { xs: 2, md: 4 },
+          mb: 3,
+          textAlign: "center",
+          flexWrap: "nowrap",
+        }}
+      >
           <Grid item xs={12} md={6}>
             <Card
               sx={{
@@ -311,6 +324,7 @@ export default function HeroSection({ initialContent = null, onEdit = {} }) {
           </Grid>
         </Grid>
 
+      <Box sx={{ maxWidth: 1200, mx: "auto", px: { xs: 2, md: 4 }, pb: 6 }}>
         <Box sx={{ my: 4 }}>
           <Card
             sx={{
@@ -418,32 +432,58 @@ export default function HeroSection({ initialContent = null, onEdit = {} }) {
                 <Grid item xs={12} sm={6} md={3} key={title}>
                   <Card
                     sx={{
+                      width: { xs: "100%", sm: 300 },
+                      minWidth: 300,
+                      maxWidth: 300,
+                      height: 500,
                       borderRadius: 2.5,
                       overflow: "hidden",
                       bgcolor: "#0a0f1c",
                       border: "1px solid rgba(255,255,255,0.08)",
                       position: "relative",
+                      display: "flex",
+                      flexDirection: "column",
                     }}
                   >
                     {renderEditButton("products")}
                     <CardMedia
                       component="img"
-                      height="180"
+                      height="220"
                       image={img || "https://placehold.co/400x300?text=Product"}
                       alt={alt}
                       sx={{ objectFit: "cover" }}
                     />
-                    <CardContent>
-                      <Typography sx={{ fontWeight: 700 }}>{title}</Typography>
-                      <Typography color="primary.light">{price}</Typography>
-                      <Button
-                        variant="contained"
-                        size="small"
-                        href="/cart"
-                        sx={{ mt: 1.5, borderRadius: 1.5, textTransform: "none" }}
+                    <CardContent sx={{ flexGrow: 1, display: "flex", flexDirection: "column" }}>
+                      <Typography
+                        sx={{
+                          fontWeight: 700,
+                          color: "#fff",
+                          fontSize: "0.85rem",
+                          lineHeight: 1.25,
+                          display: "-webkit-box",
+                          WebkitLineClamp: 2,
+                          WebkitBoxOrient: "vertical",
+                          overflow: "hidden",
+                          textOverflow: "ellipsis",
+                          whiteSpace: "normal",
+                          mb: 1,
+                        }}
                       >
-                        Add to cart
-                      </Button>
+                        {title}
+                      </Typography>
+                      <Typography sx={{ color: "rgba(255,255,255,0.8)", fontSize: "0.85rem", mb: 1 }}>
+                        {price}
+                      </Typography>
+                      <Box sx={{ mt: "auto" }}>
+                        <Button
+                          variant="contained"
+                          size="small"
+                          href="/cart"
+                          sx={{ mt: 1.5, borderRadius: 1.5, textTransform: "none" }}
+                        >
+                          Add to cart
+                        </Button>
+                      </Box>
                       {gallery.length > 1 && (
                         <Box
                           sx={{
@@ -493,6 +533,8 @@ export default function HeroSection({ initialContent = null, onEdit = {} }) {
                 <Grid item xs={12} sm={6} md={3} key={`${shot.video || shot.src || "action"}-${idx}`}>
                   <Box
                     sx={{
+                      height: "300px",
+                      width: "250px",
                       position: "relative",
                       borderRadius: 2,
                       overflow: "hidden",

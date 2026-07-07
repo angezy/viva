@@ -141,10 +141,13 @@ export default function BlogSection({ initialContent = null, onEdit = {} }) {
               <Grid item xs={12} sm={6} md={4} key={post.id || post.title}>
                 <Card
                   sx={{
+                    width: 300,
+                    minWidth: 300,
+                    maxWidth: 300,
+                    height: 500,
                     borderRadius: 3,
                     bgcolor: "#0f1628",
                     border: "1px solid rgba(255,255,255,0.08)",
-                    height: "100%",
                     display: "flex",
                     flexDirection: "column",
                   }}

@@ -14,6 +14,7 @@ export default async function DashboardLayout({ children }) {
     // avoid printing the whole token in logs; show first/last parts
     const tokenPreview = token ? `${token.slice(0, 10)}...${token.slice(-6)}` : null
     console.log('[dashboard/layout] token present:', !!token, 'preview:', tokenPreview)
+    console.log('[dashboard/layout] JWT_SECRET present:', !!process.env.JWT_SECRET)
   } catch (e) {
     console.log('[dashboard/layout] token preview error', e && e.message)
   }

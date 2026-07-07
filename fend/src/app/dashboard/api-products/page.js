@@ -352,7 +352,7 @@ export default function ApiProductsPage() {
           ) : (
             <Stack spacing={2}>
               {rows.map((row) => (
-                <Card key={row.pid} variant="outlined" sx={{ height: IMPORT_CARD_HEIGHT, width: "100%", overflow: "hidden" }}>
+                <Card key={row.pid} variant="outlined" sx={{ height: "300px", width: "500px", overflow: "hidden" }}>
                   <CardContent sx={{ height: "100%" }}>
                     <Box
                       sx={{

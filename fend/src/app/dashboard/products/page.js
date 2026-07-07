@@ -288,7 +288,7 @@ export default function Products() {
             Product Manager
           </Typography>
           <Typography variant="body2" color="text.secondary">
-            Manage your products â€” edit details, update images, or delete items.
+            Manage your products and edit details, update images, or delete items.
           </Typography>
         </Box>
         <Box>
@@ -339,7 +339,7 @@ export default function Products() {
           ) : (
             products.map((p) => (
               <Grid key={p.id} item xs={12} sm={6} md={4} sx={{ display: "flex" }}>
-                <Card sx={{ height: CARD_HEIGHT, width: "100%", display: "flex", flexDirection: "column", overflow: "hidden" }}>
+                <Card sx={{ height: "300px", width: "300px", display: "flex", flexDirection: "column", overflow: "hidden" }}>
                   <CardContent sx={{ flexGrow: 1, minHeight: 0, overflow: "hidden", display: "flex", flexDirection: "column", gap: 1 }}>
                     <Stack direction="row" spacing={2} alignItems="flex-start">
                       <Box
