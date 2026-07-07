@@ -4,13 +4,15 @@
         "dev": "npx nodemon server.js"
     },
     "dependencies": {
-        "apollo-server-express": "^3.13.0",
+        "@apollo/server": "^5.5.1",
         "bcrypt": "^6.0.0",
         "cookie-parser": "^1.4.7",
         "cors": "^2.8.5",
         "country-state-city": "^3.2.1",
+        "dotenv": "^16.4.5",
         "express": "^4.21.2",
         "graphql": "^16.11.0",
+        "graphql-tag": "^2.12.0",
         "jsonwebtoken": "^9.0.2",
         "mssql": "^3.3.0",
         "multer": "^1.4.5-lts.1",

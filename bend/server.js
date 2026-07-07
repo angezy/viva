@@ -5,7 +5,8 @@ const express = require("express");
 const cors = require("cors");
 const bodyParser = require("body-parser");
 const cookieParser = require("cookie-parser");
-const { ApolloServer } = require("apollo-server-express");
+const { ApolloServer } = require("@apollo/server");
+const { expressMiddleware } = require("@apollo/server/express4");
 const { typeDefs, resolvers } = require("./graphqlSchema.js");
 const router = require("./routes/homeroute");
 
@@ -37,7 +38,7 @@ console.log('Backend startup: JWT_SECRET present=', !!process.env.JWT_SECRET);
 async function startApolloServer() {
 	const server = new ApolloServer({ typeDefs, resolvers });
 	await server.start();
-	server.applyMiddleware({ app });
+	app.use("/graphql", expressMiddleware(server));
 }
 
 startApolloServer();
