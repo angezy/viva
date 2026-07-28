@@ -88,6 +88,9 @@ The easiest way to set up the entire database schema is to run the comprehensive
    ```bash
    sqlcmd -S your_server -U your_user -P your_password -i "scripts\create_database.sql"
    ```
+   linux
+   ```bash
+   sqlcmd -S tcp:yourserver -U yourusername -C -b -i ./scripts/create_database.sql ```
    
    **Using SSMS:**
    - Open SQL Server Management Studio
