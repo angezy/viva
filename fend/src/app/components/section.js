@@ -19,7 +19,7 @@ import PlayArrowIcon from "@mui/icons-material/PlayArrow";
 import EditIcon from "@mui/icons-material/Edit";
 import Link from "next/link";
 
-const API_BASE_URL = process.env.NEXT_PUBLIC_API_BASE_URL || "http://localhost:5000";
+const API_BASE_URL = "";
 
 // Normalize various image shapes to a usable URL (supports DB /uploads paths)
 function resolveImage(value) {
@@ -140,7 +140,7 @@ export default function HeroSection({ initialContent = null, onEdit = {} }) {
   // Load products from backend DB for live site
   useEffect(() => {
     let mounted = true;
-    fetch("http://localhost:5000/api/shop")
+    fetch("/api/shop")
       .then((res) => (res.ok ? res.json() : Promise.reject()))
       .then((data) => {
         if (mounted && Array.isArray(data)) {

@@ -25,7 +25,7 @@ export default function CommentSection() {
 
   // Fetch comments
   useEffect(() => {
-    fetch("http://localhost:5000/api/comment")
+    fetch("/api/comment")
       .then((res) => res.json())
       .then((data) => {
         if (Array.isArray(data)) {
@@ -35,7 +35,7 @@ export default function CommentSection() {
             if (img) {
               fullImg = /^https?:\/\//i.test(img)
                 ? img
-                : `http://localhost:5000/${img.replace(/^\//, "")}`;
+                : `/${img.replace(/^\//, "")}`;
             }
             return {
               id: c.id ?? c.CommentId ?? null,
@@ -74,7 +74,7 @@ export default function CommentSection() {
       fd.append("email", email);
       if (file) fd.append("image", file);
 
-      const res = await fetch("http://localhost:5000/api/comment", {
+      const res = await fetch("/api/comment", {
         method: "POST",
         body: fd,
       });

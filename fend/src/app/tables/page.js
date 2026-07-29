@@ -21,7 +21,7 @@ export default function TablesPage() {
   const [viewRowsError, setViewRowsError] = useState(null);
 
   useEffect(() => {
-    fetch("http://localhost:5000/api/tables")
+    fetch("/api/tables")
       .then((res) => res.json())
       .then((data) => {
         setTables(data);
@@ -32,7 +32,7 @@ export default function TablesPage() {
         setLoading(false);
       });
 
-    fetch("http://localhost:5000/api/views")
+    fetch("/api/views")
       .then((res) => res.json())
       .then((data) => {
         setViews(data);
@@ -49,7 +49,7 @@ export default function TablesPage() {
     setViewRows([]);
     setViewRowsLoading(true);
     setViewRowsError(null);
-    fetch(`http://localhost:5000/api/table-values?schema=${view.TABLE_SCHEMA}&name=${view.TABLE_NAME}`)
+    fetch(`/api/table-values?schema=${view.TABLE_SCHEMA}&name=${view.TABLE_NAME}`)
       .then((res) => res.json())
       .then((data) => {
         setViewRows(data);
@@ -67,7 +67,7 @@ export default function TablesPage() {
     setTableRows([]);
     setRowsLoading(true);
     setRowsError(null);
-    fetch(`http://localhost:5000/api/table-values?schema=${table.TABLE_SCHEMA}&name=${table.TABLE_NAME}`)
+    fetch(`/api/table-values?schema=${table.TABLE_SCHEMA}&name=${table.TABLE_NAME}`)
       .then((res) => res.json())
       .then((data) => {
         setTableRows(data);

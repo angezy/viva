@@ -8,7 +8,7 @@ export default function ShopHeroBox() {
   const [fadeIn, setFadeIn] = useState(false);  // controls fade animation
 
   useEffect(() => {
-    fetch("http://localhost:5000/api/head")
+    fetch("/api/head")
       .then((res) => res.json())
       .then((data) => {
         setHead(data[0]);

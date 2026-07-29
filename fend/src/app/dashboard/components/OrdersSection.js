@@ -8,7 +8,7 @@ export default function OrdersSection({ loading: parentLoading }) {
 
   useEffect(() => {
     let mounted = true;
-    fetch("http://localhost:5000/api/dashboard/orders")
+    fetch("/api/dashboard/orders")
       .then((r) => r.json())
       .then((data) => {
         if (!mounted) return;

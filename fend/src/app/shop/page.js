@@ -27,7 +27,7 @@ export default function ShopPage() {
   const [notice, setNotice] = useState("");
 
   useEffect(() => {
-    fetch("http://localhost:5000/api/shop")
+    fetch("/api/shop")
       .then((res) => res.json())
       .then((data) => setProducts(Array.isArray(data) ? data : []))
       .catch((err) => console.error("Error fetching products:", err));

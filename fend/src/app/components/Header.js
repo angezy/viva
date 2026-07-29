@@ -38,9 +38,7 @@ export default function Header({ initialHeader = null, disableNav = false }) {
       return;
     }
 
-    const apiUrl = process.env.NEXT_PUBLIC_API_URL || "http://localhost:5000";
-
-    fetch(`${apiUrl}/api/header`)
+    fetch("/api/header")
       .then((res) => {
         if (!res.ok) throw new Error(`HTTP ${res.status}`);
         return res.json();

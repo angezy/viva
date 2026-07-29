@@ -10,7 +10,7 @@ export default function Footer() {
 
 
   useEffect(() => {
-    fetch("http://localhost:5000/api/footer")
+    fetch("/api/footer")
       .then((res) => res.json())
       .then((data) => {
         setFooter(data[0]);

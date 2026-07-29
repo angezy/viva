@@ -3,6 +3,7 @@ require('dotenv').config();
 
 const express = require("express");
 const cors = require("cors");
+const path = require("path");
 const bodyParser = require("body-parser");
 const cookieParser = require("cookie-parser");
 const { ApolloServer } = require("@apollo/server");
@@ -23,6 +24,7 @@ app.use(cors(corsOptions));
 app.options("*", cors(corsOptions));
 app.use(cookieParser());
 app.use(bodyParser.json());
+app.use("/uploads", express.static(path.join(__dirname, "public", "uploads")));
 app.use("/", router);
 
 // Simple request logging (development only)

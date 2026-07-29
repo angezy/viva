@@ -14,7 +14,7 @@ export default function MostChosenScroll() {
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    fetch("http://localhost:5000/api/mostchosen")
+    fetch("/api/mostchosen")
       .then((res) => res.json())
       .then((data) => {
         setItems(data.slice(0, 8));

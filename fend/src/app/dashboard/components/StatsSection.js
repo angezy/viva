@@ -9,7 +9,7 @@ export default function StatsSection({ loading: parentLoading }) {
   useEffect(() => {
     let mounted = true;
     setLoading(true);
-    fetch("http://localhost:5000/api/dashboard/stats")
+    fetch("/api/dashboard/stats")
       .then((r) => r.json())
       .then((data) => {
         if (!mounted) return;

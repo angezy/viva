@@ -1,36 +1,35 @@
-This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://nextjs.org/docs/app/api-reference/cli/create-next-app).
+# Viva frontend
 
-## Getting Started
+The browser only calls same-origin paths such as `/api/products`. Next.js
+proxies those requests to the Express backend, so a deployed visitor never
+tries to connect to `127.0.0.1` or `localhost` on their own device.
 
-First, run the development server:
+## Required server configuration
 
-```bash
-npm run dev
-# or
-yarn dev
-# or
-pnpm dev
-# or
-bun dev
+Copy `.env.example` to `.env.local` (or configure these variables in your
+hosting panel) on the **frontend server**:
+
+```env
+BACKEND_URL=https://api.your-domain.com
+JWT_SECRET=the-same-value-used-by-bend
 ```
 
-Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
+`BACKEND_URL` is read only by Next.js on the server. It can be an internal
+service address when both applications share a private network, for example
+`http://bend:5000`; it must be reachable from the frontend server, not from a
+visitor's browser. Do not prefix it with `NEXT_PUBLIC_`.
 
-You can start editing the page by modifying `app/page.js`. The page auto-updates as you edit the file.
+On the backend, configure its existing database variables (`DB_USER`,
+`DB_PASSWORD`, `DB_SERVER`, and `DB_DATABASE`) plus the same `JWT_SECRET`.
 
-This project uses [`next/font`](https://nextjs.org/docs/app/building-your-application/optimizing/fonts) to automatically optimize and load [Geist](https://vercel.com/font), a new font family for Vercel.
+## Run
 
-## Learn More
+```bash
+npm install
+npm run build
+npm start
+```
 
-To learn more about Next.js, take a look at the following resources:
-
-- [Next.js Documentation](https://nextjs.org/docs) - learn about Next.js features and API.
-- [Learn Next.js](https://nextjs.org/learn) - an interactive Next.js tutorial.
-
-You can check out [the Next.js GitHub repository](https://github.com/vercel/next.js) - your feedback and contributions are welcome!
-
-## Deploy on Vercel
-
-The easiest way to deploy your Next.js app is to use the [Vercel Platform](https://vercel.com/new?utm_medium=default-template&filter=next.js&utm_source=create-next-app&utm_campaign=create-next-app-readme) from the creators of Next.js.
-
-Check out our [Next.js deployment documentation](https://nextjs.org/docs/app/building-your-application/deploying) for more details.
+Set the environment variables before `npm run build` and restart the frontend
+after changing them. Uploaded files are served by the backend and exposed to
+the browser through the frontend's `/uploads/...` path.

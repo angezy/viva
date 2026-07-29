@@ -22,7 +22,7 @@ import EditIcon from "@mui/icons-material/Edit"
 import DeleteIcon from "@mui/icons-material/Delete"
 import AddIcon from "@mui/icons-material/Add"
 
-const API_BASE_URL = process.env.NEXT_PUBLIC_API_BASE_URL || "http://localhost:5000"
+const API_BASE_URL = ""
 const FALLBACK_IMAGE = "https://picsum.photos/seed/fallback/600/400"
 const CARD_HEIGHT = 300
 const CARD_THUMB_SIZE = 100

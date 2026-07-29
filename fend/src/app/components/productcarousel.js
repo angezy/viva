@@ -16,7 +16,7 @@ import "slick-carousel/slick/slick-theme.css";
 export default function ProductCarousel() {
   const [products, setProducts] = useState([]);
   const [loading, setLoading] = useState(true);
-  const apiBase = process.env.NEXT_PUBLIC_API_BASE_URL || "http://localhost:5000";
+  const apiBase = "";
 
   useEffect(() => {
     fetch(`${apiBase}/api/products`)

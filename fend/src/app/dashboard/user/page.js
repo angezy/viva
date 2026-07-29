@@ -57,7 +57,7 @@ export default function UsersPage() {
     setLoading(true);
     setError(null);
     try {
-      const res = await fetch("http://localhost:5000/api/dashboard/users", { credentials: "include" });
+      const res = await fetch("/api/dashboard/users", { credentials: "include" });
       if (!res.ok) throw new Error(`Request failed (${res.status})`);
       const data = await res.json();
       setUsers(Array.isArray(data) ? data : []);
@@ -373,7 +373,7 @@ export default function UsersPage() {
               if (!confirmDelete) return;
               setDeleting(true);
               try {
-                const res = await fetch(`http://localhost:5000/api/dashboard/users/${selected.id}`, {
+                const res = await fetch(`/api/dashboard/users/${selected.id}`, {
                   method: "DELETE",
                   credentials: "include",
                 });
@@ -400,7 +400,7 @@ export default function UsersPage() {
               if (!selected || !edit) return;
               setSaving(true);
               try {
-                const res = await fetch(`http://localhost:5000/api/dashboard/users/${selected.id}`, {
+                const res = await fetch(`/api/dashboard/users/${selected.id}`, {
                   method: "PATCH",
                   headers: { "Content-Type": "application/json" },
                   body: JSON.stringify(edit),

@@ -16,7 +16,7 @@ import {
   Typography,
 } from "@mui/material"
 
-const API_BASE_URL = process.env.NEXT_PUBLIC_API_BASE_URL || "http://localhost:5000"
+const API_BASE_URL = ""
 const IMPORT_CARD_HEIGHT = 300
 const IMPORT_THUMB_SIZE = 100
 const IMPORT_ACTIONS_HEIGHT = 56

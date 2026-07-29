@@ -8,7 +8,7 @@ export default function NotificationsSection({ loading: parentLoading }) {
 
   useEffect(() => {
     let mounted = true;
-    fetch("http://localhost:5000/api/dashboard/notifications")
+    fetch("/api/dashboard/notifications")
       .then((r) => r.json())
       .then((data) => {
         if (!mounted) return;

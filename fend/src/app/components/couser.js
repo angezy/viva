@@ -18,7 +18,7 @@ export default function MostChosenCarousel() {
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    fetch("http://localhost:5000/api/most-chosen")
+    fetch("/api/most-chosen")
       .then((res) => res.json())
       .then((data) => setItems(data))
       .catch((err) => console.error("Error fetching items:", err))

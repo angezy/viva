@@ -1,4 +1,6 @@
-export const API_BASE = process.env.NEXT_PUBLIC_API_BASE_URL || "http://localhost:5000";
+// Browser requests stay on the public frontend origin. Next.js proxies /api
+// server-side using BACKEND_URL, so a deployed browser never calls localhost.
+export const API_BASE = "";
 
 async function parseJsonSafe(res) {
   try {

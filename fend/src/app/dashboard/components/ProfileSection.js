@@ -10,7 +10,7 @@ export default function ProfileSection({ loading: parentLoading }) {
   useEffect(() => {
     let mounted = true;
     setLoading(true);
-    fetch('http://localhost:5000/api/dashboard/profile')
+    fetch('/api/dashboard/profile')
       .then((r) => r.json())
       .then((data) => {
         if (!mounted) return;
