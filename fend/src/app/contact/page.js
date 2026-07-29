@@ -19,10 +19,10 @@ export default function ContactPage() {
             Contact
           </Typography>
           <Typography variant="h4" fontWeight={800} gutterBottom>
-            Let's talk about your next release
+            Let&apos;s talk about your next release
           </Typography>
           <Typography sx={{ color: "rgba(255,255,255,0.75)", mb: 3 }}>
-            Tell us about your product, goals, and timeline. We'll get back within one business day.
+            Tell us about your product, goals, and timeline. We&apos;ll get back within one business day.
           </Typography>
           <Grid container spacing={2}>
             <Grid item xs={12} sm={6}>
