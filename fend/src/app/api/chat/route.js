@@ -44,14 +44,41 @@ function answerFor(message, config) {
   return config.fallback;
 }
 
+async function notifyHumanSupport(conversationId, message) {
+  const backendUrl = String(process.env.BACKEND_URL || "").trim().replace(/\/$/, "");
+  if (!backendUrl || !conversationId) return { humanSupport: false };
+  try {
+    const response = await fetch(`${backendUrl}/api/chat/notify`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ conversationId, message }),
+      cache: "no-store",
+    });
+    const data = await response.json().catch(() => ({}));
+    return response.ok ? data : { humanSupport: false };
+  } catch (error) {
+    console.warn("Telegram human-support notification failed:", error && error.message ? error.message : error);
+    return { humanSupport: false };
+  }
+}
+
 export async function POST(request) {
   try {
     const config = getChatConfig();
     if (!config.enabled) return NextResponse.json({ error: "Chat is currently unavailable" }, { status: 503 });
     const body = await request.json();
     const message = clean(body?.message);
+    const conversationId = clean(body?.conversationId).slice(0, 80);
     if (!message) return NextResponse.json({ error: "Message is required" }, { status: 400 });
-    return NextResponse.json({ reply: answerFor(message, config) });
+    const humanSupport = await notifyHumanSupport(conversationId, message);
+    const isHumanHandoff = Boolean(humanSupport.humanSupport);
+    return NextResponse.json({
+      reply: isHumanHandoff
+        ? "Thanks — your message has been sent to our support team. A team member will reply here shortly."
+        : answerFor(message, config),
+      conversationId,
+      humanSupport: isHumanHandoff,
+    });
   } catch (_error) {
     return NextResponse.json({ error: "Unable to answer right now" }, { status: 500 });
   }

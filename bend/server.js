@@ -14,6 +14,7 @@ const supportRouter = require("./routes/supportRoute");
 const adminOverviewRouter = require("./routes/adminOverviewRoute");
 const adminRecordsRouter = require("./routes/adminRecordsRoute");
 const reviewAdminRouter = require("./routes/reviewAdminRoute");
+const chatRouter = require("./routes/chatRoute");
 
 
 
@@ -34,6 +35,7 @@ app.use("/", adminOverviewRouter);
 app.use("/", adminRecordsRouter);
 app.use("/", reviewAdminRouter);
 app.use("/", supportRouter);
+app.use("/", chatRouter);
 app.use("/", router);
 
 // Simple request logging (development only)

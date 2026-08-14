@@ -26,9 +26,7 @@ import EditIcon from "@mui/icons-material/Edit";
 import LocalShippingOutlinedIcon from "@mui/icons-material/LocalShippingOutlined";
 import ReplayOutlinedIcon from "@mui/icons-material/ReplayOutlined";
 import SearchIcon from "@mui/icons-material/Search";
-import SendOutlinedIcon from "@mui/icons-material/SendOutlined";
 import defaultContent from "../../../data/help-center.json";
-import HelpChatWidget from "./HelpChatWidget";
 
 const quickActionIcons = [LocalShippingOutlinedIcon, LocalShippingOutlinedIcon, ReplayOutlinedIcon, DevicesOtherOutlinedIcon, ContactMailOutlinedIcon];
 
@@ -76,9 +74,6 @@ export default function HelpCenterSection({ initialContent = null, onEdit = {}, 
   const [query, setQuery] = useState("");
   const [expandedCategory, setExpandedCategory] = useState(0);
   const [expandedFaq, setExpandedFaq] = useState(0);
-  const [orderNumber, setOrderNumber] = useState("");
-  const [orderEmail, setOrderEmail] = useState("");
-  const [orderMessage, setOrderMessage] = useState("");
 
   useEffect(() => {
     if (initialContent) {
@@ -100,8 +95,6 @@ export default function HelpCenterSection({ initialContent = null, onEdit = {}, 
   const quickActions = data.quickActions || defaultContent.quickActions;
   const categories = Array.isArray(data.categories?.items) ? data.categories.items : [];
   const categoryContent = data.categories || defaultContent.categories;
-  const orderLookup = data.orderLookup || defaultContent.orderLookup;
-  const support = data.contactSupport || defaultContent.contactSupport;
   const faq = data.faq || defaultContent.faq;
   const faqItems = Array.isArray(faq.items) ? faq.items : [];
   const normalizedQuery = query.trim().toLowerCase();
@@ -113,15 +106,6 @@ export default function HelpCenterSection({ initialContent = null, onEdit = {}, 
     })
     .filter((category) => !normalizedQuery || String(category.title || "").toLowerCase().includes(normalizedQuery) || category.articles.length > 0);
   const visibleFaq = normalizedQuery ? faqItems.filter((item) => `${item.question} ${item.answer}`.toLowerCase().includes(normalizedQuery)) : faqItems;
-
-  const handleOrderLookup = (event) => {
-    event.preventDefault();
-    if (!orderNumber.trim() || !orderEmail.trim()) {
-      setOrderMessage("Enter your order number and checkout email to continue.");
-      return;
-    }
-    setOrderMessage("Order lookup is ready to connect to your live delivery status.");
-  };
 
   const openFaqAnswer = (event, article) => {
     const target = faqItems.find((item) => String(item.question || "").trim().toLowerCase() === String(article || "").trim().toLowerCase());
@@ -211,41 +195,6 @@ export default function HelpCenterSection({ initialContent = null, onEdit = {}, 
             ))}
             {normalizedQuery && visibleCategories.length === 0 && <Typography sx={{ color: "#607267", py: 3 }}>No matching help articles were found. Try another search or use the AI Concierge.</Typography>}
           </Box>
-        </Box>
-
-        <Box component="section" aria-labelledby="order-lookup-title" sx={{ bgcolor: "#e4efe6", borderRadius: { xs: 3, md: 4 }, p: { xs: 3, md: 5 }, mb: { xs: 8, md: 12 } }}>
-          <Label>{orderLookup.eyebrow}</Label>
-          <Typography id="order-lookup-title" component="h2" sx={{ fontWeight: 820, letterSpacing: "-0.04em", fontSize: { xs: "2rem", md: "3rem" }, mb: 1 }}>{orderLookup.title}</Typography>
-          <Typography sx={{ color: "#52645a", lineHeight: 1.8, mb: 3 }}>{orderLookup.copy}</Typography>
-          <Box component="form" onSubmit={handleOrderLookup} sx={{ display: "grid", gridTemplateColumns: { xs: "1fr", md: "1fr 1fr auto" }, gap: 1.25, alignItems: "center" }}>
-            <TextField label="Order Number" value={orderNumber} onChange={(event) => setOrderNumber(event.target.value)} size="small" fullWidth sx={{ bgcolor: "white" }} />
-            <TextField label="Email Address" type="email" value={orderEmail} onChange={(event) => setOrderEmail(event.target.value)} size="small" fullWidth sx={{ bgcolor: "white" }} />
-            <Button type="submit" variant="contained" endIcon={<ArrowForwardIcon />} sx={{ minHeight: 40, borderRadius: 999, bgcolor: "#12372a", textTransform: "none", fontWeight: 800 }}>{orderLookup.button}</Button>
-          </Box>
-          {orderMessage && <Typography role="status" sx={{ color: "#3e785e", fontSize: 13, mt: 1.5 }}>{orderMessage}</Typography>}
-        </Box>
-
-        <Box component="section" aria-labelledby="contact-support-title" sx={{ position: "relative", bgcolor: "#0e2b20", color: "white", borderRadius: { xs: 3, md: 5 }, p: { xs: 3, md: 6 }, mb: { xs: 8, md: 12 } }}>
-          <EditButton onClick={onEdit.contactSupport} editable={editable} />
-          <Grid container spacing={{ xs: 4, md: 6 }}>
-            <Grid item xs={12} md={5}>
-              <Label light>{support.eyebrow}</Label>
-              <Typography id="contact-support-title" component="h2" sx={{ fontWeight: 850, letterSpacing: "-0.05em", fontSize: { xs: "2.7rem", md: "4.2rem" }, lineHeight: 0.98, mb: 2 }}>{support.title}</Typography>
-              <Typography sx={{ color: "rgba(255,255,255,0.76)", lineHeight: 1.8, mb: 3 }}>{support.copy}</Typography>
-              <Stack spacing={1.5}>
-                <Box sx={{ display: "flex", gap: 1.5, alignItems: "flex-start" }}><ContactMailOutlinedIcon sx={{ color: "#a8d8b8", mt: 0.2 }} /><Box><Typography sx={{ fontWeight: 800 }}>{support.email}</Typography><Typography sx={{ color: "rgba(255,255,255,0.62)", fontSize: 13 }}>{support.emailNote}</Typography></Box></Box>
-                <Box sx={{ display: "grid", gridTemplateColumns: { xs: "1fr", sm: "repeat(2, minmax(0, 1fr))" }, gap: 1.5 }}>
-                  <Box sx={{ p: 2, border: "1px solid rgba(255,255,255,0.16)", borderRadius: 2.5, height: "100%" }}><Typography sx={{ fontWeight: 800, mb: 0.5 }}>{support.liveChatTitle}</Typography><Typography sx={{ color: "rgba(255,255,255,0.68)", fontSize: 14, lineHeight: 1.6, mb: 1.5 }}>{support.liveChatCopy}</Typography><HelpChatWidget floating={false} triggerLabel={support.liveChatButton || "Chat with Weluxo AI"} /></Box>
-                  <Box sx={{ p: 2, border: "1px solid rgba(255,255,255,0.16)", borderRadius: 2.5, height: "100%" }}><Typography sx={{ fontWeight: 800, mb: 0.5 }}>{support.telegramTitle}</Typography><Typography sx={{ color: "rgba(255,255,255,0.68)", fontSize: 14, lineHeight: 1.6, mb: 1.5 }}>{support.telegramCopy}</Typography><Button component={Link} href={support.telegramUrl || "#"} target="_blank" rel="noreferrer" variant="outlined" startIcon={<SendOutlinedIcon />} sx={{ color: "white", borderColor: "rgba(255,255,255,0.35)", borderRadius: 999, textTransform: "none" }}>{support.telegramButton}</Button></Box>
-                </Box>
-                <Box sx={{ mt: 1.5, p: 2, border: "1px solid rgba(168,216,184,0.35)", bgcolor: "rgba(168,216,184,0.08)", borderRadius: 2.5 }}>
-                  <Typography sx={{ fontWeight: 800, mb: 0.5 }}>My support tickets</Typography>
-                  <Typography sx={{ color: "rgba(255,255,255,0.68)", fontSize: 14, lineHeight: 1.6, mb: 1.5 }}>View your open requests, replies, and support history in the customer dashboard.</Typography>
-                  <Button component={Link} href="/account/support" variant="contained" startIcon={<ContactMailOutlinedIcon />} sx={{ bgcolor: "#cbe8d2", color: "#12372a", borderRadius: 999, textTransform: "none", fontWeight: 800, "&:hover": { bgcolor: "#e4f3e7" } }}>Open my tickets</Button>
-                </Box>
-              </Stack>
-            </Grid>
-          </Grid>
         </Box>
 
         <Box component="section" aria-labelledby="help-faq-title" sx={{ maxWidth: 920, mx: "auto", position: "relative", mb: { xs: 8, md: 12 } }}>

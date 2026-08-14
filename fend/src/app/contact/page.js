@@ -23,6 +23,8 @@ import {
   TextField,
   Typography,
 } from "@mui/material";
+import defaultHelpContent from "../../../data/help-center.json";
+import ContactSupportPanel from "../components/ContactSupportPanel";
 
 const topics = [
   "Order support",
@@ -301,6 +303,8 @@ function ContactPage() {
             </Stack>
           </Paper>
         </Box>
+
+        <ContactSupportPanel support={defaultHelpContent.contactSupport} />
 
         <Box sx={{ mt: { xs: 6, md: 9 }, mb: { xs: 2, md: 4 }, p: { xs: 2.5, md: 3 }, display: "flex", flexDirection: { xs: "column", sm: "row" }, justifyContent: "space-between", alignItems: { xs: "flex-start", sm: "center" }, gap: 2, borderTop: "1px solid #d8e1d8" }}>
           <Box><Typography sx={{ fontWeight: 820 }}>Prefer to find the answer yourself?</Typography><Typography sx={{ color: "#718078", fontSize: 13, mt: 0.5 }}>Browse shipping, returns, product, and account guidance.</Typography></Box>

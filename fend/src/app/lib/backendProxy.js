@@ -5,6 +5,7 @@ const FORWARDED_REQUEST_HEADERS = [
   "cookie",
   "user-agent",
   "x-forwarded-for",
+  "x-telegram-bot-api-secret-token",
 ];
 
 const FORWARDED_RESPONSE_HEADERS = [

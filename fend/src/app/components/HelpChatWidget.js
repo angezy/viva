@@ -17,11 +17,27 @@ const DEFAULT_CONFIG = {
   error: "I'm temporarily unavailable. Please try again.",
 };
 
+function getConversationId() {
+  if (typeof window === "undefined") return "";
+  try {
+    const saved = window.localStorage.getItem("weluxoChatConversationId");
+    if (saved) return saved;
+    const generated = window.crypto?.randomUUID?.() || `${Date.now()}-${Math.random().toString(36).slice(2)}-${Math.random().toString(36).slice(2)}`;
+    window.localStorage.setItem("weluxoChatConversationId", generated);
+    return generated;
+  } catch (_error) {
+    return `${Date.now()}-${Math.random().toString(36).slice(2)}-${Math.random().toString(36).slice(2)}`;
+  }
+}
+
 export default function HelpChatWidget({ floating = true, initialOpen = false, triggerLabel }) {
   const [open, setOpen] = useState(initialOpen);
   const [input, setInput] = useState("");
   const [sending, setSending] = useState(false);
   const [config, setConfig] = useState(DEFAULT_CONFIG);
+  const [conversationId] = useState(getConversationId);
+  const [humanSupportEnabled, setHumanSupportEnabled] = useState(false);
+  const [lastReplyId, setLastReplyId] = useState(0);
   const [messages, setMessages] = useState([
     { role: "assistant", text: DEFAULT_CONFIG.greeting },
   ]);
@@ -41,6 +57,37 @@ export default function HelpChatWidget({ floating = true, initialOpen = false, t
     return () => { active = false; };
   }, []);
 
+  useEffect(() => {
+    if (!humanSupportEnabled || !conversationId) return undefined;
+    let active = true;
+    let requestInFlight = false;
+
+    const pollReplies = async () => {
+      if (requestInFlight) return;
+      requestInFlight = true;
+      try {
+        const response = await fetch(`/api/chat/replies?conversationId=${encodeURIComponent(conversationId)}&afterId=${lastReplyId}`, { cache: "no-store" });
+        const data = await response.json().catch(() => ({}));
+        if (!active || !response.ok || !Array.isArray(data.messages) || data.messages.length === 0) return;
+        const replies = data.messages.filter((message) => message?.text).map((message) => ({ role: "assistant", text: message.text, messageId: message.id }));
+        if (!replies.length) return;
+        setMessages((current) => [...current, ...replies]);
+        setLastReplyId(Math.max(lastReplyId, ...replies.map((message) => Number(message.messageId) || 0)));
+      } catch (_error) {
+        // Polling is best effort; the normal chat remains usable if Telegram is offline.
+      } finally {
+        requestInFlight = false;
+      }
+    };
+
+    pollReplies();
+    const interval = window.setInterval(pollReplies, 3000);
+    return () => {
+      active = false;
+      window.clearInterval(interval);
+    };
+  }, [conversationId, humanSupportEnabled, lastReplyId]);
+
   async function sendMessage(event) {
     event?.preventDefault();
     const message = input.trim();
@@ -52,10 +99,14 @@ export default function HelpChatWidget({ floating = true, initialOpen = false, t
       const response = await fetch("/api/chat", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ message }),
+        body: JSON.stringify({ message, conversationId }),
       });
       const data = await response.json().catch(() => ({}));
       if (!response.ok) throw new Error(data.error || config.error);
+      if (data.humanSupport) {
+        setHumanSupportEnabled(true);
+        setConfig((current) => ({ ...current, title: "Weluxo Support", subtitle: "A team member will reply from Telegram" }));
+      }
       setMessages((current) => [...current, { role: "assistant", text: data.reply || config.error }]);
     } catch (error) {
       setMessages((current) => [...current, { role: "assistant", text: error.message || config.error }]);
