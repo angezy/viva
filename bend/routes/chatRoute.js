@@ -1,5 +1,6 @@
 const express = require("express");
 const sql = require("mssql");
+const crypto = require("crypto");
 const { getPool } = require("../utils/dbConnection");
 
 const router = express.Router();
@@ -174,6 +175,38 @@ router.post("/api/chat/notify", async (req, res) => {
   } catch (error) {
     console.error("POST /api/chat/notify", error && error.stack ? error.stack : error);
     res.status(502).json({ error: "Unable to notify Telegram" });
+  }
+});
+
+// Compatibility for older frontend builds that proxy /api/chat directly to Express.
+router.post("/api/chat", async (req, res) => {
+  const conversationId = validConversationId(req.body?.conversationId) || crypto.randomBytes(24).toString("hex");
+  const message = cleanText(req.body?.message);
+  if (!message) return res.status(400).json({ error: "Message is required" });
+  if (!isTelegramConfigured()) return res.status(503).json({ error: "Telegram support is not configured" });
+
+  try {
+    const pool = await ensureChatTables();
+    const messageId = await saveMessage(pool, { conversationId, senderType: "customer", contentText: message });
+    const telegramMessage = await sendTelegram("sendMessage", {
+      chat_id: telegramConfig().adminChatId,
+      text: notificationText(conversationId, message),
+      disable_web_page_preview: true,
+    });
+    if (messageId && telegramMessage?.message_id) {
+      await pool.request()
+        .input("MessageId", sql.BigInt, Number(messageId))
+        .input("TelegramMessageId", sql.BigInt, Number(telegramMessage.message_id))
+        .query("UPDATE dbo.chat_messages SET telegram_message_id = @TelegramMessageId WHERE message_id = @MessageId");
+    }
+    return res.json({
+      reply: "Thanks — your message has been sent to our support team. A team member will reply here shortly.",
+      conversationId,
+      humanSupport: true,
+    });
+  } catch (error) {
+    console.error("POST /api/chat compatibility", error && error.stack ? error.stack : error);
+    return res.status(502).json({ error: "Unable to notify Telegram" });
   }
 });
 
