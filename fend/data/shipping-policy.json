@@ -1,0 +1,43 @@
+{
+  "seo": {
+    "title": "Shipping Policy | Weluxo",
+    "description": "Learn how Weluxo shipping works, including processing, delivery estimates, tracking, customs, costs and delayed package support.",
+    "primaryKeyword": "Weluxo shipping policy",
+    "secondaryKeywords": "Weluxo delivery, international shipping, order tracking, customs and duties"
+  },
+  "hero": {
+    "eyebrow": "DELIVERY INFORMATION",
+    "title": "Shipping Policy",
+    "intro": "Weluxo works to provide reliable delivery information for customers shopping across international markets. This page explains order processing, delivery estimates, tracking, shipping costs, customs and what to do when a package is delayed."
+  },
+  "sections": [
+    { "title": "Global Shipping Overview", "body": "Weluxo serves customers in multiple markets, but delivery availability and options depend on the product, destination, stock location and carrier. The checkout flow is the final source for the shipping options and estimate available for your order." },
+    { "title": "Processing Time", "body": "After checkout, an order may go through verification, payment authorization, product preparation and fulfillment coordination before it is handed to a carrier. Processing time can vary by product and fulfillment partner; we do not promise an exact processing duration unless it is shown for a specific product or order." },
+    { "title": "Delivery Time Estimates", "body": "Delivery estimates vary by destination and product. The table below describes how customers should read the estimate rather than promising a universal delivery time. The checkout page and shipping information associated with your order take priority.", "table": {
+      "headers": ["Region", "Processing time", "Estimated delivery time"],
+      "rows": [
+        ["USA", "Order verification and preparation", "Shown at checkout; varies by product and destination"],
+        ["Canada", "Order verification and preparation", "Shown at checkout; varies by product and destination"],
+        ["Europe", "Order verification and preparation", "Shown at checkout; varies by product and destination"],
+        ["Australia", "Order verification and preparation", "Shown at checkout; varies by product and destination"],
+        ["International", "Order verification and preparation", "Shown at checkout; varies by product and destination"]
+      ]
+    } },
+    { "title": "Shipping Tracking", "body": "When a tracking number is created, it may appear in your account and tracking page. Carrier scans can take time to appear, particularly when a package is moving between facilities or crossing a border. If tracking has not updated or you need help, contact Weluxo with your order details." },
+    { "title": "Shipping Costs", "body": "Available shipping methods and costs are shown during checkout. Some orders may qualify for free shipping based on the offer, product or destination displayed at the time of purchase. Calculated shipping rates can vary by destination, package characteristics and carrier option." },
+    { "title": "Customs and Import Duties", "body": "International orders may be subject to customs duties, import taxes, brokerage charges or other destination fees. Unless the checkout or applicable law states otherwise, these charges are the customer’s responsibility. Customs processing can also affect delivery timing." },
+    { "title": "Delayed or Lost Packages", "body": "If a package is delayed, first review the latest carrier update and delivery address. Contact Weluxo support if the delivery estimate has passed or the carrier indicates a problem. We will review the available order and carrier information and explain the next step." },
+    { "title": "Incorrect Shipping Information", "body": "Customers are responsible for entering a complete and accurate delivery address. Contact Weluxo as soon as you notice an error. We cannot guarantee that an address can be changed after processing or shipment, and additional carrier charges may apply." },
+    { "title": "Multiple Item Orders", "body": "Items in one order may ship separately when they come from different fulfillment locations or become ready at different times. Tracking information may therefore be issued in more than one update." },
+    { "title": "Contact Shipping Support", "body": "For delivery questions, contact Weluxo support with your order number, delivery address and the latest tracking information available."
+    }
+  ],
+  "faq": {
+    "title": "Shipping Questions Answered",
+    "items": [
+      { "question": "How long does Weluxo shipping take?", "answer": "Delivery time varies by destination, product and fulfillment partner. The applicable estimate is shown during checkout and may change if a carrier or customs delay occurs." },
+      { "question": "Can I track my Weluxo order?", "answer": "When a tracking number is created, available updates can be viewed through your account and the tracking page." },
+      { "question": "Does Weluxo ship internationally?", "answer": "Weluxo supports customers across international markets, but availability depends on the product and destination. Review the shipping option shown at checkout for your order." }
+    ]
+  }
+}

@@ -1,0 +1,38 @@
+{
+  "seo": {
+    "title": "Terms & Conditions | Weluxo",
+    "description": "Read the terms that apply when you browse Weluxo, create an account, place an order or use our customer services.",
+    "primaryKeyword": "Weluxo terms and conditions",
+    "secondaryKeywords": "online shopping terms, ecommerce purchase terms, Weluxo orders"
+  },
+  "hero": {
+    "eyebrow": "CUSTOMER TERMS",
+    "title": "Terms & Conditions",
+    "intro": "These Terms & Conditions explain the rules that apply when you visit Weluxo, use our website, create an account or place an order. By using the website, you agree to follow these terms."
+  },
+  "sections": [
+    { "title": "Agreement to Terms", "body": "By accessing or using Weluxo, you agree to these Terms & Conditions and any policies linked from this page. If you do not agree, please do not use the website or place an order." },
+    { "title": "About Weluxo", "body": "Weluxo is a global ecommerce marketplace focused on discovering modern lifestyle, beauty technology, wellness and everyday technology products. Product availability, delivery options and fulfillment details may vary by item and destination." },
+    { "title": "Using Our Website", "body": "Customers may use the website for lawful shopping, account and support purposes. You are responsible for information submitted through your account and for keeping account credentials confidential. Do not misuse the website, interfere with its operation, attempt unauthorized access, submit harmful code or use automated methods that place unreasonable load on the service. Website availability may change as we maintain or improve the store." },
+    { "title": "Product Information", "body": "Weluxo works to present product descriptions, images, features, specifications, variants, availability and pricing accurately. Product colors and appearance can vary by device and product information may be updated. If a material error affects an order, we will work with the customer on an appropriate resolution before fulfillment where possible." },
+    { "title": "Orders and Purchases", "body": "An order request is submitted when you complete checkout. An order confirmation acknowledges that we received the request; it does not prevent Weluxo or a fulfillment partner from reviewing availability, payment authorization, shipping details or suspected fraud. We may cancel or adjust an order when a product is unavailable, information is materially incorrect, payment is not authorized or the order presents a security concern. Contact support promptly if you need to request cancellation before processing."
+    },
+    { "title": "Pricing and Payments", "body": "Prices and applicable shipping charges are shown during the purchase flow. Payment authorization is handled by the payment provider selected at checkout. Taxes, duties or other destination charges may apply according to the destination and applicable rules. If a pricing error is discovered, Weluxo may contact you before completing the order or issue a refund if the order cannot proceed." },
+    { "title": "Intellectual Property", "body": "Weluxo names, logos, design elements, website copy, images and other original content are owned by Weluxo or used with permission. You may view the website for personal shopping purposes, but you may not copy, modify, republish, sell or commercially exploit website content without written permission." },
+    { "title": "User Reviews and Customer Content", "body": "If you submit a review, image or other customer content, you confirm that you have the right to share it and that it is not unlawful, misleading, abusive or infringing. You give Weluxo permission to use, display and format that content for store, service and marketing purposes, subject to applicable law. Weluxo may remove content that violates these terms." },
+    { "title": "Third-Party Links", "body": "The website may link to services operated by third parties, including payment, delivery or social platforms. Weluxo is not responsible for the content, availability or privacy practices of third-party websites. Review their terms before using them." },
+    { "title": "Limitation of Liability", "body": "To the extent permitted by law, Weluxo is not responsible for indirect, incidental or consequential losses arising from use of the website or a product. Nothing in these terms limits rights or remedies that cannot legally be excluded, including applicable consumer protections." },
+    { "title": "Governing Rules", "body": "These terms are intended to be interpreted under the laws and mandatory consumer protections that apply to the relevant transaction and customer. Any dispute should first be raised with Weluxo so the parties can try to resolve it directly." },
+    { "title": "Changes to Terms", "body": "Weluxo may update these terms when our services, policies or legal requirements change. The current version will be posted on this page. Continued use of the website after an update means you accept the revised terms to the extent permitted by law." },
+    { "title": "Contact Information", "body": "Questions about these terms or an order can be sent through the Weluxo Contact Us page. Include your order number when asking about a purchase."
+    }
+  ],
+  "faq": {
+    "title": "Terms Questions Answered",
+    "items": [
+      { "question": "What happens after placing an order?", "answer": "Weluxo receives the checkout request, payment authorization is reviewed, and the order moves through confirmation and fulfillment steps. You can review available status information through your account or tracking page." },
+      { "question": "Can Weluxo change product prices?", "answer": "Prices may change before an order is placed. Once an order is submitted, Weluxo will address material pricing or availability errors with the customer before fulfillment where possible." },
+      { "question": "Are product images always exact?", "answer": "Product images are intended to represent the item, but color, scale and appearance may vary by device, lighting and product version. Review the product information and options shown on the product page." }
+    ]
+  }
+}

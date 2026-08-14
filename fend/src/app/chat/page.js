@@ -1,33 +1,15 @@
-"use client";
-import { useState } from "react";
+import HelpChatWidget from "../components/HelpChatWidget";
+import { Box, Container, Typography } from "@mui/material";
 
 export default function ChatPage() {
-  const [messages, setMessages] = useState([]);
-  const [input, setInput] = useState("");
-
-  const sendMessage = () => {
-    if (!input.trim()) return;
-    setMessages([...messages, input]);
-    setInput("");
-  };
-
   return (
-    <div style={{ padding: "20px" }}>
-      <h1 style={{ fontSize: "20px", fontWeight: "bold", marginBottom: "10px" }}>Mini Chat</h1>
-      <div style={{ border: "1px solid #ccc", padding: "10px", height: "250px", overflowY: "auto", marginBottom: "10px" }}>
-        {messages.map((msg, i) => (
-          <div key={i} style={{ marginBottom: "5px" }}>{msg}</div>
-        ))}
-      </div>
-      <div style={{ display: "flex", gap: "5px" }}>
-        <input
-          style={{ flex: 1, padding: "5px" }}
-          value={input}
-          onChange={(e) => setInput(e.target.value)}
-          placeholder="Type a message..."
-        />
-        <button style={{ padding: "5px 10px" }} onClick={sendMessage}>Send</button>
-      </div>
-    </div>
+    <Box component="main" sx={{ minHeight: "100vh", bgcolor: "#f6f9f5", color: "#12372a", py: { xs: 5, md: 9 } }}>
+      <Container maxWidth="sm">
+        <Typography sx={{ color: "#3e785e", fontWeight: 850, fontSize: 11, letterSpacing: "0.16em" }}>WELUXO AI CONCIERGE</Typography>
+        <Typography component="h1" sx={{ mt: 1, fontWeight: 850, fontSize: { xs: "2.8rem", md: "4rem" }, letterSpacing: "-0.06em", lineHeight: 0.98 }}>How can we help?</Typography>
+        <Typography sx={{ mt: 2, mb: 4, color: "#607267", lineHeight: 1.7 }}>Ask about orders, delivery, returns, payments, products, or account access.</Typography>
+        <Box sx={{ position: "relative", minHeight: 440, display: "flex", alignItems: "flex-start" }}><HelpChatWidget initialOpen floating={false} /></Box>
+      </Container>
+    </Box>
   );
 }

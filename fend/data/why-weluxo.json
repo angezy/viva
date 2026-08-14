@@ -1,0 +1,107 @@
+{
+  "hero": {
+    "eyebrow": "Why Weluxo",
+    "title": "Why Choose Weluxo?",
+    "subtitle": "We carefully select products based on quality, usefulness, design, and customer value. Every item is chosen with a purpose — to bring a better experience to your everyday life.",
+    "image": "https://images.unsplash.com/photo-1558008258-3256797b43f3?auto=format&fit=crop&w=1400&q=85",
+    "alt": "Modern smart home interior with connected technology"
+  },
+  "curatedProducts": {
+    "eyebrow": "01 / Curated Products",
+    "title": "Carefully Selected Innovation",
+    "copy": "The internet is full of products. Finding the right ones shouldn't be difficult.\n\nOur team searches for innovative, practical, and beautifully designed products that bring real value to your daily life."
+  },
+  "smartShopping": {
+    "eyebrow": "02 / Smart Shopping Experience",
+    "title": "A Better Way To Discover Products",
+    "items": [
+      "Carefully organized collections",
+      "Clear product information",
+      "Real customer feedback",
+      "Easy and secure checkout"
+    ]
+  },
+  "globalShipping": {
+    "eyebrow": "03 / Global Shipping",
+    "title": "Worldwide Delivery",
+    "copy": "Wherever you are, Weluxo works to bring innovative products closer to you.",
+    "cards": [
+      {
+        "title": "Global Reach",
+        "copy": "Shipping available to customers worldwide."
+      },
+      {
+        "title": "Order Tracking",
+        "copy": "Follow your order from dispatch to delivery."
+      },
+      {
+        "title": "Secure Delivery",
+        "copy": "Reliable shipping partners and protected packages."
+      }
+    ]
+  },
+  "customerSupport": {
+    "eyebrow": "04 / Customer Support",
+    "title": "Support You Can Count On",
+    "copy": "Our relationship doesn't end after your purchase.",
+    "items": [
+      "Responsive support team",
+      "Help with orders and products",
+      "Easy communication",
+      "Fast problem resolution"
+    ],
+    "links": [
+      {
+        "label": "Contact Support",
+        "url": "/contact"
+      },
+      {
+        "label": "Help",
+        "url": "/contact"
+      },
+      {
+        "label": "Track Order",
+        "url": "/tracking"
+      }
+    ]
+  },
+  "qualityFocus": {
+    "eyebrow": "05 / Quality Focus",
+    "title": "Quality Over Quantity",
+    "copy": "We focus on products that combine functionality, design, and everyday usefulness.",
+    "cards": [
+      {
+        "title": "Innovation",
+        "copy": "Modern solutions."
+      },
+      {
+        "title": "Functionality",
+        "copy": "Products that solve real problems."
+      },
+      {
+        "title": "Design",
+        "copy": "Made for modern lifestyles."
+      }
+    ]
+  },
+  "secureShopping": {
+    "eyebrow": "06 / Secure Shopping",
+    "title": "Shop With Confidence",
+    "items": [
+      "Secure Payments",
+      "Order Tracking",
+      "Easy Returns",
+      "Customer Support"
+    ]
+  },
+  "promise": {
+    "eyebrow": "07 / Our Promise",
+    "title": "The Weluxo Promise",
+    "copy": "We promise to make discovering innovative products simple, reliable, and enjoyable."
+  },
+  "finalCta": {
+    "title": "Ready to discover smarter living?",
+    "buttonText": "Explore Products",
+    "buttonUrl": "/shop"
+  }
+}

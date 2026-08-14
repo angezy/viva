@@ -14,6 +14,8 @@ import DialogTitle from "@mui/material/DialogTitle"
 import DialogContent from "@mui/material/DialogContent"
 import DialogActions from "@mui/material/DialogActions"
 import TextField from "@mui/material/TextField"
+import Checkbox from "@mui/material/Checkbox"
+import FormControlLabel from "@mui/material/FormControlLabel"
 import Box from "@mui/material/Box"
 import Snackbar from "@mui/material/Snackbar"
 import Tooltip from "@mui/material/Tooltip"
@@ -24,7 +26,7 @@ import AddIcon from "@mui/icons-material/Add"
 
 const API_BASE_URL = ""
 const FALLBACK_IMAGE = "https://picsum.photos/seed/fallback/600/400"
-const CARD_HEIGHT = 300
+const CARD_HEIGHT = 360
 const CARD_THUMB_SIZE = 100
 const CARD_ACTIONS_HEIGHT = 56
 const THUMB_SIZE = 44
@@ -79,8 +81,13 @@ const formatPrice = (value) => {
 const normalizeProduct = (product, index = 0) => {
   if (!product) return null
   const fallbackId = product.id ?? product.PID ?? product.pid ?? product.ProductId ?? `p-${Date.now()}-${index}`
-  const rawPrice = product.price ?? product.Price ?? product.cost ?? product.Cost
+  const rawSalePrice = product.salePrice ?? product.salesPrice ?? product.SellingPrice ?? product.price ?? product.Price ?? 0
+  const rawBuyPrice = product.buyPrice ?? product.costPrice ?? product.CostPrice ?? product.BuyPrice ?? product.cost ?? product.Cost ?? 0
   const rawStock = product.stock ?? product.Stock ?? product.quantity ?? product.Quantity
+  const salePrice = typeof rawSalePrice === "number" ? rawSalePrice : parseFloat(rawSalePrice) || 0
+  const buyPrice = typeof rawBuyPrice === "number" ? rawBuyPrice : parseFloat(rawBuyPrice) || 0
+  const stock = typeof rawStock === "number" ? rawStock : parseInt(rawStock, 10) || 0
+  const unitProfit = salePrice - buyPrice
 
   return {
     id: String(fallbackId),
@@ -93,8 +100,15 @@ const normalizeProduct = (product, index = 0) => {
       product.Img ??
       product.IMG ??
       FALLBACK_IMAGE,
-    price: typeof rawPrice === "number" ? rawPrice : parseFloat(rawPrice) || 0,
-    stock: typeof rawStock === "number" ? rawStock : parseInt(rawStock, 10) || 0,
+    price: salePrice,
+    salePrice,
+    buyPrice,
+    unitProfit,
+    marginPercent: salePrice > 0 ? (unitProfit / salePrice) * 100 : 0,
+    inventoryProfit: unitProfit * stock,
+    stock,
+    currency: product.currency ?? product.Currency ?? "USD",
+    isTrending: Boolean(product.isTrending ?? product.IsTrending ?? product.trending ?? product.Trending),
     category: product.category ?? product.Category ?? "General",
     brand: product.brand ?? product.Brand ?? "Generic",
     address: product.address ?? product.Address ?? "",
@@ -137,7 +151,7 @@ export default function Products() {
       } catch (err) {
         console.error("Failed to load products:", err)
         if (isMounted) {
-          setProducts(fallbackProducts)
+          setProducts(fallbackProducts.map((item, index) => normalizeProduct(item, index)).filter(Boolean))
           setError("Unable to load live products. Showing cached list.")
           setSnack({ open: true, message: "Loaded cached products" })
         }
@@ -159,9 +173,15 @@ export default function Products() {
     setCurrent({
       id: `p-${Date.now()}`,
       title: "",
+      sku: "",
       description: "",
       image: FALLBACK_IMAGE,
       price: 0,
+      salePrice: 0,
+      buyPrice: 0,
+      unitProfit: 0,
+      marginPercent: 0,
+      isTrending: false,
       stock: 0,
       category: "General",
       brand: "Generic",
@@ -217,12 +237,16 @@ export default function Products() {
     if (!current) return
     const sanitized = {
       ...current,
-      price: typeof current.price === "number" ? current.price : parseFloat(current.price) || 0,
+      salePrice: typeof current.salePrice === "number" ? current.salePrice : parseFloat(current.salePrice ?? current.price) || 0,
+      buyPrice: typeof current.buyPrice === "number" ? current.buyPrice : parseFloat(current.buyPrice) || 0,
       stock: typeof current.stock === "number" ? current.stock : parseInt(current.stock, 10) || 0,
       category: current.category && current.category.trim().length > 0 ? current.category : "General",
       brand: current.brand && current.brand.trim().length > 0 ? current.brand : "Generic",
       address: current.address && current.address.trim().length > 0 ? current.address.trim() : "",
     }
+    sanitized.price = sanitized.salePrice
+    sanitized.unitProfit = sanitized.salePrice - sanitized.buyPrice
+    sanitized.marginPercent = sanitized.salePrice > 0 ? (sanitized.unitProfit / sanitized.salePrice) * 100 : 0
     const numericId = Number(sanitized.id)
     const isExisting = Number.isFinite(numericId)
     try {
@@ -233,8 +257,13 @@ export default function Products() {
       }
       formData.append("title", sanitized.title)
       formData.append("name", sanitized.title)
+      formData.append("sku", sanitized.sku || "")
       formData.append("description", sanitized.description || "")
-      formData.append("price", String(sanitized.price))
+      formData.append("price", String(sanitized.salePrice))
+      formData.append("salePrice", String(sanitized.salePrice))
+      formData.append("buyPrice", String(sanitized.buyPrice))
+      formData.append("currency", String(sanitized.currency || "USD"))
+      formData.append("isTrending", String(Boolean(sanitized.isTrending)))
       formData.append("image", sanitized.image || "")
       formData.append("stock", String(sanitized.stock))
       formData.append("category", sanitized.category)
@@ -339,7 +368,7 @@ export default function Products() {
           ) : (
             products.map((p) => (
               <Grid key={p.id} item xs={12} sm={6} md={4} sx={{ display: "flex" }}>
-                <Card sx={{ height: "300px", width: "300px", display: "flex", flexDirection: "column", overflow: "hidden" }}>
+                <Card sx={{ height: `${CARD_HEIGHT}px`, width: "300px", display: "flex", flexDirection: "column", overflow: "hidden" }}>
                   <CardContent sx={{ flexGrow: 1, minHeight: 0, overflow: "hidden", display: "flex", flexDirection: "column", gap: 1 }}>
                     <Stack direction="row" spacing={2} alignItems="flex-start">
                       <Box
@@ -374,6 +403,11 @@ export default function Products() {
                           <Typography variant="caption" sx={{ px: 1, py: 0.25, border: "1px solid rgba(15,23,42,0.16)", borderRadius: 999 }}>
                             {p.category || "General"}
                           </Typography>
+                          {p.isTrending && (
+                            <Typography variant="caption" sx={{ px: 1, py: 0.25, borderRadius: 999, backgroundColor: "#0f766e", color: "#fff" }}>
+                              Trending
+                            </Typography>
+                          )}
                           <Typography variant="caption" sx={{ px: 1, py: 0.25, border: "1px solid rgba(15,23,42,0.16)", borderRadius: 999 }}>
                             {p.brand || "Generic"}
                           </Typography>
@@ -392,12 +426,25 @@ export default function Products() {
                     >
                       {p.description || "No description available."}
                     </Typography>
-                    <Stack direction="row" spacing={2}>
-                      <Typography variant="body1" fontWeight={600}>
-                        ${formatPrice(p.price)}
-                      </Typography>
-                      <Typography variant="body2" color="text.secondary">
-                        Stock: {Number.isFinite(p.stock) ? p.stock : 0}
+                    <Stack spacing={0.5}>
+                      <Stack direction="row" spacing={2} alignItems="baseline">
+                        <Typography variant="body1" fontWeight={700}>
+                          Sale: ${formatPrice(p.salePrice)}
+                        </Typography>
+                        <Typography variant="body2" color="text.secondary">
+                          Buy: ${formatPrice(p.buyPrice)}
+                        </Typography>
+                      </Stack>
+                      <Stack direction="row" spacing={2}>
+                        <Typography variant="body2" color={p.unitProfit >= 0 ? "success.main" : "error.main"} fontWeight={600}>
+                          Profit: ${formatPrice(p.unitProfit)} ({formatPrice(p.marginPercent)}%)
+                        </Typography>
+                        <Typography variant="body2" color="text.secondary">
+                          Stock: {Number.isFinite(p.stock) ? p.stock : 0}
+                        </Typography>
+                      </Stack>
+                      <Typography variant="caption" color="text.secondary">
+                        Inventory profit potential: ${formatPrice(p.inventoryProfit)}
                       </Typography>
                     </Stack>
                     {Array.isArray(p.images) && p.images.length > 0 && (
@@ -438,12 +485,44 @@ export default function Products() {
             <Box sx={{ mt: 1, display: "grid", gap: 2 }}>
               <TextField label="Product ID" value={current.id} fullWidth onChange={(e) => setCurrent({ ...current, id: e.target.value })} />
               <TextField label="Title" value={current.title} fullWidth onChange={(e) => setCurrent({ ...current, title: e.target.value })} />
+              <TextField label="SKU" value={current.sku ?? ""} fullWidth onChange={(e) => setCurrent({ ...current, sku: e.target.value })} helperText="Unique product identifier for inventory and accounting" />
               <TextField label="Category" value={current.category ?? ""} fullWidth onChange={(e) => setCurrent({ ...current, category: e.target.value })} />
               <TextField label="Brand" value={current.brand ?? ""} fullWidth onChange={(e) => setCurrent({ ...current, brand: e.target.value })} />
               <TextField label="Description" value={current.description} fullWidth multiline minRows={3} onChange={(e) => setCurrent({ ...current, description: e.target.value })} />
               <TextField label="Image URL" value={current.image} fullWidth onChange={(e) => setCurrent({ ...current, image: e.target.value })} />
               <TextField label="Address" value={current.address ?? ""} fullWidth onChange={(e) => setCurrent({ ...current, address: e.target.value })} />
-              <TextField label="Price" value={current.price} fullWidth onChange={(e) => setCurrent({ ...current, price: e.target.value })} />
+              <Stack direction={{ xs: "column", sm: "row" }} spacing={2}>
+                <TextField
+                  label="Sales price"
+                  type="number"
+                  value={current.salePrice ?? current.price ?? 0}
+                  fullWidth
+                  required
+                  onChange={(e) => setCurrent({ ...current, salePrice: e.target.value, price: e.target.value })}
+                  inputProps={{ min: 0, step: "0.01" }}
+                  helperText="Customer-facing price"
+                />
+                <TextField
+                  label="Buy price / cost"
+                  type="number"
+                  value={current.buyPrice ?? 0}
+                  fullWidth
+                  required
+                  onChange={(e) => setCurrent({ ...current, buyPrice: e.target.value })}
+                  inputProps={{ min: 0, step: "0.01" }}
+                  helperText="Supplier or landed unit cost"
+                />
+              </Stack>
+              <TextField
+                label="Currency"
+                value={current.currency ?? "USD"}
+                inputProps={{ maxLength: 3 }}
+                onChange={(e) => setCurrent({ ...current, currency: e.target.value.toUpperCase().slice(0, 3) })}
+              />
+              <FormControlLabel
+                control={<Checkbox checked={Boolean(current.isTrending)} onChange={(e) => setCurrent({ ...current, isTrending: e.target.checked })} />}
+                label="Show in Trending collection"
+              />
               <TextField
                 label="Stock"
                 type="number"

@@ -18,9 +18,9 @@ export default function ClientDashboardLayout({ children }) {
 
   return (
     <div style={{ display: 'flex', flexDirection: 'column', minHeight: '100vh', background: '#f8fafc' }}>
-      <div style={{ display: 'flex', flex: 1 }}>
+      <div style={{ display: 'flex', flex: 1, alignItems: 'stretch', background: '#f8fafc' }}>
         <Sidebar open={open} onClose={close} />
-        <main style={{ flex: 1, minHeight: '100vh', background: '#f8fafc' }}>
+        <main style={{ flex: 1, minWidth: 0, minHeight: '100vh', background: '#f8fafc' }}>
           <AppBar onToggleSidebar={toggle} onSignOut={signOut} />
           {children}
         </main>

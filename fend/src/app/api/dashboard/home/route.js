@@ -34,6 +34,10 @@ const DEFAULT_CONTENT = {
     cta: "Start Training",
   },
   bannerText: "Functional Fitness · Pro Gear · Coach Built Programs",
+  productsSection: {
+    announcement: "New drops land every Monday \u00b7 Build your stack and save more on bundles",
+    title: "Products",
+  },
   products: [
     {
       title: "Grip Trainer",

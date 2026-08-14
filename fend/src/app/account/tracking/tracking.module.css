@@ -1,0 +1,120 @@
+.page {
+  display: flex;
+  flex-direction: column;
+  gap: 18px;
+  color: #132019;
+}
+
+.loadingState, .emptyState {
+  padding: 32px;
+  border: 1px solid #dbe7dc;
+  border-radius: 22px;
+  background: rgba(255, 255, 255, 0.82);
+  color: #52645a;
+}
+
+.hero {
+  min-height: 250px;
+  position: relative;
+  overflow: hidden;
+  display: flex;
+  align-items: flex-end;
+  justify-content: space-between;
+  padding: 30px 34px;
+  border-radius: 24px;
+  background: #0e2b20;
+  color: #fff;
+  box-shadow: 0 20px 46px rgba(18, 55, 42, 0.2);
+}
+
+.heroGlow { position: absolute; width: 390px; height: 390px; right: -110px; top: -190px; border-radius: 50%; background: rgba(203, 232, 210, 0.16); }
+.heroContent, .heroMark { position: relative; z-index: 1; }
+.eyebrow, .sectionKicker { font-size: 10px; font-weight: 850; letter-spacing: .16em; text-transform: uppercase; }
+.eyebrow { color: #a8d8b8; margin-bottom: 16px; }
+.hero h1 { margin: 0; max-width: 620px; font-size: clamp(2.3rem, 6vw, 4.4rem); line-height: .94; letter-spacing: -.07em; }
+.hero h1 span { color: #cbe8d2; }
+.hero p { max-width: 480px; margin: 18px 0 0; color: rgba(255,255,255,.72); line-height: 1.65; }
+.heroMeta { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 22px; }
+.heroMeta span { padding: 7px 11px; border: 1px solid rgba(203,232,210,.26); border-radius: 999px; color: #cbe8d2; font-size: 11px; }
+.heroMark { display: flex; flex-direction: column; align-items: flex-end; color: #cbe8d2; }
+.heroMark span { font-size: 72px; font-weight: 900; letter-spacing: -.1em; line-height: .8; }
+.heroMark small { margin-top: 12px; color: rgba(255,255,255,.55); font-size: 9px; letter-spacing: .16em; }
+
+.lookupCard, .progressCard, .detailsCard, .timelineCard { border: 1px solid #dbe7dc; border-radius: 20px; background: rgba(255,255,255,.92); box-shadow: 0 12px 30px rgba(18,55,42,.06); }
+.lookupCard { padding: 24px; }
+.sectionKicker { color: #3e785e; }
+.lookupCard h2, .orderHeader h2 { margin: 6px 0 0; font-size: 24px; letter-spacing: -.04em; }
+.lookupCard p, .orderHeader p { margin: 5px 0 0; color: #6a7b70; font-size: 13px; }
+.lookupForm { margin-top: 22px; }
+.lookupForm label { display: block; margin-bottom: 8px; color: #52645a; font-size: 12px; font-weight: 800; }
+.inputRow { display: flex; gap: 10px; }
+.inputRow input { min-width: 0; flex: 1; height: 48px; padding: 0 15px; border: 1px solid #bfd3c2; border-radius: 12px; outline: none; color: #132019; background: #fbfdfb; font: inherit; }
+.inputRow input:focus { border-color: #3e785e; box-shadow: 0 0 0 4px rgba(62,120,94,.12); }
+.inputRow button, .signInCard a { border: 0; border-radius: 12px; padding: 0 18px; background: #12372a; color: white; font: inherit; font-weight: 850; cursor: pointer; }
+.inputRow button:disabled { cursor: wait; opacity: .7; }
+.recentOrders { display: flex; align-items: center; flex-wrap: wrap; gap: 8px; margin-top: 14px; color: #718278; font-size: 12px; }
+.recentOrders button { border: 1px solid #c9decd; border-radius: 999px; padding: 6px 10px; background: #f2f8f3; color: #28533c; cursor: pointer; font: inherit; font-weight: 750; }
+.error { margin-top: 14px; padding: 11px 13px; border-radius: 10px; background: #fff1f0; color: #b42318; font-size: 13px; }
+
+.signInCard { display: flex; justify-content: space-between; gap: 16px; align-items: center; padding: 18px 20px; border: 1px solid #e6d8b7; border-radius: 16px; background: #fffaf0; color: #533d1c; }
+.signInCard div { display: flex; flex-direction: column; gap: 4px; }
+.signInCard span { color: #7d6847; font-size: 12px; }
+.signInCard a { display: inline-flex; align-items: center; min-height: 40px; text-decoration: none; white-space: nowrap; }
+
+.resultStack { display: flex; flex-direction: column; gap: 14px; }
+.orderHeader { display: flex; align-items: flex-start; justify-content: space-between; gap: 16px; padding: 10px 2px; }
+.statusBadge { padding: 8px 12px; border-radius: 999px; background: #dcebe0; color: #24623f; font-size: 12px; font-weight: 850; }
+.summaryGrid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 1px; overflow: hidden; border: 1px solid #dbe7dc; border-radius: 18px; background: #dbe7dc; }
+.summaryGrid > div { display: flex; flex-direction: column; gap: 5px; min-height: 106px; padding: 18px; background: #f8fcf8; }
+.summaryGrid span, .summaryGrid small { color: #6a7b70; font-size: 11px; }
+.summaryGrid strong { color: #132019; font-size: 17px; }
+.contentGrid { display: grid; grid-template-columns: minmax(0, 1.5fr) minmax(290px, .8fr); gap: 14px; }
+.progressCard, .detailsCard, .timelineCard { padding: 22px; }
+.cardHeader { display: flex; justify-content: space-between; align-items: flex-start; gap: 12px; }
+.cardHeader h3 { margin: 5px 0 0; font-size: 20px; letter-spacing: -.035em; }
+.cardHeader > span, .cardHeader > strong { color: #3e785e; font-size: 13px; }
+.stepper { display: grid; grid-template-columns: repeat(3, 1fr); gap: 16px 10px; margin-top: 26px; }
+.step { display: flex; gap: 9px; min-width: 0; color: #91a098; }
+.stepDot { display: grid; flex: 0 0 28px; place-items: center; width: 28px; height: 28px; border-radius: 50%; border: 1px solid #c4d6c6; font-size: 10px; font-weight: 850; }
+.step strong, .step small { display: block; }
+.step strong { overflow: hidden; color: #718278; font-size: 12px; text-overflow: ellipsis; white-space: nowrap; }
+.step small { margin-top: 2px; font-size: 10px; }
+.step.complete, .step.current { color: #24623f; }
+.step.complete .stepDot, .step.current .stepDot { border-color: #3e785e; background: #12372a; color: #cbe8d2; }
+.step.current strong { color: #12372a; }
+.progressTrack { height: 5px; margin: 22px 5% 0; overflow: hidden; border-radius: 99px; background: #e3eee5; }
+.progressTrack span { display: block; height: 100%; border-radius: inherit; background: linear-gradient(90deg, #3e785e, #a8d8b8); transition: width .3s ease; }
+.items { display: flex; flex-direction: column; gap: 13px; margin-top: 20px; }
+.item { display: flex; gap: 10px; align-items: center; }
+.itemThumb { display: grid; flex: 0 0 38px; place-items: center; width: 38px; height: 38px; border-radius: 10px; background: #e4efe6; color: #3e785e; font-weight: 900; }
+.item div:nth-child(2) { display: flex; flex: 1; min-width: 0; flex-direction: column; gap: 2px; }
+.item strong { overflow: hidden; font-size: 12px; text-overflow: ellipsis; white-space: nowrap; }
+.item span, .item b { color: #718278; font-size: 11px; }
+.item b { color: #132019; }
+.muted { color: #718278; font-size: 13px; }
+.location { max-width: 170px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.timeline { display: grid; gap: 0; margin-top: 20px; }
+.timelineEvent { display: grid; grid-template-columns: 18px 1fr; gap: 11px; min-height: 67px; color: #718278; }
+.timelineRail { position: relative; display: flex; justify-content: center; }
+.timelineRail::after { position: absolute; top: 10px; bottom: -10px; width: 1px; background: #dbe7dc; content: ""; }
+.timelineEvent:last-child .timelineRail::after { display: none; }
+.timelineRail span { position: relative; z-index: 1; width: 9px; height: 9px; margin-top: 4px; border: 2px solid #a8c9af; border-radius: 50%; background: #fff; }
+.timelineLatest .timelineRail span { border-color: #3e785e; background: #3e785e; box-shadow: 0 0 0 4px #e4efe6; }
+.timelineEvent strong { color: #28533c; font-size: 13px; }
+.timelineEvent p { margin: 3px 0; color: #718278; font-size: 12px; }
+.timelineEvent small { color: #98a79e; font-size: 10px; }
+.emptyState { display: flex; align-items: center; gap: 16px; }
+.emptyState > span { color: #3e785e; font-size: 12px; font-weight: 900; }
+.emptyState p { margin: 4px 0 0; color: #718278; font-size: 12px; }
+.emptyState a { color: #24623f; font-weight: 800; }
+
+@media (max-width: 760px) {
+  .hero { min-height: 300px; padding: 25px; }
+  .heroMark { display: none; }
+  .inputRow { flex-direction: column; }
+  .inputRow button { min-height: 46px; }
+  .summaryGrid, .contentGrid { grid-template-columns: 1fr; }
+  .stepper { grid-template-columns: repeat(2, 1fr); }
+  .signInCard, .orderHeader { align-items: stretch; flex-direction: column; }
+  .signInCard a { justify-content: center; }
+}

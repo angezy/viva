@@ -16,13 +16,18 @@ export function verifyToken(token) {
 }
 
 export function cookieOptions() {
+  return getAuthCookieOptions(60 * 60 * 8);
+}
+
+export function getAuthCookieOptions(maxAge = 60 * 60) {
+  const domain = process.env.COOKIE_DOMAIN?.trim();
   return {
     httpOnly: true,
-    // ensure secure is a boolean (true in production)
     secure: process.env.NODE_ENV === 'production',
     path: '/',
     sameSite: 'lax',
-    maxAge: 60 * 60 * 8, 
+    maxAge,
+    ...(domain ? { domain } : {}),
   };
 }
 

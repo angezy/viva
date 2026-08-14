@@ -1,6 +1,8 @@
 .sidebar {
   width: 240px;
-  height: 100vh;
+  height: auto;
+  min-height: 100vh;
+  align-self: stretch;
   background: #ffffff;
   color: #0f172a;
   padding: 20px 16px;

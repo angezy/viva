@@ -1,0 +1,135 @@
+[
+  {
+    "SchemaName": "dbo",
+    "TableName": "checkout_attempts",
+    "ApproxRowCount": 0,
+    "create_date": "2026-08-09T13:48:21.84",
+    "modify_date": "2026-08-09T13:48:21.867"
+  },
+  {
+    "SchemaName": "dbo",
+    "TableName": "CjImportedProducts_tbl",
+    "ApproxRowCount": 0,
+    "create_date": "2026-07-28T20:14:31.483",
+    "modify_date": "2026-07-28T20:14:31.587"
+  },
+  {
+    "SchemaName": "dbo",
+    "TableName": "Comments",
+    "ApproxRowCount": 1,
+    "create_date": "2026-07-28T20:14:31.493",
+    "modify_date": "2026-07-28T20:14:31.493"
+  },
+  {
+    "SchemaName": "dbo",
+    "TableName": "DashboardSettings",
+    "ApproxRowCount": 2,
+    "create_date": "2026-07-30T16:04:00.673",
+    "modify_date": "2026-07-30T16:04:00.673"
+  },
+  {
+    "SchemaName": "dbo",
+    "TableName": "footer_tbl",
+    "ApproxRowCount": 1,
+    "create_date": "2026-07-28T20:14:31.5",
+    "modify_date": "2026-07-28T20:14:31.5"
+  },
+  {
+    "SchemaName": "dbo",
+    "TableName": "head_tbl",
+    "ApproxRowCount": 1,
+    "create_date": "2026-07-28T20:14:31.513",
+    "modify_date": "2026-07-30T16:04:00.61"
+  },
+  {
+    "SchemaName": "dbo",
+    "TableName": "header_tbl",
+    "ApproxRowCount": 1,
+    "create_date": "2026-07-28T20:14:31.523",
+    "modify_date": "2026-07-28T20:14:31.523"
+  },
+  {
+    "SchemaName": "dbo",
+    "TableName": "HomeContent_tbl",
+    "ApproxRowCount": 1,
+    "create_date": "2026-07-30T16:04:00.683",
+    "modify_date": "2026-07-30T16:04:00.683"
+  },
+  {
+    "SchemaName": "dbo",
+    "TableName": "Notifications",
+    "ApproxRowCount": 1,
+    "create_date": "2026-07-30T16:04:00.647",
+    "modify_date": "2026-07-30T16:04:00.647"
+  },
+  {
+    "SchemaName": "dbo",
+    "TableName": "Orders_tbl",
+    "ApproxRowCount": 1,
+    "create_date": "2026-07-28T20:14:31.533",
+    "modify_date": "2026-07-28T20:14:31.533"
+  },
+  {
+    "SchemaName": "dbo",
+    "TableName": "OrderTrackingEvents_tbl",
+    "ApproxRowCount": 0,
+    "create_date": "2026-08-10T18:15:07.983",
+    "modify_date": "2026-08-10T18:15:08.013"
+  },
+  {
+    "SchemaName": "dbo",
+    "TableName": "ProductAddress_tbl",
+    "ApproxRowCount": 1,
+    "create_date": "2026-07-28T20:14:31.547",
+    "modify_date": "2026-07-28T20:14:31.597"
+  },
+  {
+    "SchemaName": "dbo",
+    "TableName": "ProductImages_tbl",
+    "ApproxRowCount": 1,
+    "create_date": "2026-07-28T20:14:31.553",
+    "modify_date": "2026-07-28T20:14:31.6"
+  },
+  {
+    "SchemaName": "dbo",
+    "TableName": "Products_tbl",
+    "ApproxRowCount": 3,
+    "create_date": "2026-07-28T20:14:31.457",
+    "modify_date": "2026-07-28T20:14:31.61"
+  },
+  {
+    "SchemaName": "dbo",
+    "TableName": "ProductVideos_tbl",
+    "ApproxRowCount": 0,
+    "create_date": "2026-07-28T20:14:31.563",
+    "modify_date": "2026-07-28T20:14:31.607"
+  },
+  {
+    "SchemaName": "dbo",
+    "TableName": "ticket_events",
+    "ApproxRowCount": 0,
+    "create_date": "2026-08-10T07:41:59.523",
+    "modify_date": "2026-08-10T07:41:59.53"
+  },
+  {
+    "SchemaName": "dbo",
+    "TableName": "ticket_messages",
+    "ApproxRowCount": 0,
+    "create_date": "2026-08-10T07:41:59.517",
+    "modify_date": "2026-08-10T07:41:59.523"
+  },
+  {
+    "SchemaName": "dbo",
+    "TableName": "tickets",
+    "ApproxRowCount": 0,
+    "create_date": "2026-08-10T07:41:59.487",
+    "modify_date": "2026-08-10T07:41:59.513"
+  },
+  {
+    "SchemaName": "dbo",
+    "TableName": "User_tbl",
+    "ApproxRowCount": 2,
+    "create_date": "2026-07-28T20:14:31.57",
+    "modify_date": "2026-07-30T16:04:00.613"
+  }
+]

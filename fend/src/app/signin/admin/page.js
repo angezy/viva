@@ -2,8 +2,8 @@
 
 import { useState } from "react";
 import { useRouter } from "next/navigation";
-import Swal from "sweetalert2";
 import { loginRequest } from "../../lib/apiClient";
+import { toast } from "../../lib/notifications";
 
 export default function AdminSigninPage() {
   const router = useRouter();
@@ -18,11 +18,11 @@ export default function AdminSigninPage() {
     setLoading(true);
     try {
       await loginRequest(email, password, "admin");
-      Swal.fire({ icon: "success", title: "Welcome, admin", timer: 700, showConfirmButton: false });
+      toast.success("Welcome, admin", { duration: 700 });
       setTimeout(() => router.push("/dashboard"), 700);
     } catch (err) {
       setError(err.message || "Login failed");
-      Swal.fire({ icon: "error", title: "Login failed", text: err.message || "" });
+      toast.error("Login failed", { description: err.message || "Please try again." });
     } finally {
       setLoading(false);
     }

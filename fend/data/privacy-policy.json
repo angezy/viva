@@ -1,0 +1,90 @@
+{
+  "seo": {
+    "title": "Privacy Policy | Weluxo",
+    "description": "Learn how Weluxo collects, uses, protects and manages customer information across its global ecommerce experience.",
+    "primaryKeyword": "Weluxo privacy policy",
+    "secondaryKeywords": "customer privacy, ecommerce data protection, cookies, payment security"
+  },
+  "hero": {
+    "eyebrow": "PRIVACY & DATA",
+    "title": "Privacy Policy",
+    "intro": "Weluxo is committed to protecting customer privacy and creating a safe online shopping experience. This policy explains what information we collect, why we use it, and the choices available to you."
+  },
+  "sections": [
+    {
+      "title": "Introduction",
+      "body": "Weluxo is a global ecommerce platform focused on helping customers discover and purchase modern lifestyle and technology products. This Privacy Policy describes how information is handled when you visit our website, create an account, place an order, contact support, or otherwise use Weluxo services.\n\nWe aim to make our data practices understandable and customer-focused."
+    },
+    {
+      "title": "Information We Collect",
+      "body": "Weluxo may collect information you provide directly and information generated when you use the website.",
+      "bullets": [
+        "Personal information such as your name, email address, shipping address, billing information, phone number and account details.",
+        "Order and support information, including products purchased, delivery details and messages sent to our support team.",
+        "Technical information such as IP address, browser type, device information, cookies and website usage data."
+      ]
+    },
+    {
+      "title": "How We Use Customer Information",
+      "body": "Weluxo uses customer information for clear business and service purposes, including:",
+      "bullets": [
+        "Processing and fulfilling orders.",
+        "Providing customer support and responding to requests.",
+        "Improving the shopping experience, website performance and product discovery.",
+        "Personalizing recommendations where appropriate.",
+        "Detecting fraud, abuse and unauthorized activity.",
+        "Sending marketing communications when you have provided consent or where permitted by law."
+      ]
+    },
+    {
+      "title": "Cookies and Tracking Technologies",
+      "body": "Weluxo may use cookies and similar technologies to keep the website working and understand how customers use it.",
+      "bullets": [
+        "Essential cookies support account, cart, checkout and security functions.",
+        "Analytics cookies help us understand website usage and improve performance.",
+        "Marketing cookies may help measure campaigns or show more relevant communications where enabled.",
+        "Preference cookies remember choices such as language or display settings where available."
+      ]
+    },
+    {
+      "title": "Payment Information Security",
+      "body": "Payments are handled through secure payment providers available in the checkout flow. Weluxo uses appropriate technical and organizational safeguards for the information it controls and does not store full payment card details on its own systems. Payment providers may process information under their own privacy policies."
+    },
+    {
+      "title": "Third-Party Services",
+      "body": "Weluxo may share the minimum information needed with service providers that help operate the store, such as payment providers, shipping and fulfillment partners, analytics providers, customer support tools and marketing platforms. These providers receive information only for the services they perform and may have their own privacy notices."
+    },
+    {
+      "title": "Data Protection Rights",
+      "body": "Depending on where you live and the law that applies, you may be able to request access to, correction of, or deletion of personal information held by Weluxo. You may also opt out of marketing communications. Contact us to make a request; we may need to verify your identity before responding."
+    },
+    {
+      "title": "International Customers",
+      "body": "Weluxo serves customers across international markets. Information may be processed in countries where Weluxo or its service providers operate. When information moves across borders, we take steps required by applicable law and use service providers that are expected to protect the information they handle."
+    },
+    {
+      "title": "Children’s Privacy",
+      "body": "Weluxo is intended for adults and is not directed to children. We do not knowingly collect personal information from children in violation of applicable law. If you believe a child has provided information to us, contact support so we can review the request."
+    },
+    {
+      "title": "Data Security",
+      "body": "Weluxo uses reasonable safeguards designed to protect information from unauthorized access, loss, misuse or alteration. No online service can promise absolute security, so customers should use strong passwords and contact us promptly about suspicious account activity."
+    },
+    {
+      "title": "Policy Updates",
+      "body": "Weluxo may update this policy when our services, legal obligations or data practices change. The updated version will be posted on this page with a revised effective date where appropriate."
+    },
+    {
+      "title": "Contact Information",
+      "body": "If you have a privacy question or want to make a data request, contact Weluxo through our Contact Us page and include enough information for us to understand your request."
+    }
+  ],
+  "faq": {
+    "title": "Privacy Questions Answered",
+    "items": [
+      { "question": "Does Weluxo sell customer information?", "answer": "Weluxo does not sell customer information as a business practice. We may share limited information with service providers that help process payments, fulfill orders, provide support, analyze the website or deliver permitted marketing communications." },
+      { "question": "How does Weluxo protect payment information?", "answer": "Payment information is handled through secure payment providers. Weluxo does not store full payment card details on its own systems." },
+      { "question": "What cookies does Weluxo use?", "answer": "Weluxo may use essential, analytics, marketing and preference cookies. Essential cookies support core shopping functions; other categories are used where enabled and permitted." }
+    ]
+  }
+}

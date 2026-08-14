@@ -1,6 +1,7 @@
 const express = require('express');
 const router = express.Router();
 const sql = require('mssql');
+const jwt = require('jsonwebtoken');
 const { getPool } = require('../utils/dbConnection');
 
 // Helper to normalize mssql result/result.recordset
@@ -9,6 +10,25 @@ function normalizeResult(result) {
   if (Array.isArray(result)) return result;
   if (result.recordset) return result.recordset;
   return [];
+}
+
+function requireDashboardAdmin(req, res, next) {
+  const authorization = req.headers?.authorization || '';
+  const bearer = authorization.toLowerCase().startsWith('bearer ') ? authorization.slice(7).trim() : null;
+  const token = bearer || req.cookies?.viva_token;
+  const secret = process.env.JWT_SECRET;
+  if (!token || !secret) return res.status(401).json({ error: 'Authentication required' });
+
+  try {
+    const user = jwt.verify(token, secret);
+    if (String(user.role || '').toLowerCase() !== 'admin') {
+      return res.status(403).json({ error: 'Administrator access required' });
+    }
+    req.dashboardUser = user;
+    next();
+  } catch (_err) {
+    return res.status(401).json({ error: 'Invalid or expired session' });
+  }
 }
 
 // Cache User_tbl columns so we can safely project optional fields
@@ -168,25 +188,131 @@ router.get('/api/dashboard/notifications', async (req, res) => {
   }
 });
 
+// POST /api/dashboard/notifications
+// Used by dashboard actions or backend jobs to show an administrator message.
+router.post('/api/dashboard/notifications', requireDashboardAdmin, async (req, res) => {
+  const title = typeof req.body?.title === 'string' ? req.body.title.trim() : '';
+  const message = typeof req.body?.message === 'string' ? req.body.message.trim() : '';
+  if (!title || !message) {
+    return res.status(400).json({ error: 'title and message are required' });
+  }
+
+  try {
+    const pool = await getPool();
+    const result = await pool
+      .request()
+      .input('Title', sql.NVarChar(200), title)
+      .input('Message', sql.NVarChar(sql.MAX), message)
+      .query(`
+        INSERT INTO Notifications (Title, Message, IsRead, IsVisible)
+        OUTPUT INSERTED.NotificationId, INSERTED.Title, INSERTED.Message, INSERTED.CreatedAt, INSERTED.IsRead
+        VALUES (@Title, @Message, 0, 1)
+      `);
+    const row = normalizeResult(result)[0];
+    res.status(201).json({
+      id: row.NotificationId,
+      title: row.Title,
+      message: row.Message,
+      createdAt: row.CreatedAt,
+      isRead: !!row.IsRead,
+    });
+  } catch (err) {
+    console.error('/api/dashboard/notifications POST error:', err);
+    res.status(500).json({ error: err.message || 'Unable to create notification' });
+  }
+});
+
+// PATCH /api/dashboard/notifications/:notificationId
+// Allows the dashboard to mark a notification as read or hide it.
+router.patch('/api/dashboard/notifications/:notificationId', requireDashboardAdmin, async (req, res) => {
+  const notificationId = Number(req.params.notificationId);
+  if (!Number.isInteger(notificationId) || notificationId < 1) {
+    return res.status(400).json({ error: 'Invalid notification id' });
+  }
+
+  const { isRead, isVisible } = req.body || {};
+  if (typeof isRead !== 'boolean' && typeof isVisible !== 'boolean') {
+    return res.status(400).json({ error: 'Provide isRead or isVisible as a boolean' });
+  }
+
+  try {
+    const setClauses = [];
+    let request = (await getPool()).request().input('NotificationId', sql.Int, notificationId);
+    if (typeof isRead === 'boolean') {
+      setClauses.push('IsRead = @IsRead');
+      request = request.input('IsRead', sql.Bit, isRead);
+    }
+    if (typeof isVisible === 'boolean') {
+      setClauses.push('IsVisible = @IsVisible');
+      request = request.input('IsVisible', sql.Bit, isVisible);
+    }
+
+    const result = await request.query(`UPDATE Notifications SET ${setClauses.join(', ')} WHERE NotificationId = @NotificationId`);
+    if (!result.rowsAffected?.[0]) return res.status(404).json({ error: 'Notification not found' });
+    res.json({ ok: true, id: notificationId, isRead, isVisible });
+  } catch (err) {
+    console.error('/api/dashboard/notifications PATCH error:', err);
+    res.status(500).json({ error: err.message || 'Unable to update notification' });
+  }
+});
+
 // GET /api/dashboard/settings
 router.get('/api/dashboard/settings', async (req, res) => {
   try {
     const pool = await getPool();
-    const result = await pool.request().query(`SELECT TOP 1 SettingKey, SettingValue FROM DashboardSettings`);
+    const result = await pool.request().query(`SELECT SettingKey, SettingValue FROM DashboardSettings`);
     const rows = normalizeResult(result);
 
-    // Convert rows like { SettingKey, SettingValue } to an object
+    // Convert persisted string values into the booleans the UI expects.
     const settings = {};
     rows.forEach(r => {
       const key = r.SettingKey ?? r.key ?? null;
       const val = r.SettingValue ?? r.value ?? null;
-      if (key) settings[key] = val;
+      if (key === 'emailNotifications' || key === 'darkMode') {
+        settings[key] = String(val).toLowerCase() === 'true';
+      }
     });
 
-    res.json(settings);
+    res.json({ emailNotifications: true, darkMode: false, ...settings });
   } catch (err) {
     console.error('/api/dashboard/settings error:', err);
     res.status(500).json({ error: err.message });
+  }
+});
+
+// PUT /api/dashboard/settings
+router.put('/api/dashboard/settings', requireDashboardAdmin, async (req, res) => {
+  const body = req.body || {};
+  const supportedKeys = ['emailNotifications', 'darkMode'];
+  const entries = supportedKeys.filter((key) => typeof body[key] === 'boolean');
+  if (!entries.length) {
+    return res.status(400).json({ error: 'Provide emailNotifications or darkMode as a boolean' });
+  }
+
+  try {
+    const pool = await getPool();
+    for (const key of entries) {
+      const value = body[key] ? 'true' : 'false';
+      const update = await pool
+        .request()
+        .input('SettingKey', sql.NVarChar(100), key)
+        .input('SettingValue', sql.NVarChar(sql.MAX), value)
+        .query(`UPDATE DashboardSettings SET SettingValue = @SettingValue WHERE SettingKey = @SettingKey`);
+      if (!update.rowsAffected?.[0]) {
+        await pool
+          .request()
+          .input('SettingKey', sql.NVarChar(100), key)
+          .input('SettingValue', sql.NVarChar(sql.MAX), value)
+          .query(`INSERT INTO DashboardSettings (SettingKey, SettingValue) VALUES (@SettingKey, @SettingValue)`);
+      }
+    }
+    res.json({
+      emailNotifications: typeof body.emailNotifications === 'boolean' ? body.emailNotifications : undefined,
+      darkMode: typeof body.darkMode === 'boolean' ? body.darkMode : undefined,
+    });
+  } catch (err) {
+    console.error('/api/dashboard/settings PUT error:', err);
+    res.status(500).json({ error: err.message || 'Unable to save settings' });
   }
 });
 

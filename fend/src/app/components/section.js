@@ -14,10 +14,11 @@ import {
   TextField,
   Typography,
 } from "@mui/material";
-import StarIcon from "@mui/icons-material/Star";
 import PlayArrowIcon from "@mui/icons-material/PlayArrow";
 import EditIcon from "@mui/icons-material/Edit";
 import Link from "next/link";
+import ResumeShoppingSection from "./ResumeShoppingSection";
+import CustomerReviewsSection from "./CustomerReviewsSection";
 
 const API_BASE_URL = "";
 
@@ -66,6 +67,10 @@ const FALLBACK = {
     cta: "See specs",
   },
   bannerText: "Free shipping - 30 day returns - 2 year warranty",
+  productsSection: {
+    announcement: "New drops land every Monday \u00b7 Build your stack and save more on bundles",
+    title: "Products",
+  },
   products: [],
   actionShots: [
     {
@@ -172,7 +177,7 @@ export default function HeroSection({ initialContent = null, onEdit = {} }) {
   });
   const features = Array.isArray(data.features) && data.features.length ? data.features : FALLBACK.features;
   const welcome = data.welcome || FALLBACK.welcome;
-  const reviews = data.reviews || FALLBACK.reviews;
+  const productsSection = { ...FALLBACK.productsSection, ...(data.productsSection || {}) };
   const menus = data.menus || FALLBACK.menus;
   const firstCard = heroCards[0] || FALLBACK.heroCards[0];
   const secondCard = heroCards[1] || FALLBACK.heroCards[1];
@@ -325,6 +330,8 @@ export default function HeroSection({ initialContent = null, onEdit = {} }) {
         </Grid>
 
       <Box sx={{ maxWidth: 1200, mx: "auto", px: { xs: 2, md: 4 }, pb: 6 }}>
+        <ResumeShoppingSection products={products} />
+
         <Box sx={{ my: 4 }}>
           <Card
             sx={{
@@ -380,17 +387,19 @@ export default function HeroSection({ initialContent = null, onEdit = {} }) {
             border: "1px solid rgba(255,255,255,0.08)",
             textAlign: "center",
             mb: 3,
+            position: "relative",
           }}
         >
+          {renderEditButton("products")}
           <Typography variant="body2" color="rgba(255,255,255,0.75)">
-            New drops land every Monday · Build your stack and save more on
-            bundles
+            {productsSection.announcement}
           </Typography>
         </Box>
 
-        <Box sx={{ mb: 5 }}>
+        <Box sx={{ mb: 5, position: "relative" }}>
+          {renderEditButton("products")}
           <Typography variant="h6" sx={{ fontWeight: 800, mb: 2 }}>
-            Products
+            {productsSection.title}
           </Typography>
           <Grid container spacing={2}>
             {products.length === 0 && (
@@ -445,7 +454,6 @@ export default function HeroSection({ initialContent = null, onEdit = {} }) {
                       flexDirection: "column",
                     }}
                   >
-                    {renderEditButton("products")}
                     <CardMedia
                       component="img"
                       height="220"
@@ -457,7 +465,7 @@ export default function HeroSection({ initialContent = null, onEdit = {} }) {
                       <Typography
                         sx={{
                           fontWeight: 700,
-                          color: "#fff",
+                          color: "#f8fafc",
                           fontSize: "0.85rem",
                           lineHeight: 1.25,
                           display: "-webkit-box",
@@ -471,7 +479,7 @@ export default function HeroSection({ initialContent = null, onEdit = {} }) {
                       >
                         {title}
                       </Typography>
-                      <Typography sx={{ color: "rgba(255,255,255,0.8)", fontSize: "0.85rem", mb: 1 }}>
+                      <Typography sx={{ color: "#e2e8f0", fontSize: "0.85rem", mb: 1 }}>
                         {price}
                       </Typography>
                       <Box sx={{ mt: "auto" }}>
@@ -598,7 +606,7 @@ export default function HeroSection({ initialContent = null, onEdit = {} }) {
         </Box>
 
         <Grid container spacing={3} alignItems="stretch" sx={{ mb: 4 }}>
-          <Grid item xs={12} md={7}>
+          <Grid item xs={12} md={12}>
             <Card
               sx={{
                 height: "100%",
@@ -641,37 +649,6 @@ export default function HeroSection({ initialContent = null, onEdit = {} }) {
                   {welcome.cta || "Join Now"}
                 </Button>
               </CardContent>
-            </Card>
-          </Grid>
-          <Grid item xs={12} md={5}>
-            <Card
-              sx={{
-                height: "100%",
-                borderRadius: 3,
-                border: "1px solid rgba(255,255,255,0.08)",
-                bgcolor: "#0a0f1c",
-                display: "flex",
-                flexDirection: "column",
-                justifyContent: "center",
-                alignItems: "center",
-                textAlign: "center",
-                gap: 1,
-                p: 3,
-                position: "relative",
-              }}
-            >
-              {renderEditButton("reviews")}
-              <Typography variant="h6" sx={{ fontWeight: 800 }}>
-                {reviews.headline}
-              </Typography>
-              <Stack direction="row" spacing={0.5}>
-                {Array.from({ length: 5 }).map((_, i) => (
-                  <StarIcon key={i} sx={{ color: "#facc15" }} />
-                ))}
-              </Stack>
-              <Typography color="rgba(255,255,255,0.7)">
-                {reviews.ratingText}
-              </Typography>
             </Card>
           </Grid>
         </Grid>
@@ -718,9 +695,10 @@ export default function HeroSection({ initialContent = null, onEdit = {} }) {
           </Grid>
         </Box>
 
+        <CustomerReviewsSection />
+
         {/* Footer section removed per request */}
       </Box>
     </Box>
   );
 }
-

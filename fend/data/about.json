@@ -1,50 +1,20 @@
 {
   "hero": {
-    "title": "About Us",
-    "subtitle": "We craft digital experiences that connect brands with people.",
+    "title": "About Weluxo",
+    "subtitle": "Smart Products. Better Living.",
     "ctaText": "Contact Us",
     "ctaUrl": "/contact",
     "image": "https://images.unsplash.com/photo-1521737604893-d14cc237f11d?auto=format&fit=crop&w=1200&q=80",
     "alt": "Team collaborating"
   },
-  "mission": "Empower businesses with simple, pragmatic technology. We focus on solving real problems with elegant solutions.",
-  "values": "Honesty, craftsmanship, and partnership guide everything we do.",
-  "team": [
-    {
-      "name": "Nick Farahmand",
-      "role": "CEO & Founder",
-      "img": "/images/team-nick.jpg",
-      "bio": "Passionate about building teams and products that last."
-    },
-    {
-      "name": "Parmis Nik Khah",
-      "role": "CTO",
-      "img": "/images/team-parmis.jpg",
-      "bio": "Systems thinker who loves turning messy problems into simple workflows."
-    }
-  ],
-  "story": [
-    "We started this project with a simple belief: online shopping should feel trustworthy, effortless, and human.",
-    "Our approach is straightforward: start small, learn fast, and prioritize what matters to customers.",
-    "As a small team, we value transparency and personal service. Your feedback matters."
-  ],
-  "approach": [
-    {
-      "title": "Listen first",
-      "copy": "We start with the people who use the product, not the feature list."
-    },
-    {
-      "title": "Prototype quickly",
-      "copy": "Lightweight experiments help us validate before you invest heavily."
-    },
-    {
-      "title": "Ship with confidence",
-      "copy": "Tight feedback loops, observability, and documentation keep releases calm."
-    }
-  ],
+  "mission": "At Weluxo, we believe innovation should be part of everyday life—not a luxury.\n\nOur mission is to make it easier for people around the world to discover thoughtfully selected products that combine smart design, everyday functionality, and lasting value. Instead of offering thousands of random items, we focus on products that solve real problems, simplify daily routines, and help people live more comfortably.\n\nEvery product featured on Weluxo is chosen through a careful selection process. We evaluate quality, functionality, customer demand, design, and overall value before adding an item to our collection. Whether it's a beauty device, wellness essential, home innovation, or lifestyle accessory, our goal is the same: deliver products that people genuinely enjoy using.",
+  "values": "We believe shopping should be built on trust, not trends alone.\n\nThe online marketplace changes every day, but our standards remain consistent. We prioritize products that offer practical benefits, modern aesthetics, and reliable performance. Rather than following every trend, we focus on items that can make a meaningful difference in everyday life.\n\nOur philosophy is simple:",
+  "team": "Customers choose Weluxo because they value products that combine innovation with practicality.\n\nWhen you shop with us, you can expect:\n",
+  "story": "Weluxo is more than an online store.\n\nWe are building a trusted global lifestyle brand dedicated to helping people discover smarter products for modern living. As we continue to grow, our focus remains unchanged: offering products that deliver real value while providing an enjoyable and dependable shopping experience.\n\nEvery customer, every order, and every piece of feedback helps shape the future of our brand.\n\nThank you for being part of the Weluxo community.\n\nTogether, we're creating a smarter way to shop.",
+  "approach": "We're committed to creating a shopping experience that's transparent, secure, and customer-focused from beginning to end.\n\nTo achieve this, we work with carefully selected global suppliers and fulfillment partners who share our standards for product quality and reliable order processing. Every order is handled with attention to detail, and we continuously improve our operations based on customer feedback.\n\nOur team also monitors product performance and emerging innovations to ensure our collection continues to evolve with changing customer needs.",
   "contactCta": {
-    "title": "Ready to build the next release together?",
-    "copy": "Tell us about your team, your users, and what great looks like. We will respond within one business day.",
+    "title": "Weluxo",
+    "copy": "Smart Living. Better Choices.",
     "buttonText": "Start a conversation",
     "buttonUrl": "/contact"
   }

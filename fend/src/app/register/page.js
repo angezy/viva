@@ -10,8 +10,8 @@ import Typography from '@mui/material/Typography'
 import Box from '@mui/material/Box'
 import Container from '@mui/material/Container'
 import Alert from '@mui/material/Alert'
-import Swal from 'sweetalert2'
 import CircularProgress from '@mui/material/CircularProgress'
+import { toast } from '../lib/notifications'
 import styles from './register.module.css'
 
 export default function RegisterPage() {
@@ -68,13 +68,7 @@ export default function RegisterPage() {
 
       if (res.status === 201) {
         localStorage.removeItem('registerForm')
-        await Swal.fire({
-          icon: 'success',
-          title: 'Registered',
-          text: 'Your account was created. Redirecting to sign in...',
-          timer: 1500,
-          showConfirmButton: false,
-        })
+        toast.success('Registered', { description: 'Your account was created. Redirecting to sign in...', duration: 1500 })
         router.push('/signin')
         return
       }
@@ -102,11 +96,11 @@ export default function RegisterPage() {
       }
 
       setServerError(message)
-      await Swal.fire({ icon: 'error', title: 'Registration failed', text: message })
+      toast.error('Registration failed', { description: message })
     } catch (err) {
       const message = 'Network error - please try again'
       setServerError(message)
-      await Swal.fire({ icon: 'error', title: 'Network error', text: message })
+      toast.error('Network error', { description: message })
     } finally {
       setLoading(false)
     }

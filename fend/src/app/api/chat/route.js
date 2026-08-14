@@ -1,0 +1,58 @@
+import { NextResponse } from "next/server";
+import helpContent from "../../../../data/help-center.json";
+import { getChatConfig } from "../../lib/chatConfig";
+
+function clean(value) {
+  return String(value || "").trim().replace(/\s+/g, " ");
+}
+
+function tokenize(value) {
+  return clean(value).toLowerCase().split(/[^a-z0-9]+/).filter((word) => word.length > 2);
+}
+
+function buildKnowledge(content) {
+  const faqItems = Array.isArray(content?.faq?.items) ? content.faq.items : [];
+  const categoryItems = Array.isArray(content?.categories?.items) ? content.categories.items : [];
+  const articleItems = categoryItems.flatMap((category) => (Array.isArray(category.articles) ? category.articles : []).map((article) => ({
+    question: article,
+    answer: `Please review the ${category.title || "relevant"} guidance in the Help section, or ask me a more specific question.`,
+  })));
+  return [...faqItems, ...articleItems];
+}
+
+function answerFor(message, config) {
+  const question = clean(message);
+  const normalized = question.toLowerCase();
+  if (!question) return "Tell me what you need help with, such as an order, shipping, returns, payment, or a product.";
+  if (/^(hi|hello|hey|good morning|good afternoon)\b/.test(normalized)) return config.greeting;
+
+  const knowledge = buildKnowledge(helpContent);
+  const words = tokenize(question);
+  const ranked = knowledge
+    .map((item) => {
+      const source = `${item.question || ""} ${item.answer || ""}`.toLowerCase();
+      const score = words.reduce((total, word) => total + (source.includes(word) ? 1 : 0), 0) + (source.includes(normalized) ? 3 : 0);
+      return { item, score };
+    })
+    .sort((left, right) => right.score - left.score);
+
+  if (ranked[0]?.score > 0) return ranked[0].item.answer || "I found a related answer, but it does not include any additional details.";
+  if (/order|track|package|delivery|ship/.test(normalized)) return "For an order update, use the Track Your Order option with your order number and checkout email.";
+  if (/return|refund|exchange/.test(normalized)) return "Returns and refunds are handled according to our Return & Refund Policy. Include your order number if you contact support.";
+  if (/payment|checkout|card|charge/.test(normalized)) return "Payment options are shown securely during checkout. If payment fails, confirm your details and try another available method.";
+  if (/account|password|sign in|login/.test(normalized)) return "You can manage account details after signing in. Use the sign-in page password reset option if you cannot access your account.";
+  return config.fallback;
+}
+
+export async function POST(request) {
+  try {
+    const config = getChatConfig();
+    if (!config.enabled) return NextResponse.json({ error: "Chat is currently unavailable" }, { status: 503 });
+    const body = await request.json();
+    const message = clean(body?.message);
+    if (!message) return NextResponse.json({ error: "Message is required" }, { status: 400 });
+    return NextResponse.json({ reply: answerFor(message, config) });
+  } catch (_error) {
+    return NextResponse.json({ error: "Unable to answer right now" }, { status: 500 });
+  }
+}

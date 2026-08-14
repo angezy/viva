@@ -25,6 +25,32 @@ export async function loginRequest(email, password, expectedRole) {
   return data;
 }
 
+async function passwordResetRequest(path, body, fallbackMessage) {
+  const res = await fetch(`${API_BASE}/api/password-reset/${path}`, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify(body),
+    credentials: "include",
+  });
+  const data = await parseJsonSafe(res);
+  if (!res.ok) {
+    throw new Error(data?.error || data?.message || `${fallbackMessage} (${res.status})`);
+  }
+  return data || {};
+}
+
+export function requestPasswordReset(email) {
+  return passwordResetRequest("request", { email }, "Unable to send reset code");
+}
+
+export function verifyPasswordResetCode(email, code) {
+  return passwordResetRequest("verify", { email, code }, "Unable to verify reset code");
+}
+
+export function resetPassword(email, resetToken, password) {
+  return passwordResetRequest("reset", { email, resetToken, password }, "Unable to reset password");
+}
+
 export async function logoutRequest() {
   await fetch(`${API_BASE}/api/logout`, { method: "POST", credentials: "include" });
 }
@@ -77,15 +103,63 @@ export async function fetchOrderById(orderId) {
   return data;
 }
 
-export async function checkoutCart() {
+export async function checkoutCart(details = {}) {
+  const hasDetails = details && typeof details === "object" && Object.keys(details).length > 0;
   const res = await fetch(`${API_BASE}/api/orders/checkout`, {
     method: "POST",
+    headers: hasDetails ? { "Content-Type": "application/json" } : undefined,
+    body: hasDetails ? JSON.stringify(details) : undefined,
     credentials: "include",
   });
   const data = await parseJsonSafe(res);
   if (!res.ok) {
     throw new Error(data?.error || "Checkout failed");
   }
+  return data;
+}
+
+function notifyCartUpdated(data) {
+  if (typeof window !== "undefined") {
+    window.dispatchEvent(new CustomEvent("weluxo:cart-updated", { detail: data || { items: [], subtotal: 0 } }));
+  }
+}
+
+export async function createPayment(details) {
+  const res = await fetch(`${API_BASE}/api/payment/create`, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify(details),
+    credentials: "include",
+  });
+  const data = await parseJsonSafe(res);
+  if (res.status === 401) throw new Error("unauthorized");
+  if (!res.ok) throw new Error(data?.error || "Unable to start payment");
+  return data;
+}
+
+export async function confirmPayment(details) {
+  const res = await fetch(`${API_BASE}/api/payment/confirm`, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify(details),
+    credentials: "include",
+  });
+  const data = await parseJsonSafe(res);
+  if (res.status === 401) throw new Error("unauthorized");
+  if (!res.ok) throw new Error(data?.error || "Payment failed");
+  return data;
+}
+
+export async function createOrder(details) {
+  const res = await fetch(`${API_BASE}/api/orders/create`, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify(details),
+    credentials: "include",
+  });
+  const data = await parseJsonSafe(res);
+  if (res.status === 401) throw new Error("unauthorized");
+  if (!res.ok) throw new Error(data?.error || "Unable to create order");
   return data;
 }
 
@@ -109,6 +183,7 @@ export async function addToCart(item) {
   const data = await parseJsonSafe(res);
   if (res.status === 401) throw new Error("unauthorized");
   if (!res.ok) throw new Error(data?.error || "Add to cart failed");
+  notifyCartUpdated(data);
   return data;
 }
 
@@ -122,6 +197,7 @@ export async function updateCartItem(productId, quantity) {
   const data = await parseJsonSafe(res);
   if (res.status === 401) throw new Error("unauthorized");
   if (!res.ok) throw new Error(data?.error || "Update cart failed");
+  notifyCartUpdated(data);
   return data;
 }
 
@@ -133,5 +209,46 @@ export async function removeCartItem(productId) {
   const data = await parseJsonSafe(res);
   if (res.status === 401) throw new Error("unauthorized");
   if (!res.ok) throw new Error(data?.error || "Remove cart failed");
+  notifyCartUpdated(data);
+  return data;
+}
+
+export async function applyCartCoupon(code) {
+  const res = await fetch(`${API_BASE}/api/cart/apply-coupon`, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    credentials: "include",
+    body: JSON.stringify({ code }),
+  });
+  const data = await parseJsonSafe(res);
+  if (res.status === 401) throw new Error("unauthorized");
+  if (!res.ok) throw new Error(data?.error || "Unable to apply coupon");
+  return data;
+}
+
+export async function estimateCartShipping(details) {
+  const res = await fetch(`${API_BASE}/api/cart/shipping-estimate`, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    credentials: "include",
+    body: JSON.stringify(details),
+  });
+  const data = await parseJsonSafe(res);
+  if (res.status === 401) throw new Error("unauthorized");
+  if (!res.ok) throw new Error(data?.error || "Unable to estimate shipping");
+  return data;
+}
+
+export async function saveCartItem(item) {
+  const res = await fetch(`${API_BASE}/api/cart/save-item`, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    credentials: "include",
+    body: JSON.stringify(item),
+  });
+  const data = await parseJsonSafe(res);
+  if (res.status === 401) throw new Error("unauthorized");
+  if (!res.ok) throw new Error(data?.error || "Unable to save item");
+  notifyCartUpdated(data);
   return data;
 }

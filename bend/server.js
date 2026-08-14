@@ -1,15 +1,19 @@
-// Load environment variables from .env file
-require('dotenv').config();
+const path = require("path");
+// Load the backend environment regardless of the directory used to start Node.
+require('dotenv').config({ path: path.join(__dirname, '.env') });
 
 const express = require("express");
 const cors = require("cors");
-const path = require("path");
 const bodyParser = require("body-parser");
 const cookieParser = require("cookie-parser");
 const { ApolloServer } = require("@apollo/server");
 const { expressMiddleware } = require("@as-integrations/express4");
 const { typeDefs, resolvers } = require("./graphqlSchema.js");
 const router = require("./routes/homeroute");
+const supportRouter = require("./routes/supportRoute");
+const adminOverviewRouter = require("./routes/adminOverviewRoute");
+const adminRecordsRouter = require("./routes/adminRecordsRoute");
+const reviewAdminRouter = require("./routes/reviewAdminRoute");
 
 
 
@@ -25,6 +29,11 @@ app.options("*", cors(corsOptions));
 app.use(cookieParser());
 app.use(bodyParser.json());
 app.use("/uploads", express.static(path.join(__dirname, "public", "uploads")));
+app.use("/api/uploads", express.static(path.join(__dirname, "public", "uploads")));
+app.use("/", adminOverviewRouter);
+app.use("/", adminRecordsRouter);
+app.use("/", reviewAdminRouter);
+app.use("/", supportRouter);
 app.use("/", router);
 
 // Simple request logging (development only)

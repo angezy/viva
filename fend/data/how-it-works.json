@@ -1,0 +1,182 @@
+{
+  "seo": {
+    "title": "How Weluxo Works | Discover, Shop & Track",
+    "description": "Learn how shopping at Weluxo works—from discovering curated technology to secure checkout, order processing, delivery and support.",
+    "canonical": "https://weluxo.com/how-it-works",
+    "ogTitle": "How Weluxo Works | Discover, Shop & Track",
+    "ogDescription": "See how Weluxo makes it easy to discover, choose, purchase and track modern technology products."
+  },
+  "breadcrumb": {
+    "homeLabel": "Home",
+    "currentLabel": "How It Works"
+  },
+  "hero": {
+    "eyebrow": "HOW WELUXO WORKS",
+    "title": "From Discovery to Delivery",
+    "copy": "Weluxo makes discovering and purchasing modern technology products simple. Explore a focused selection, choose with clear information, complete checkout, and follow your order through delivery.",
+    "primaryCta": "Explore Products",
+    "primaryUrl": "/shop",
+    "secondaryCta": "Why Weluxo",
+    "secondaryUrl": "/why-weluxo",
+    "image": "https://images.unsplash.com/photo-1558008258-3256797b43f3?auto=format&fit=crop&w=1400&q=85",
+    "alt": "Modern home with connected technology"
+  },
+  "processOverview": {
+    "eyebrow": "THE JOURNEY",
+    "title": "A clear path to your next upgrade.",
+    "steps": [
+      { "number": "01", "label": "Discover" },
+      { "number": "02", "label": "Choose" },
+      { "number": "03", "label": "Checkout" },
+      { "number": "04", "label": "Track" },
+      { "number": "05", "label": "Enjoy" }
+    ]
+  },
+  "detailSteps": [
+    {
+      "id": "discover",
+      "number": "01",
+      "eyebrow": "STEP 01 / DISCOVER",
+      "title": "Discover What’s Next",
+      "copy": "Weluxo brings together modern, useful and interesting technology products so you can discover what fits your life without searching through endless generic listings.",
+      "items": [
+        "Emerging technology",
+        "Smart beauty",
+        "Personal care technology",
+        "Lifestyle technology",
+        "Innovative gadgets"
+      ],
+      "ctaText": "Start Exploring",
+      "ctaUrl": "/shop",
+      "image": "https://images.unsplash.com/photo-1511707171634-5f897ff02aa9?auto=format&fit=crop&w=1100&q=85",
+      "alt": "Modern technology products arranged on a desk"
+    },
+    {
+      "id": "choose",
+      "number": "02",
+      "eyebrow": "STEP 02 / CHOOSE",
+      "title": "Choose With Confidence",
+      "copy": "Product pages are built to help you understand what you are purchasing before it reaches your cart. Review the information available for each product and compare the details that matter to you.",
+      "items": [
+        "Clear product information",
+        "Product imagery",
+        "Key features",
+        "Specifications where applicable",
+        "Variants, options and pricing",
+        "Delivery information where available"
+      ],
+      "ctaText": "Browse Products",
+      "ctaUrl": "/shop",
+      "image": "https://images.unsplash.com/photo-1596462502278-27bfdc403348?auto=format&fit=crop&w=1100&q=85",
+      "alt": "Contemporary personal care products in a minimal setting"
+    },
+    {
+      "id": "checkout",
+      "number": "03",
+      "eyebrow": "STEP 03 / SECURE CHECKOUT",
+      "title": "Simple, Secure Checkout",
+      "copy": "When you are ready, move from product to cart, add your information, choose a payment method, and review the order before confirmation. The checkout keeps the order summary and pricing visible as you move through each step.",
+      "flow": ["Product", "Cart", "Information", "Payment", "Confirmation"],
+      "ctaText": "Go to Checkout",
+      "ctaUrl": "/checkout",
+      "image": "",
+      "alt": ""
+    },
+    {
+      "id": "processing",
+      "number": "04",
+      "eyebrow": "STEP 04 / ORDER PROCESSING",
+      "title": "We Get Your Order Moving",
+      "copy": "After your order is confirmed, it moves through the next fulfillment stages. The exact details depend on the product and fulfillment partner, so your order status remains the most useful source for updates.",
+      "flow": ["Order confirmed", "Processing", "Prepared for shipment", "Shipped"],
+      "ctaText": "Read Shipping Policy",
+      "ctaUrl": "/shipping-policy",
+      "image": "https://images.unsplash.com/photo-1586528116311-ad8dd3c8310d?auto=format&fit=crop&w=1100&q=85",
+      "alt": "Package prepared for shipment"
+    },
+    {
+      "id": "track",
+      "number": "05",
+      "eyebrow": "STEP 05 / TRACK DELIVERY",
+      "title": "Follow the Journey",
+      "copy": "When a tracking number is created, available updates can be followed from your account and the tracking page. If an order update is delayed or you need help locating your order, contact Weluxo support.",
+      "ctaText": "Track Your Order",
+      "ctaUrl": "/tracking",
+      "image": "https://images.unsplash.com/photo-1580674684081-7617fbf3d745?auto=format&fit=crop&w=1100&q=85",
+      "alt": "Package ready to be delivered"
+    },
+    {
+      "id": "enjoy",
+      "number": "06",
+      "eyebrow": "STEP 06 / RECEIVE & ENJOY",
+      "title": "Delivered to You",
+      "copy": "Your Weluxo experience ends where the useful part begins: with a considered product in your hands and a clearer way to enjoy modern technology in everyday life.",
+      "items": [],
+      "ctaText": "",
+      "ctaUrl": "/shop",
+      "image": "https://images.unsplash.com/photo-1556742049-0cfed4f6a45d?auto=format&fit=crop&w=1100&q=85",
+      "alt": "A customer receiving a package at home"
+    }
+  ],
+  "support": {
+    "eyebrow": "SUPPORT",
+    "title": "Here When You Need Us",
+    "copy": "Find practical information before you order and a clear place to go when you need help after your purchase.",
+    "links": [
+      { "label": "Contact Us", "url": "/contact" },
+      { "label": "About Weluxo", "url": "/aboutus" },
+      { "label": "Shipping Policy", "url": "/shipping-policy" },
+      { "label": "Returns & Refunds", "url": "/return-refund-policy" },
+      { "label": "Track Order", "url": "/tracking" }
+    ]
+  },
+  "way": {
+    "eyebrow": "THE WELUXO WAY",
+    "title": "A more considered way to shop technology.",
+    "principles": [
+      { "title": "Curated Discovery", "copy": "A focused selection instead of endless clutter." },
+      { "title": "Modern Technology", "copy": "Products chosen around contemporary beauty, lifestyle and everyday needs." },
+      { "title": "Clear Shopping", "copy": "Useful product information and straightforward purchasing." },
+      { "title": "Global Mindset", "copy": "A shopping experience designed with customers across international markets in mind." }
+    ]
+  },
+  "faq": {
+    "eyebrow": "QUESTIONS, ANSWERED",
+    "title": "How Weluxo Works — Questions Answered",
+    "items": [
+      {
+        "question": "What is Weluxo?",
+        "answer": "Weluxo is an international online store focused on curated, modern technology products for beauty, personal care and contemporary lifestyle."
+      },
+      {
+        "question": "How do I order from Weluxo?",
+        "answer": "Explore the shop, open a product page, choose any available options, add the product to your cart, and follow the checkout steps through confirmation."
+      },
+      {
+        "question": "Where does Weluxo deliver?",
+        "answer": "Delivery availability and options depend on the destination and product. Review the shipping policy and the delivery information shown during checkout for your order."
+      },
+      {
+        "question": "How can I track my order?",
+        "answer": "When a tracking number is created, it can appear in your account and tracking page. You can also contact support if you need help with an order update."
+      },
+      {
+        "question": "How long does delivery take?",
+        "answer": "Delivery estimates vary by destination, product and fulfillment partner. Current shipping information is available in the shipping policy and during checkout."
+      },
+      {
+        "question": "What if I need help with my order?",
+        "answer": "Contact Weluxo through the Contact Us page with your order details and a short description of what you need."
+      }
+    ]
+  },
+  "finalCta": {
+    "eyebrow": "READY TO DISCOVER?",
+    "title": "Find Your Next Upgrade.",
+    "copy": "Explore Weluxo’s curated technology collection and find something made for the way you live now.",
+    "primaryCta": "Explore Weluxo",
+    "primaryUrl": "/shop",
+    "secondaryCta": "Why Weluxo",
+    "secondaryUrl": "/why-weluxo"
+  }
+}

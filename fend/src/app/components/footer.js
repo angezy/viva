@@ -84,6 +84,18 @@ export default function Footer() {
               <MuiLink href={footer.shopHref} underline="hover" sx={{ display: "block", mb: 1, color: "rgba(255,255,255,0.8)" }}>{footer.shopLabel}</MuiLink>
               <MuiLink href={footer.blogHref} underline="hover" sx={{ display: "block", mb: 1, color: "rgba(255,255,255,0.8)" }}>{footer.blogLabel}</MuiLink>
               <MuiLink href={footer.aboutusHref} underline="hover" sx={{ display: "block", mb: 1, color: "rgba(255,255,255,0.8)" }}>{footer.aboutusLabel}</MuiLink>
+              <MuiLink href="/how-it-works" underline="hover" sx={{ display: "block", mb: 1, color: "rgba(255,255,255,0.8)" }}>How It Works</MuiLink>
+              <MuiLink href="/why-weluxo" underline="hover" sx={{ display: "block", mb: 1, color: "rgba(255,255,255,0.8)" }}>Why Weluxo</MuiLink>
+              <MuiLink href="/faq" underline="hover" sx={{ display: "block", mb: 1, color: "rgba(255,255,255,0.8)" }}>FAQ</MuiLink>
+              <MuiLink href="/help-center" underline="hover" sx={{ display: "block", mb: 1, color: "rgba(255,255,255,0.8)" }}>Help</MuiLink>
+              <MuiLink href="/account/support" underline="hover" sx={{ display: "block", mb: 1, color: "rgba(255,255,255,0.8)" }}>Customer support</MuiLink>
+              <MuiLink href="/checkout" underline="hover" sx={{ display: "block", mb: 1, color: "rgba(255,255,255,0.8)" }}>Secure checkout</MuiLink>
+              <MuiLink href="/shipping-policy" underline="hover" sx={{ display: "block", mb: 1, color: "rgba(255,255,255,0.8)" }}>Shipping policy</MuiLink>
+              <MuiLink href="/return-refund-policy" underline="hover" sx={{ display: "block", mb: 1, color: "rgba(255,255,255,0.8)" }}>Returns</MuiLink>
+              <MuiLink href="/privacy-policy" underline="hover" sx={{ display: "block", mb: 1, color: "rgba(255,255,255,0.8)" }}>Privacy policy</MuiLink>
+              <MuiLink href="/terms-conditions" underline="hover" sx={{ display: "block", mb: 1, color: "rgba(255,255,255,0.8)" }}>Terms &amp; conditions</MuiLink>
+              <MuiLink href="/payment-security" underline="hover" sx={{ display: "block", mb: 1, color: "rgba(255,255,255,0.8)" }}>Payment security</MuiLink>
+              <MuiLink href="/order-confirmation" underline="hover" sx={{ display: "block", mb: 1, color: "rgba(255,255,255,0.8)" }}>Order confirmation</MuiLink>
             </>
           )}
         </Grid>

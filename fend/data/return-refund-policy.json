@@ -1,0 +1,34 @@
+{
+  "seo": {
+    "title": "Return & Refund Policy | Weluxo",
+    "description": "Learn how to request a Weluxo return or refund, including eligibility, damaged items, cancellations, exchanges and support.",
+    "primaryKeyword": "Weluxo return and refund policy",
+    "secondaryKeywords": "return a Weluxo order, ecommerce refund, damaged item, exchange policy"
+  },
+  "hero": {
+    "eyebrow": "RETURNS & REFUNDS",
+    "title": "Return & Refund Policy",
+    "intro": "Weluxo wants customers to have a clear path when an order is not right. This policy explains return eligibility, how to request a return, how refunds are reviewed, and what to do if an item arrives damaged or incorrect."
+  },
+  "sections": [
+    { "title": "Return Eligibility", "body": "Contact Weluxo support within 30 days of delivery to ask whether your order is eligible for return. Items should generally be unused, complete and in their original condition and packaging where possible. Eligibility can vary by product and fulfillment partner, so support will confirm the applicable next step." },
+    { "title": "Non-Returnable Items", "body": "Some products may not be returnable because of hygiene, personalization, digital delivery, safety or other product-specific restrictions. Product pages, order information or support will identify restrictions that apply to a specific item." },
+    { "title": "How To Request A Return", "body": "Start a return request through the Weluxo Contact Us page and include your order details.", "steps": ["Contact support.", "Provide your order number, product details and reason for the request.", "Receive return instructions or approval from support.", "Send the item as instructed and retain the shipping receipt until the review is complete."] },
+    { "title": "Refund Process", "body": "After a returned item is received and reviewed, Weluxo or the applicable fulfillment partner will determine whether the return is approved. An approved refund is sent to the original payment method. The time for the funds to appear can depend on the payment provider and banking process." },
+    { "title": "Damaged or Defective Products", "body": "Contact support promptly if an item arrives damaged or appears defective. Include your order number, a description of the issue and clear photos or video when useful. Do not discard the product or packaging until support advises you what to do." },
+    { "title": "Wrong Item Received", "body": "If you received a different product, variant or quantity than ordered, contact support with your order information and photos of the package and item. We will review the issue and provide the appropriate instructions." },
+    { "title": "Order Cancellation Policy", "body": "If you need to cancel an order, contact support as soon as possible before processing or shipment. Cancellation cannot be guaranteed after an order has moved into fulfillment or has been shipped. If cancellation is not possible, the return policy may apply after delivery." },
+    { "title": "Exchanges", "body": "Exchanges may be available for some products and situations, but they depend on product availability, condition and fulfillment rules. Contact support before sending an item back so the correct option can be reviewed." },
+    { "title": "Shipping Costs For Returns", "body": "Return shipping responsibility depends on the reason for the return, product condition, fulfillment partner and applicable consumer law. Support will explain the applicable cost or label instructions before you send the item." },
+    { "title": "Fraud Prevention", "body": "Weluxo reviews return and refund requests to protect customers and the store from misuse. We may request order information, photos or other reasonable details before approving a request. This does not limit rights provided by applicable law." },
+    { "title": "Contact Support", "body": "Contact Weluxo support with your order number, email address used at checkout and a clear description of the issue. Keeping this information together helps us review the request efficiently." }
+  ],
+  "faq": {
+    "title": "Returns Questions Answered",
+    "items": [
+      { "question": "How do I return a Weluxo product?", "answer": "Contact Weluxo support within 30 days of delivery with your order details and reason for the request. Support will confirm eligibility and provide return instructions when applicable." },
+      { "question": "How long do refunds take?", "answer": "After an approved return is reviewed, the refund is sent to the original payment method. The time it takes to appear depends on the payment provider and bank." },
+      { "question": "What if my item arrives damaged?", "answer": "Contact support promptly, include your order number and send clear photos or video of the damage and packaging. Keep the item and packaging until support provides instructions." }
+    ]
+  }
+}

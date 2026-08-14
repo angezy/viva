@@ -109,6 +109,7 @@ export default function AccountPage() {
         </div>
         <div className={styles.linkRow}>
           <button className={styles.primaryBtn} onClick={handleLogout}>Sign out</button>
+          <button className={styles.ghostBtn} onClick={() => (location.href = "/account/support")}>Support</button>
           <button className={styles.ghostBtn} onClick={() => (location.href = "/shop")}>Shop</button>
         </div>
       </div>

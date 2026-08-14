@@ -29,8 +29,10 @@ function formatDate(value) {
 }
 
 export default function ApiProductsPage() {
+  const [mounted, setMounted] = useState(false)
   const [pid, setPid] = useState("") // sku/pid input
-  const [price, setPrice] = useState("")
+  const [salePrice, setSalePrice] = useState("")
+  const [buyPrice, setBuyPrice] = useState("")
   const [submitting, setSubmitting] = useState(false)
   const [loading, setLoading] = useState(true)
   const [rows, setRows] = useState([])
@@ -48,9 +50,12 @@ export default function ApiProductsPage() {
 
   const valid = useMemo(() => {
     const trimmedPid = pid.trim()
-    const trimmedPrice = String(price).trim()
-    return trimmedPid.length > 0 && trimmedPrice.length > 0 && Number.isFinite(Number(trimmedPrice))
-  }, [pid, price])
+    const trimmedSalePrice = String(salePrice).trim()
+    const trimmedBuyPrice = String(buyPrice).trim()
+    return trimmedPid.length > 0 && trimmedSalePrice.length > 0 && trimmedBuyPrice.length > 0
+      && Number.isFinite(Number(trimmedSalePrice)) && Number(Number(trimmedSalePrice)) >= 0
+      && Number.isFinite(Number(trimmedBuyPrice)) && Number(Number(trimmedBuyPrice)) >= 0
+  }, [pid, salePrice, buyPrice])
 
   async function runPing() {
     try {
@@ -85,6 +90,7 @@ export default function ApiProductsPage() {
   }
 
   useEffect(() => {
+    setMounted(true)
     runPing()
     loadRows()
   }, [])
@@ -109,6 +115,9 @@ export default function ApiProductsPage() {
         throw new Error(data?.error || "Lookup failed")
       }
       setPreview(data.product || null)
+      if (String(buyPrice).trim() === "" && data.product?.price !== undefined) {
+        setBuyPrice(Number(data.product.price || 0).toFixed(2))
+      }
       setSnack(`Fetched details for ${pid.trim()}`)
     } catch (err) {
       setPreview(null)
@@ -126,7 +135,7 @@ export default function ApiProductsPage() {
       const res = await fetch(`${API_BASE_URL}/api/cj/import`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ pid: pid.trim(), price }),
+        body: JSON.stringify({ pid: pid.trim(), salePrice, buyPrice }),
       })
       const data = await res.json()
       if (!res.ok) {
@@ -138,7 +147,8 @@ export default function ApiProductsPage() {
       }
       setSnack(`Imported product ${pid.trim()}`)
       setPid("")
-      setPrice("")
+      setSalePrice("")
+      setBuyPrice("")
       await loadRows()
     } catch (err) {
       setError(err.message || "Unable to import product")
@@ -189,13 +199,13 @@ export default function ApiProductsPage() {
               ? "Config ok"
               : "Not configured"}
           </Typography>
-          <Button size="small" variant="outlined" onClick={runPing} disabled={ping.loading}>
+          <Button size="small" variant="outlined" onClick={runPing} disabled={mounted && ping.loading}>
             Check
           </Button>
         </Stack>
       </Stack>
       <Typography variant="body2" sx={{ color: "text.secondary", mb: 3 }}>
-        Enter a CJ SKU (or PID) and set the selling price. You can fetch details first, then import to save.
+        Enter a CJ SKU (or PID), set the selling price and record the supplier buy cost. These values feed profit and margin reporting.
       </Typography>
 
       <Card sx={{ mb: 3 }}>
@@ -221,9 +231,9 @@ export default function ApiProductsPage() {
               </Grid>
               <Grid item xs={12} md={3}>
                 <TextField
-                  label="Price"
-                  value={price}
-                  onChange={(e) => setPrice(e.target.value)}
+                  label="Sales price"
+                  value={salePrice}
+                  onChange={(e) => setSalePrice(e.target.value)}
                   fullWidth
                   required
                   type="number"
@@ -231,7 +241,19 @@ export default function ApiProductsPage() {
                   placeholder="e.g. 19.99"
                 />
               </Grid>
-              <Grid item xs={12} md={4} alignSelf="center">
+              <Grid item xs={12} md={3}>
+                <TextField
+                  label="Buy price / cost"
+                  value={buyPrice}
+                  onChange={(e) => setBuyPrice(e.target.value)}
+                  fullWidth
+                  required
+                  type="number"
+                  inputProps={{ step: "0.01", min: "0" }}
+                  placeholder="e.g. 8.50"
+                />
+              </Grid>
+              <Grid item xs={12} md={1} alignSelf="center">
                 <Stack direction="row" spacing={1} sx={{ mt: { xs: 1, md: 0 } }}>
                   <Button
                     variant="outlined"
@@ -249,7 +271,7 @@ export default function ApiProductsPage() {
                   >
                     {submitting ? "Importing..." : "Import & Save"}
                   </Button>
-                  <Button variant="outlined" type="button" onClick={loadRows} disabled={loading}>
+                  <Button variant="outlined" type="button" onClick={loadRows} disabled={mounted && loading}>
                     Refresh
                   </Button>
                 </Stack>
@@ -289,6 +311,10 @@ export default function ApiProductsPage() {
                       </Stack>
                       <Typography variant="body2" sx={{ color: "primary.main", fontWeight: 700 }}>
                         Source price: {preview.priceText ? preview.priceText : Number(preview.price || 0).toFixed(2)}
+                      </Typography>
+                      <Typography variant="body2" sx={{ mt: 0.5 }}>
+                        Planned unit profit: ${(Number(salePrice || 0) - Number(buyPrice || 0)).toFixed(2)}
+                        {Number(salePrice || 0) > 0 ? ` (${(((Number(salePrice || 0) - Number(buyPrice || 0)) / Number(salePrice || 0)) * 100).toFixed(1)}% margin)` : ""}
                       </Typography>
                     </Grid>
                   </Grid>
@@ -352,7 +378,7 @@ export default function ApiProductsPage() {
           ) : (
             <Stack spacing={2}>
               {rows.map((row) => (
-                <Card key={row.pid} variant="outlined" sx={{ height: "300px", width: "500px", overflow: "hidden" }}>
+                <Card key={row.pid} variant="outlined" sx={{ height: "340px", width: "500px", overflow: "hidden" }}>
                   <CardContent sx={{ height: "100%" }}>
                     <Box
                       sx={{
@@ -408,9 +434,17 @@ export default function ApiProductsPage() {
                         </Typography>
                       </Box>
 
-                      <Typography variant="subtitle1" color="primary" sx={{ textAlign: "right", fontWeight: 800 }}>
-                        ${Number(row.price || 0).toFixed(2)}
-                      </Typography>
+                      <Box sx={{ textAlign: "right" }}>
+                        <Typography variant="subtitle1" color="primary" sx={{ fontWeight: 800 }}>
+                          Sale ${Number(row.salePrice ?? row.price ?? 0).toFixed(2)}
+                        </Typography>
+                        <Typography variant="caption" color="text.secondary" sx={{ display: "block" }}>
+                          Buy ${Number(row.buyPrice || 0).toFixed(2)}
+                        </Typography>
+                        <Typography variant="caption" color={Number(row.unitProfit || 0) >= 0 ? "success.main" : "error.main"} sx={{ display: "block", fontWeight: 700 }}>
+                          Profit ${Number(row.unitProfit || 0).toFixed(2)}
+                        </Typography>
+                      </Box>
 
                       <Box sx={{ gridColumn: "1 / -1", minHeight: 0, overflow: "hidden" }}>
                         {row.description && (

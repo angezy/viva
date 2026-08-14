@@ -2,7 +2,7 @@
 
 import { useState } from "react";
 import { useRouter } from "next/navigation";
-import Swal from "sweetalert2";
+import { toast } from "../../lib/notifications";
 
 const API_BASE = "";
 
@@ -34,10 +34,11 @@ export default function AdminSignupPage() {
       if (!res.ok) {
         throw new Error(data.error || data.message || "Admin signup failed");
       }
-      await Swal.fire({ icon: "success", title: "Admin created", timer: 1000, showConfirmButton: false });
+      toast.success("Admin created", { duration: 1000 });
       router.push("/signin/admin");
     } catch (err) {
       setError(err.message || "Signup failed");
+      toast.error("Signup failed", { description: err.message || "Please try again." });
     } finally {
       setLoading(false);
     }

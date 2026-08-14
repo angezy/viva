@@ -155,7 +155,7 @@ export default function BlogSection({ initialContent = null, onEdit = {} }) {
                   <CardActionArea
                     component={slug !== "#" ? LinkWrapper : "div"}
                     href={slug}
-                    sx={{ height: "100%", display: "flex", flexDirection: "column", alignItems: "stretch" }}
+                    sx={{ height: "100%", display: "flex", flexDirection: "column", alignItems: "stretch", color: "#f8fafc" }}
                   >
                     {post.image && (
                       <CardMedia component="img" height="180" image={post.image} alt={post.alt || post.title} sx={{ objectFit: "cover" }} />
@@ -165,15 +165,15 @@ export default function BlogSection({ initialContent = null, onEdit = {} }) {
                         {post.tags?.slice(0, 2).map((tag) => (
                           <Chip key={tag} label={tag} size="small" color="primary" />
                         ))}
-                        <Typography variant="caption" sx={{ color: "rgba(255,255,255,0.65)" }}>
+                        <Typography variant="caption" sx={{ color: "rgba(226,232,240,0.78)" }}>
                           {post.date}
                         </Typography>
                       </Stack>
-                      <Typography variant="h6" sx={{ fontWeight: 800 }}>
+                      <Typography variant="h6" sx={{ fontWeight: 800, color: "#f8fafc", lineHeight: 1.25 }}>
                         {post.title}
                       </Typography>
-                      <Typography sx={{ color: "rgba(255,255,255,0.75)" }}>{post.excerpt}</Typography>
-                      <Typography variant="caption" sx={{ color: "rgba(255,255,255,0.6)", mt: "auto" }}>
+                      <Typography sx={{ color: "rgba(226,232,240,0.86)", lineHeight: 1.55 }}>{post.excerpt}</Typography>
+                      <Typography variant="caption" sx={{ color: "rgba(191,219,254,0.8)", mt: "auto" }}>
                         By {post.author || "Team"}
                       </Typography>
                     </CardContent>

@@ -1,0 +1,98 @@
+{
+  "seo": {
+    "title": "Help | Weluxo Customer Support",
+    "description": "Get help with Weluxo orders, shipping, returns, refunds, product support, and customer service.",
+    "ogTitle": "Weluxo Help",
+    "ogDescription": "Find answers, track your order, or connect with Weluxo support."
+  },
+  "hero": {
+    "eyebrow": "WELUXO HELP",
+    "title": "How can we help you?",
+    "copy": "Find answers, track your order, or connect with Weluxo support.",
+    "searchPlaceholder": "Search help articles, orders, shipping, products..."
+  },
+  "quickActions": {
+    "eyebrow": "QUICK ACTIONS",
+    "title": "Get to the right answer faster.",
+    "cards": [
+      { "title": "Track My Order", "description": "Check your order status and delivery updates.", "button": "Track Order", "href": "/tracking" },
+      { "title": "Shipping Information", "description": "Learn about delivery times, shipping countries, costs, and tracking.", "button": "View Shipping", "href": "/shipping-policy" },
+      { "title": "Returns & Refunds", "description": "Understand our return process and refund timeline.", "button": "View Returns", "href": "/return-refund-policy" },
+      { "title": "Product Support", "description": "Find product guides, compatibility information, and warranty details.", "button": "Browse Products", "href": "/shop" },
+      { "title": "Contact Support", "description": "Connect with our customer support team.", "button": "Contact Us", "href": "/contact" }
+    ]
+  },
+  "categories": {
+    "eyebrow": "BROWSE BY TOPIC",
+    "title": "Find the help you need.",
+    "copy": "Explore practical answers organized around every step of your Weluxo experience.",
+    "items": [
+      { "title": "Orders", "articles": ["How do I place an order?", "Can I change my order?", "Can I cancel my order?", "I did not receive my confirmation email"] },
+      { "title": "Shipping", "articles": ["Where does Weluxo ship?", "How long does delivery take?", "How can I track my package?", "Why is my tracking number not updating?"] },
+      { "title": "Payments", "articles": ["Accepted payment methods", "Payment failed", "Currency questions", "Refund process"] },
+      { "title": "Returns & Refunds", "articles": ["Weluxo return policy", "How to request a return", "Refund timeline"] },
+      { "title": "Products", "articles": ["Product instructions", "Product compatibility", "Warranty information", "Product troubleshooting"] },
+      { "title": "Account", "articles": ["Create an account", "Reset password", "Update account information"] }
+    ]
+  },
+  "orderLookup": {
+    "eyebrow": "ORDER SUPPORT",
+    "title": "Track Your Order",
+    "copy": "Enter your order details to view your latest delivery status.",
+    "button": "Track Order"
+  },
+  "contactSupport": {
+    "eyebrow": "PERSONAL SUPPORT",
+    "title": "Contact Weluxo",
+    "copy": "Our support team usually replies within 24–48 hours. Tell us what you need and we will help you find the clearest next step.",
+    "email": "support@weluxo.com",
+    "emailNote": "Email support",
+    "liveChatTitle": "Live Chat",
+    "liveChatCopy": "Get quick guidance from the Weluxo AI Concierge.",
+    "liveChatButton": "Chat with Weluxo AI Concierge",
+    "telegramTitle": "Telegram Support",
+    "telegramCopy": "Chat with our international support team.",
+    "telegramButton": "Open Telegram",
+    "telegramUrl": "https://t.me/weluxo",
+    "formTitle": "Contact support",
+    "submitButton": "Submit Request",
+    "successMessage": "Thanks — your request has been received. Our team will be in touch soon."
+  },
+  "faq": {
+    "eyebrow": "COMMON QUESTIONS",
+    "title": "Answers before you ask.",
+    "items": [
+      { "question": "How long does shipping take?", "answer": "Delivery timing depends on your destination and is shown at checkout. Once your order ships, tracking details are sent to the email used for your purchase." },
+      { "question": "Where is my order?", "answer": "Use the Track Your Order form on this page with your order number and checkout email. You can also use the tracking link from your dispatch email." },
+      { "question": "Do you offer refunds?", "answer": "Yes. Refunds are handled according to our Return & Refund Policy. Contact support with your order number if you need help starting a request." },
+      { "question": "How can I change my shipping address?", "answer": "Contact support as soon as possible with your order number and the correct address. Address changes cannot always be guaranteed after fulfillment begins." },
+      { "question": "Are taxes included?", "answer": "Any applicable taxes, duties, or delivery charges are shown as clearly as possible during checkout and may vary by destination." },
+      { "question": "Do products come with warranty?", "answer": "Warranty availability depends on the product. Check the product information or contact support with the product name for guidance." },
+      { "question": "How can I contact support?", "answer": "Use the contact form on this page or email support@weluxo.com. Please include your order number when your question is about an existing purchase." },
+      { "question": "What payment methods do you accept?", "answer": "Available payment methods are displayed securely during checkout. Payment details are processed through trusted payment providers." },
+      { "question": "How do I track my order?", "answer": "Enter your order number and checkout email in the tracking form, or use the tracking link sent after your order is dispatched." },
+      { "question": "How do I start a return?", "answer": "Review the Return & Refund Policy, then contact support with your order number and the reason for your request. We will explain the next steps." },
+      { "question": "How do I place an order?", "answer": "Choose a product, review its details, add it to your cart, and follow the secure checkout steps to complete your purchase." },
+      { "question": "Can I change my order?", "answer": "Contact support as soon as possible with your order number and requested change. Changes cannot always be guaranteed after fulfillment begins." },
+      { "question": "Can I cancel my order?", "answer": "Contact support immediately if you need to cancel. Cancellation cannot always be guaranteed after an order has entered fulfillment or shipped." },
+      { "question": "I did not receive my confirmation email", "answer": "Check your spam or promotions folder first. If you still cannot find the confirmation, contact support with the email and details used at checkout." },
+      { "question": "Where does Weluxo ship?", "answer": "Weluxo ships to customers in many destinations worldwide. Availability and delivery charges are confirmed at checkout for your address." },
+      { "question": "How can I track my package?", "answer": "Use the tracking link in your dispatch email or enter your order number and checkout email in the Track Your Order form." },
+      { "question": "Why is my tracking number not updating?", "answer": "Tracking can take time to update after a carrier receives a package. If there has been no movement for an unusual period, contact support for help." },
+      { "question": "Accepted payment methods", "answer": "The payment methods available for your destination are displayed securely during checkout." },
+      { "question": "Payment failed", "answer": "Confirm your payment details and try again, or use another available payment method. Contact your payment provider or Weluxo support if the issue continues." },
+      { "question": "Currency questions", "answer": "Prices and checkout currency can vary by region. The final amount and currency are shown before you complete payment." },
+      { "question": "Refund process", "answer": "Once a return or refund is approved, the refund is sent through the original payment method. Processing time can vary by payment provider." },
+      { "question": "Weluxo return policy", "answer": "Returns are handled according to our Return & Refund Policy. Contact support with your order number if you need help understanding eligibility." },
+      { "question": "How to request a return", "answer": "Contact support with your order number, the item you want to return, and the reason for the request. We will guide you through the next steps." },
+      { "question": "Refund timeline", "answer": "After approval, refund timing depends on the original payment provider. Weluxo support can confirm the status of a specific request." },
+      { "question": "Product instructions", "answer": "Start with the product guide included with your order. Contact support if you need a digital guide or help using a product." },
+      { "question": "Product compatibility", "answer": "Review the product specifications and compatibility details on the product page. Contact support before ordering if you need help checking a setup." },
+      { "question": "Warranty information", "answer": "Warranty availability depends on the product. Check the product information or contact support with the product name for guidance." },
+      { "question": "Product troubleshooting", "answer": "Check the product instructions and basic setup requirements first. If the issue continues, contact support with the product and order details." },
+      { "question": "Create an account", "answer": "Select Account and follow the sign-up steps using your email address. An account helps you review orders and manage your details." },
+      { "question": "Reset password", "answer": "Use the password reset option on the sign-in page and follow the instructions sent to your account email." },
+      { "question": "Update account information", "answer": "Sign in to your account, open your profile settings, and update the information you need to change." }
+    ]
+  }
+}

@@ -2,8 +2,9 @@
 
 import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
-import Swal from 'sweetalert2';
+import Link from 'next/link';
 import { loginRequest, fetchSession } from "../lib/apiClient";
+import { toast } from "../lib/notifications";
 
 export default function SignInPage() {
   const [email, setEmail] = useState('user@example.com');
@@ -27,11 +28,11 @@ export default function SignInPage() {
       await loginRequest(email, password, "user");
       try { localStorage.setItem('signinEmail', email) } catch (e) {}
       await fetchSession(); // prime session cache
-      Swal.fire({ icon: 'success', title: 'Logged in!', text: 'Redirecting to your panel...', timer: 700, showConfirmButton: false });
+      toast.success('Logged in!', { description: 'Redirecting to your panel...', duration: 700 });
       setTimeout(() => router.push('/account'), 700);
     } catch (err) {
       setError(err.message || 'Network error')
-      Swal.fire({ icon: 'error', title: 'Network Error', text: err.message || 'Something went wrong' })
+      toast.error('Network error', { description: err.message || 'Something went wrong' })
     } finally {
       setLoading(false)
     }
@@ -70,6 +71,12 @@ export default function SignInPage() {
                 disabled={loading}
               />
             </label>
+
+            <div style={{ display: 'flex', justifyContent: 'flex-end', marginTop: -4 }}>
+              <Link href="/forgot-password" style={{ color: '#0f766e', fontSize: 13, fontWeight: 700, textDecoration: 'none' }}>
+                Forgot password?
+              </Link>
+            </div>
 
             {error && (
               <div id="signin-error" role="alert" style={{ color: '#b91c1c', background: '#fff1f2', padding: 10, borderRadius: 8, border: '1px solid #fecaca' }}>

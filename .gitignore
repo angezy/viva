@@ -36,3 +36,5 @@ public/uploads/*
 # Temporary files
 .tmp/
 tmp/
+!bend/TMp/
+!bend/TMp/create_checkout_attempts.sql

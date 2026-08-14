@@ -1,0 +1,16 @@
+.page { min-height: 100vh; padding: 28px; background: #f4f7fb; color: #142033; font-family: Inter, system-ui, sans-serif; }
+.header { margin-bottom: 18px; }
+.header a { color: #3159d9; font-size: 13px; font-weight: 750; text-decoration: none; }
+.header h1 { margin: 8px 0 4px; font-size: 30px; }
+.header p, .caption { margin: 0; color: #6b788d; font-size: 13px; }
+.tableWrap { overflow-x: auto; background: #fff; border: 1px solid #e1e7f0; border-radius: 14px; box-shadow: 0 6px 22px rgba(29, 52, 92, .06); }
+.tableWrap table { width: 100%; border-collapse: collapse; font-size: 12px; }
+.tableWrap th { padding: 12px 14px; color: #536078; background: #f8fafd; text-align: left; white-space: nowrap; }
+.tableWrap td { padding: 12px 14px; border-top: 1px solid #edf0f5; white-space: nowrap; }
+.tableWrap tr:hover td { background: #f8fbff; }
+.message { padding: 20px; background: #fff; border: 1px solid #e1e7f0; border-radius: 12px; color: #647188; }
+.error { color: #9c2f44; background: #fff2f4; border-color: #f3cdd4; }
+.error { display: grid; gap: 6px; }
+.error small { color: #7e5961; }
+.caption { margin-top: 10px; }
+@media (max-width: 640px) { .page { padding: 18px 13px; } }

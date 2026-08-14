@@ -13,20 +13,34 @@ import ChatBubbleOutlineIcon from '@mui/icons-material/ChatBubbleOutline'
 import ExtensionOutlinedIcon from '@mui/icons-material/ExtensionOutlined'
 import HelpOutlineIcon from '@mui/icons-material/HelpOutline'
 import ArticleOutlinedIcon from '@mui/icons-material/ArticleOutlined'
+import SupportAgentOutlinedIcon from '@mui/icons-material/SupportAgentOutlined'
+import ReceiptLongOutlinedIcon from '@mui/icons-material/ReceiptLongOutlined'
+import AccountBalanceOutlinedIcon from '@mui/icons-material/AccountBalanceOutlined'
+import LocalShippingOutlinedIcon from '@mui/icons-material/LocalShippingOutlined'
+import CampaignOutlinedIcon from '@mui/icons-material/CampaignOutlined'
+import LoyaltyOutlinedIcon from '@mui/icons-material/LoyaltyOutlined'
+import RateReviewOutlinedIcon from '@mui/icons-material/RateReviewOutlined'
 import styles from './sidebar.module.css'
 
 const navItems = [
   { label: 'Dashboard', href: '/dashboard', icon: SpaceDashboardOutlinedIcon },
   { label: 'Overview', href: '/dashboard/Overview', icon: PersonOutlineIcon },
   { label: 'Page Editor', href: '/dashboard/pageEditor', icon: TextSnippetOutlinedIcon },
+  { label: 'Reviews', href: '/dashboard/reviews', icon: RateReviewOutlinedIcon },
   { label: 'Products', href: '/dashboard/products', icon: Inventory2OutlinedIcon },
+  { label: 'Orders', href: '/dashboard/orders', icon: ReceiptLongOutlinedIcon },
+  { label: 'Finance', href: '/dashboard/finance', icon: AccountBalanceOutlinedIcon },
+  { label: 'Suppliers', href: '/dashboard/suppliers', icon: LocalShippingOutlinedIcon },
   { label: 'API Products', href: '/dashboard/api-products', icon: ExtensionOutlinedIcon },
   { label: 'Users', href: '/dashboard/user', icon: GroupOutlinedIcon },
+  { label: 'Marketing', href: '/dashboard/marketing', icon: CampaignOutlinedIcon },
+  { label: 'Loyalty', href: '/dashboard/loyalty', icon: LoyaltyOutlinedIcon },
   { label: 'Settings', href: '/dashboard/Settings', icon: SettingsOutlinedIcon },
   { label: 'Messages', href: '/dashboard/item6', icon: ChatBubbleOutlineIcon },
   { label: 'Integrations', href: '/dashboard/item7', icon: ExtensionOutlinedIcon },
   { label: 'Help', href: '/dashboard/item8', icon: HelpOutlineIcon },
-  { label: 'Blog Manager', href: '/dashboard/blogManager', icon: ArticleOutlinedIcon }
+  { label: 'Blog Manager', href: '/dashboard/blogManager', icon: ArticleOutlinedIcon },
+  { label: 'Support Tickets', href: '/dashboard/tikects', icon: SupportAgentOutlinedIcon }
 ]
 
 export default function Sidebar({ open = true, onClose = () => {} }) {

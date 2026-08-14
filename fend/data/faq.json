@@ -1,0 +1,56 @@
+{
+  "seo": {
+    "title": "FAQ | Weluxo",
+    "description": "Find clear answers about Weluxo products, orders, shipping, returns, payments, and customer support.",
+    "ogTitle": "Weluxo FAQ",
+    "ogDescription": "Everything you need to know before and after shopping with Weluxo."
+  },
+  "hero": {
+    "eyebrow": "WELUXO HELP",
+    "title": "Questions, answered.",
+    "intro": "Find clear, practical answers about discovering products, placing an order, delivery, returns, and getting support when you need it."
+  },
+  "faq": {
+    "eyebrow": "THE DETAILS",
+    "title": "Everything you need to shop with confidence.",
+    "items": [
+      {
+        "question": "What is Weluxo?",
+        "answer": "Weluxo is a curated online shop for innovative, practical products designed to make everyday life better. We focus on useful products with thoughtful design and a clear reason to exist."
+      },
+      {
+        "question": "How do I place an order?",
+        "answer": "Browse the shop, open a product page, choose your preferred options, and add the item to your cart. Follow the secure checkout steps to enter your delivery details and complete payment."
+      },
+      {
+        "question": "Do you ship internationally?",
+        "answer": "Yes. Weluxo works with shipping partners to deliver to customers worldwide. Delivery availability, timing, and cost are shown at checkout based on your destination."
+      },
+      {
+        "question": "How can I track my order?",
+        "answer": "Once your order is dispatched, we send tracking details to the email address used at checkout. You can also use our Track Order page or contact support if you need help."
+      },
+      {
+        "question": "What payment methods do you accept?",
+        "answer": "Available payment methods are displayed securely during checkout. Payment details are processed through trusted payment providers and are not stored by Weluxo."
+      },
+      {
+        "question": "Can I return or exchange an item?",
+        "answer": "Returns are handled according to our Return & Refund Policy. If you need to start a return or have a question about an item, contact support with your order number and we will guide you through the next steps."
+      },
+      {
+        "question": "How do I contact Weluxo support?",
+        "answer": "Visit our Contact page or Help and include your order number when your question is about an existing order. Our support team will respond as quickly as possible."
+      }
+    ]
+  },
+  "support": {
+    "eyebrow": "NEED A HAND?",
+    "title": "We’re here to help.",
+    "copy": "Couldn’t find what you were looking for? Our support team can help with products, orders, delivery, and returns.",
+    "primaryCta": "Contact Support",
+    "primaryUrl": "/contact",
+    "secondaryCta": "Help",
+    "secondaryUrl": "/help-center"
+  }
+}

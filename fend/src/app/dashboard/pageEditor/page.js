@@ -6,9 +6,19 @@ import Footer from "@/app/components/footer";
 import Section from "@/app/components/section";
 import BlogSection from "@/app/components/blog";
 import AboutSection from "@/app/components/aboutSection";
+import WhyWeluxoSection from "@/app/components/WhyWeluxoSection";
+import HowItWorksSection from "@/app/components/HowItWorksSection";
+import FaqPageSection from "@/app/components/FaqPageSection";
+import HelpCenterSection from "@/app/components/HelpCenterSection";
+import LegalPageSection from "@/app/components/LegalPageSection";
+import ShopPage from "@/app/shop/page";
 import { Box } from "@mui/material";
 
 const EMPTY_PRODUCT = { title: "", price: "", image: "", alt: "" };
+const DEFAULT_PRODUCTS_SECTION = {
+  announcement: "New drops land every Monday \u00b7 Build your stack and save more on bundles",
+  title: "Products",
+};
 const EMPTY_FEATURE = { title: "", copy: "" };
 const readFileAsDataUrl = (file) =>
   new Promise((resolve, reject) => {
@@ -39,14 +49,36 @@ const EMPTY_ABOUT = {
   approach: [],
   contactCta: {},
 };
+const EMPTY_WHY_CARD = { title: "", copy: "" };
+const EMPTY_WHY_LINK = { label: "", url: "" };
+const EMPTY_HOW_STEP = { id: "", number: "", eyebrow: "", title: "", copy: "", items: [], flow: [], ctaText: "", ctaUrl: "", image: "", alt: "" };
+const EMPTY_HOW_LINK = { label: "", url: "" };
+const EMPTY_HOW_PRINCIPLE = { title: "", copy: "" };
+const EMPTY_HOW_FAQ = { question: "", answer: "" };
+const EMPTY_FAQ_ITEM = { question: "", answer: "" };
+const EMPTY_HELP_CATEGORY = { title: "", articles: [] };
+const EMPTY_HELP_FAQ = { question: "", answer: "" };
+const LEGAL_SLUGS = ["privacy-policy", "terms-conditions", "shipping-policy", "return-refund-policy"];
 
 export default function PageEditor() {
   const [content, setContent] = useState(null);
   const [blogContent, setBlogContent] = useState(null);
   const [aboutContent, setAboutContent] = useState(null);
+  const [whyContent, setWhyContent] = useState(null);
+  const [howContent, setHowContent] = useState(null);
+  const [faqContent, setFaqContent] = useState(null);
+  const [helpCenterContent, setHelpCenterContent] = useState(null);
+  const [legalContent, setLegalContent] = useState(null);
+  const [shopContent, setShopContent] = useState(null);
   const [loading, setLoading] = useState(true);
   const [loadingBlog, setLoadingBlog] = useState(true);
   const [loadingAbout, setLoadingAbout] = useState(true);
+  const [loadingWhy, setLoadingWhy] = useState(true);
+  const [loadingHow, setLoadingHow] = useState(true);
+  const [loadingFaq, setLoadingFaq] = useState(true);
+  const [loadingHelpCenter, setLoadingHelpCenter] = useState(true);
+  const [loadingLegal, setLoadingLegal] = useState(true);
+  const [loadingShop, setLoadingShop] = useState(true);
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState("");
   const [message, setMessage] = useState("");
@@ -72,13 +104,47 @@ export default function PageEditor() {
       .then((data) => mounted && setAboutContent(data))
       .catch(() => mounted && setError("Failed to load about content"))
       .finally(() => mounted && setLoadingAbout(false));
+    fetch("/api/dashboard/why-weluxo")
+      .then((res) => (res.ok ? res.json() : Promise.reject()))
+      .then((data) => mounted && setWhyContent(data))
+      .catch(() => mounted && setError("Failed to load Why Weluxo content"))
+      .finally(() => mounted && setLoadingWhy(false));
+    fetch("/api/dashboard/how-it-works")
+      .then((res) => (res.ok ? res.json() : Promise.reject()))
+      .then((data) => mounted && setHowContent(data))
+      .catch(() => mounted && setError("Failed to load How It Works content"))
+      .finally(() => mounted && setLoadingHow(false));
+    fetch("/api/dashboard/faq")
+      .then((res) => (res.ok ? res.json() : Promise.reject()))
+      .then((data) => mounted && setFaqContent(data))
+      .catch(() => mounted && setError("Failed to load FAQ content"))
+      .finally(() => mounted && setLoadingFaq(false));
+    fetch("/api/dashboard/help-center")
+      .then((res) => (res.ok ? res.json() : Promise.reject()))
+      .then((data) => mounted && setHelpCenterContent(data))
+      .catch(() => mounted && setError("Failed to load Help content"))
+      .finally(() => mounted && setLoadingHelpCenter(false));
+    fetch("/api/dashboard/shop")
+      .then((res) => (res.ok ? res.json() : Promise.reject()))
+      .then((data) => mounted && setShopContent(data))
+      .catch(() => mounted && setError("Failed to load Shop content"))
+      .finally(() => mounted && setLoadingShop(false));
+    Promise.all(
+      LEGAL_SLUGS.map((slug) =>
+        fetch(`/api/dashboard/legal/${slug}`).then((res) => (res.ok ? res.json() : Promise.reject()))
+      )
+    )
+      .then((pages) => mounted && setLegalContent(Object.fromEntries(LEGAL_SLUGS.map((slug, index) => [slug, pages[index]]))))
+      .catch(() => mounted && setError("Failed to load legal page content"))
+      .finally(() => mounted && setLoadingLegal(false));
     return () => {
       mounted = false;
     };
   }, []);
 
-  const inlinePreviewPaths = ["/", "/blog", "/aboutus"];
+  const inlinePreviewPaths = ["/", "/blog", "/shop", "/aboutus", "/why-weluxo", "/how-it-works", "/faq", "/help-center", ...LEGAL_SLUGS.map((slug) => `/${slug}`)];
   const showInlinePreview = inlinePreviewPaths.includes(previewPath);
+  const activeLegalSlug = LEGAL_SLUGS.find((slug) => previewPath === `/${slug}`);
 
   const updateField = (path, value) => {
     setContent((prev) => {
@@ -122,6 +188,224 @@ export default function PageEditor() {
     });
   };
 
+  const updateShopField = (path, value) => {
+    setShopContent((prev) => {
+      const next = { ...(prev || {}) };
+      let cursor = next;
+      for (let i = 0; i < path.length - 1; i++) {
+        const key = path[i];
+        const current = cursor[key];
+        cursor[key] = current && typeof current === "object" ? { ...current } : {};
+        cursor = cursor[key];
+      }
+      cursor[path[path.length - 1]] = value;
+      return next;
+    });
+  };
+
+  const updateWhyField = (path, value) => {
+    setWhyContent((prev) => {
+      const next = { ...(prev || {}) };
+      let cursor = next;
+      for (let i = 0; i < path.length - 1; i++) {
+        const key = path[i];
+        cursor[key] = Array.isArray(cursor[key])
+          ? [...cursor[key]]
+          : cursor[key] && typeof cursor[key] === "object"
+          ? { ...cursor[key] }
+          : {};
+        cursor = cursor[key];
+      }
+      cursor[path[path.length - 1]] = value;
+      return next;
+    });
+  };
+
+  const updateWhyArrayItem = (path, index, value) => {
+    setWhyContent((prev) => {
+      const next = { ...(prev || {}) };
+      let cursor = next;
+      for (let i = 0; i < path.length - 1; i++) {
+        const key = path[i];
+        cursor[key] = cursor[key] && typeof cursor[key] === "object" ? { ...cursor[key] } : {};
+        cursor = cursor[key];
+      }
+      const key = path[path.length - 1];
+      const arr = Array.isArray(cursor[key]) ? [...cursor[key]] : [];
+      arr[index] = value;
+      cursor[key] = arr;
+      return next;
+    });
+  };
+
+  const updateHowField = (path, value) => {
+    setHowContent((prev) => {
+      const next = { ...(prev || {}) };
+      let cursor = next;
+      for (let i = 0; i < path.length - 1; i++) {
+        const key = path[i];
+        const current = cursor[key];
+        cursor[key] = Array.isArray(current)
+          ? [...current]
+          : current && typeof current === "object"
+          ? { ...current }
+          : {};
+        cursor = cursor[key];
+      }
+      cursor[path[path.length - 1]] = value;
+      return next;
+    });
+  };
+
+  const updateHowArrayItem = (path, index, value) => {
+    setHowContent((prev) => {
+      const next = { ...(prev || {}) };
+      let cursor = next;
+      for (let i = 0; i < path.length - 1; i++) {
+        const key = path[i];
+        const current = cursor[key];
+        cursor[key] = Array.isArray(current)
+          ? [...current]
+          : current && typeof current === "object"
+          ? { ...current }
+          : {};
+        cursor = cursor[key];
+      }
+      const key = path[path.length - 1];
+      const arr = Array.isArray(cursor[key]) ? [...cursor[key]] : [];
+      arr[index] = value;
+      cursor[key] = arr;
+      return next;
+    });
+  };
+
+  const updateFaqField = (path, value) => {
+    setFaqContent((prev) => {
+      const next = { ...(prev || {}) };
+      let cursor = next;
+      for (let i = 0; i < path.length - 1; i++) {
+        const key = path[i];
+        const current = cursor[key];
+        cursor[key] = Array.isArray(current)
+          ? [...current]
+          : current && typeof current === "object"
+          ? { ...current }
+          : {};
+        cursor = cursor[key];
+      }
+      cursor[path[path.length - 1]] = value;
+      return next;
+    });
+  };
+
+  const updateFaqArrayItem = (path, index, value) => {
+    setFaqContent((prev) => {
+      const next = { ...(prev || {}) };
+      let cursor = next;
+      for (let i = 0; i < path.length - 1; i++) {
+        const key = path[i];
+        const current = cursor[key];
+        cursor[key] = Array.isArray(current)
+          ? [...current]
+          : current && typeof current === "object"
+          ? { ...current }
+          : {};
+        cursor = cursor[key];
+      }
+      const key = path[path.length - 1];
+      const arr = Array.isArray(cursor[key]) ? [...cursor[key]] : [];
+      arr[index] = value;
+      cursor[key] = arr;
+      return next;
+    });
+  };
+
+  const updateHelpCenterField = (path, value) => {
+    setHelpCenterContent((prev) => {
+      const next = { ...(prev || {}) };
+      let cursor = next;
+      for (let i = 0; i < path.length - 1; i++) {
+        const key = path[i];
+        const current = cursor[key];
+        cursor[key] = Array.isArray(current)
+          ? [...current]
+          : current && typeof current === "object"
+          ? { ...current }
+          : {};
+        cursor = cursor[key];
+      }
+      cursor[path[path.length - 1]] = value;
+      return next;
+    });
+  };
+
+  const updateHelpCenterArrayItem = (path, index, value) => {
+    setHelpCenterContent((prev) => {
+      const next = { ...(prev || {}) };
+      let cursor = next;
+      for (let i = 0; i < path.length - 1; i++) {
+        const key = path[i];
+        const current = cursor[key];
+        cursor[key] = Array.isArray(current)
+          ? [...current]
+          : current && typeof current === "object"
+          ? { ...current }
+          : {};
+        cursor = cursor[key];
+      }
+      const key = path[path.length - 1];
+      const arr = Array.isArray(cursor[key]) ? [...cursor[key]] : [];
+      arr[index] = value;
+      cursor[key] = arr;
+      return next;
+    });
+  };
+
+  const updateLegalField = (slug, path, value) => {
+    setLegalContent((prev) => {
+      const next = { ...(prev || {}) };
+      const page = { ...(next[slug] || {}) };
+      next[slug] = page;
+      let cursor = page;
+      for (let i = 0; i < path.length - 1; i++) {
+        const key = path[i];
+        const current = cursor[key];
+        cursor[key] = Array.isArray(current)
+          ? [...current]
+          : current && typeof current === "object"
+          ? { ...current }
+          : {};
+        cursor = cursor[key];
+      }
+      cursor[path[path.length - 1]] = value;
+      return next;
+    });
+  };
+
+  const updateLegalArrayItem = (slug, path, index, value) => {
+    setLegalContent((prev) => {
+      const next = { ...(prev || {}) };
+      const page = { ...(next[slug] || {}) };
+      next[slug] = page;
+      let cursor = page;
+      for (let i = 0; i < path.length - 1; i++) {
+        const key = path[i];
+        const current = cursor[key];
+        cursor[key] = Array.isArray(current)
+          ? [...current]
+          : current && typeof current === "object"
+          ? { ...current }
+          : {};
+        cursor = cursor[key];
+      }
+      const key = path[path.length - 1];
+      const arr = Array.isArray(cursor[key]) ? [...cursor[key]] : [];
+      arr[index] = value;
+      cursor[key] = arr;
+      return next;
+    });
+  };
+
   const addAboutItem = (key, value) => {
     setAboutContent((prev) => {
       const arr = Array.isArray(prev?.[key]) ? [...prev[key]] : [];
@@ -138,7 +422,7 @@ export default function PageEditor() {
   };
 
   async function handleSave() {
-    if (!content || !blogContent || !aboutContent) return;
+    if (!content || !blogContent || !aboutContent || !whyContent || !howContent || !faqContent || !helpCenterContent || !legalContent || !shopContent) return;
     setSaving(true);
     setError("");
     setMessage("");
@@ -158,8 +442,42 @@ export default function PageEditor() {
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ content: aboutContent }),
       });
+      const whyRes = await fetch("/api/dashboard/why-weluxo", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ content: whyContent }),
+      });
+      const howRes = await fetch("/api/dashboard/how-it-works", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ content: howContent }),
+      });
+      const faqRes = await fetch("/api/dashboard/faq", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ content: faqContent }),
+      });
+      const helpCenterRes = await fetch("/api/dashboard/help-center", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ content: helpCenterContent }),
+      });
+      const shopRes = await fetch("/api/dashboard/shop", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ content: shopContent }),
+      });
+      const legalResponses = await Promise.all(
+        LEGAL_SLUGS.map((slug) =>
+          fetch(`/api/dashboard/legal/${slug}`, {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ content: legalContent[slug] }),
+          })
+        )
+      );
 
-      if (!res.ok || !blogRes.ok || !aboutRes.ok) throw new Error("save");
+      if (!res.ok || !blogRes.ok || !aboutRes.ok || !whyRes.ok || !howRes.ok || !faqRes.ok || !helpCenterRes.ok || !shopRes.ok || legalResponses.some((response) => !response.ok)) throw new Error("save");
       setMessage("Saved! Refresh preview if needed.");
     } catch (err) {
       setError("Save failed. Try again.");
@@ -181,7 +499,232 @@ export default function PageEditor() {
   };
 
   const renderModalBody = () => {
+    if (activeSection?.startsWith("howStep:")) {
+      const idx = Number(activeSection.split(":")[1]);
+      const step = howContent?.detailSteps?.[idx] || EMPTY_HOW_STEP;
+      const updateStep = (field, value) => updateHowField(["detailSteps", idx, field], value);
+      return (
+        <>
+          <Input label="ID" value={step.id || ""} onChange={(v) => updateStep("id", v)} />
+          <Input label="Number" value={step.number || ""} onChange={(v) => updateStep("number", v)} />
+          <Input label="Eyebrow" value={step.eyebrow || ""} onChange={(v) => updateStep("eyebrow", v)} />
+          <Input label="Title" value={step.title || ""} onChange={(v) => updateStep("title", v)} />
+          <Textarea label="Copy" value={step.copy || ""} onChange={(v) => updateStep("copy", v)} />
+          <Textarea label="Highlights (one per line)" value={(step.items || []).join("\n")} onChange={(v) => updateStep("items", v.split("\n").filter(Boolean))} />
+          <Textarea label="Visual flow (one per line)" value={(step.flow || []).join("\n")} onChange={(v) => updateStep("flow", v.split("\n").filter(Boolean))} />
+          <Input label="CTA text" value={step.ctaText || ""} onChange={(v) => updateStep("ctaText", v)} />
+          <Input label="CTA URL" value={step.ctaUrl || ""} onChange={(v) => updateStep("ctaUrl", v)} />
+          <Input label="Image URL" value={step.image || ""} onChange={(v) => updateStep("image", v)} />
+          <Input label="Alt text" value={step.alt || ""} onChange={(v) => updateStep("alt", v)} />
+          <FileInput
+            label="Upload image"
+            onSelect={async (file) => {
+              const dataUrl = await readFileAsDataUrl(file);
+              updateStep("image", dataUrl);
+              updateStep("alt", step.alt || file.name);
+            }}
+          />
+        </>
+      );
+    }
+    if (activeSection?.startsWith("legal:")) {
+      const [, slug, type, indexValue] = activeSection.split(":");
+      const page = legalContent?.[slug] || {};
+      const index = Number(indexValue);
+      if (type === "hero") {
+        const hero = page.hero || {};
+        const seo = page.seo || {};
+        return (
+          <>
+            <Input label="Eyebrow" value={hero.eyebrow || ""} onChange={(v) => updateLegalField(slug, ["hero", "eyebrow"], v)} />
+            <Input label="Title" value={hero.title || ""} onChange={(v) => updateLegalField(slug, ["hero", "title"], v)} />
+            <Textarea label="Opening answer" value={hero.intro || ""} onChange={(v) => updateLegalField(slug, ["hero", "intro"], v)} />
+            <Input label="SEO title" value={seo.title || ""} onChange={(v) => updateLegalField(slug, ["seo", "title"], v)} />
+            <Textarea label="Meta description" value={seo.description || ""} onChange={(v) => updateLegalField(slug, ["seo", "description"], v)} />
+            <Input label="Primary keyword" value={seo.primaryKeyword || ""} onChange={(v) => updateLegalField(slug, ["seo", "primaryKeyword"], v)} />
+            <Input label="Secondary keywords" value={seo.secondaryKeywords || ""} onChange={(v) => updateLegalField(slug, ["seo", "secondaryKeywords"], v)} />
+          </>
+        );
+      }
+      if (type === "section") {
+        const section = page.sections?.[index] || {};
+        const updateSection = (field, value) => updateLegalField(slug, ["sections", index, field], value);
+        return (
+          <>
+            <Input label="Section title" value={section.title || ""} onChange={(v) => updateSection("title", v)} />
+            <Textarea label="Body" value={section.body || ""} onChange={(v) => updateSection("body", v)} />
+            <Textarea label="Bullets (one per line)" value={(section.bullets || []).join("\n")} onChange={(v) => updateSection("bullets", v.split("\n").filter(Boolean))} />
+            <Textarea label="Steps (one per line)" value={(section.steps || []).join("\n")} onChange={(v) => updateSection("steps", v.split("\n").filter(Boolean))} />
+            <LegalTableEditor table={section.table} onChange={(value) => updateSection("table", value)} />
+          </>
+        );
+      }
+      if (type === "faq") {
+        const faq = page.faq || {};
+        const faqItems = Array.isArray(faq.items) ? faq.items : [];
+        return (
+          <>
+            <Input label="FAQ title" value={faq.title || ""} onChange={(v) => updateLegalField(slug, ["faq", "title"], v)} />
+            <LegalFaqEditor
+              slug={slug}
+              path={["faq", "items"]}
+              items={faqItems}
+              onChange={updateLegalArrayItem}
+              onAdd={() => updateLegalField(slug, ["faq", "items"], [...faqItems, { ...EMPTY_HOW_FAQ }])}
+              onRemove={(index) => updateLegalField(slug, ["faq", "items"], faqItems.filter((_, itemIndex) => itemIndex !== index))}
+            />
+          </>
+        );
+      }
+    }
     switch (activeSection) {
+      case "faqHero": {
+        const hero = faqContent?.hero || {};
+        const seo = faqContent?.seo || {};
+        return (
+          <>
+            <Input label="Eyebrow" value={hero.eyebrow || ""} onChange={(v) => updateFaqField(["hero", "eyebrow"], v)} />
+            <Input label="Title" value={hero.title || ""} onChange={(v) => updateFaqField(["hero", "title"], v)} />
+            <Textarea label="Intro" value={hero.intro || ""} onChange={(v) => updateFaqField(["hero", "intro"], v)} />
+            <Input label="SEO title" value={seo.title || ""} onChange={(v) => updateFaqField(["seo", "title"], v)} />
+            <Textarea label="Meta description" value={seo.description || ""} onChange={(v) => updateFaqField(["seo", "description"], v)} />
+            <Input label="Social title" value={seo.ogTitle || ""} onChange={(v) => updateFaqField(["seo", "ogTitle"], v)} />
+            <Textarea label="Social description" value={seo.ogDescription || ""} onChange={(v) => updateFaqField(["seo", "ogDescription"], v)} />
+          </>
+        );
+      }
+      case "faqQuestions": {
+        const section = faqContent?.faq || {};
+        const faqItems = Array.isArray(section.items) ? section.items : [];
+        return (
+          <>
+            <Input label="Eyebrow" value={section.eyebrow || ""} onChange={(v) => updateFaqField(["faq", "eyebrow"], v)} />
+            <Input label="Title" value={section.title || ""} onChange={(v) => updateFaqField(["faq", "title"], v)} />
+            <FaqEditor
+              path={["faq", "items"]}
+              items={faqItems}
+              onChange={updateFaqArrayItem}
+              onAdd={() => updateFaqField(["faq", "items"], [...faqItems, { ...EMPTY_FAQ_ITEM }])}
+              onRemove={(index) => updateFaqField(["faq", "items"], faqItems.filter((_, itemIndex) => itemIndex !== index))}
+            />
+          </>
+        );
+      }
+      case "faqSupport": {
+        const section = faqContent?.support || {};
+        return (
+          <>
+            <Input label="Eyebrow" value={section.eyebrow || ""} onChange={(v) => updateFaqField(["support", "eyebrow"], v)} />
+            <Input label="Title" value={section.title || ""} onChange={(v) => updateFaqField(["support", "title"], v)} />
+            <Textarea label="Copy" value={section.copy || ""} onChange={(v) => updateFaqField(["support", "copy"], v)} />
+            <Input label="Primary CTA" value={section.primaryCta || ""} onChange={(v) => updateFaqField(["support", "primaryCta"], v)} />
+            <Input label="Primary URL" value={section.primaryUrl || ""} onChange={(v) => updateFaqField(["support", "primaryUrl"], v)} />
+            <Input label="Secondary CTA" value={section.secondaryCta || ""} onChange={(v) => updateFaqField(["support", "secondaryCta"], v)} />
+            <Input label="Secondary URL" value={section.secondaryUrl || ""} onChange={(v) => updateFaqField(["support", "secondaryUrl"], v)} />
+          </>
+        );
+      }
+      case "helpHero": {
+        const hero = helpCenterContent?.hero || {};
+        const seo = helpCenterContent?.seo || {};
+        return (
+          <>
+            <Input label="Eyebrow" value={hero.eyebrow || ""} onChange={(v) => updateHelpCenterField(["hero", "eyebrow"], v)} />
+            <Input label="Title" value={hero.title || ""} onChange={(v) => updateHelpCenterField(["hero", "title"], v)} />
+            <Textarea label="Copy" value={hero.copy || ""} onChange={(v) => updateHelpCenterField(["hero", "copy"], v)} />
+            <Input label="Search placeholder" value={hero.searchPlaceholder || ""} onChange={(v) => updateHelpCenterField(["hero", "searchPlaceholder"], v)} />
+            <Input label="SEO title" value={seo.title || ""} onChange={(v) => updateHelpCenterField(["seo", "title"], v)} />
+            <Textarea label="Meta description" value={seo.description || ""} onChange={(v) => updateHelpCenterField(["seo", "description"], v)} />
+            <Input label="Social title" value={seo.ogTitle || ""} onChange={(v) => updateHelpCenterField(["seo", "ogTitle"], v)} />
+            <Textarea label="Social description" value={seo.ogDescription || ""} onChange={(v) => updateHelpCenterField(["seo", "ogDescription"], v)} />
+          </>
+        );
+      }
+      case "helpCategories": {
+        const section = helpCenterContent?.categories || {};
+        const categories = Array.isArray(section.items) ? section.items : [];
+        return (
+          <>
+            <Input label="Eyebrow" value={section.eyebrow || ""} onChange={(v) => updateHelpCenterField(["categories", "eyebrow"], v)} />
+            <Input label="Title" value={section.title || ""} onChange={(v) => updateHelpCenterField(["categories", "title"], v)} />
+            <Textarea label="Copy" value={section.copy || ""} onChange={(v) => updateHelpCenterField(["categories", "copy"], v)} />
+            <HelpCategoryEditor
+              path={["categories", "items"]}
+              items={categories}
+              onChange={updateHelpCenterArrayItem}
+              onAdd={() => updateHelpCenterField(["categories", "items"], [...categories, { ...EMPTY_HELP_CATEGORY }])}
+              onRemove={(index) => updateHelpCenterField(["categories", "items"], categories.filter((_, itemIndex) => itemIndex !== index))}
+            />
+          </>
+        );
+      }
+      case "helpContact": {
+        const section = helpCenterContent?.contactSupport || {};
+        return (
+          <>
+            <Input label="Eyebrow" value={section.eyebrow || ""} onChange={(v) => updateHelpCenterField(["contactSupport", "eyebrow"], v)} />
+            <Input label="Title" value={section.title || ""} onChange={(v) => updateHelpCenterField(["contactSupport", "title"], v)} />
+            <Textarea label="Copy" value={section.copy || ""} onChange={(v) => updateHelpCenterField(["contactSupport", "copy"], v)} />
+            <Input label="Support email" value={section.email || ""} onChange={(v) => updateHelpCenterField(["contactSupport", "email"], v)} />
+            <Input label="Email note" value={section.emailNote || ""} onChange={(v) => updateHelpCenterField(["contactSupport", "emailNote"], v)} />
+            <Input label="Live chat title" value={section.liveChatTitle || ""} onChange={(v) => updateHelpCenterField(["contactSupport", "liveChatTitle"], v)} />
+            <Textarea label="Live chat copy" value={section.liveChatCopy || ""} onChange={(v) => updateHelpCenterField(["contactSupport", "liveChatCopy"], v)} />
+            <Input label="Live chat button" value={section.liveChatButton || ""} onChange={(v) => updateHelpCenterField(["contactSupport", "liveChatButton"], v)} />
+            <Input label="Telegram title" value={section.telegramTitle || ""} onChange={(v) => updateHelpCenterField(["contactSupport", "telegramTitle"], v)} />
+            <Textarea label="Telegram copy" value={section.telegramCopy || ""} onChange={(v) => updateHelpCenterField(["contactSupport", "telegramCopy"], v)} />
+            <Input label="Telegram button" value={section.telegramButton || ""} onChange={(v) => updateHelpCenterField(["contactSupport", "telegramButton"], v)} />
+            <Input label="Telegram URL" value={section.telegramUrl || ""} onChange={(v) => updateHelpCenterField(["contactSupport", "telegramUrl"], v)} />
+            <Input label="Form title" value={section.formTitle || ""} onChange={(v) => updateHelpCenterField(["contactSupport", "formTitle"], v)} />
+            <Input label="Submit button" value={section.submitButton || ""} onChange={(v) => updateHelpCenterField(["contactSupport", "submitButton"], v)} />
+            <Textarea label="Success message" value={section.successMessage || ""} onChange={(v) => updateHelpCenterField(["contactSupport", "successMessage"], v)} />
+          </>
+        );
+      }
+      case "helpFaq": {
+        const section = helpCenterContent?.faq || {};
+        const faqItems = Array.isArray(section.items) ? section.items : [];
+        return (
+          <>
+            <Input label="Eyebrow" value={section.eyebrow || ""} onChange={(v) => updateHelpCenterField(["faq", "eyebrow"], v)} />
+            <Input label="Title" value={section.title || ""} onChange={(v) => updateHelpCenterField(["faq", "title"], v)} />
+            <HelpFaqEditor
+              path={["faq", "items"]}
+              items={faqItems}
+              onChange={updateHelpCenterArrayItem}
+              onAdd={() => updateHelpCenterField(["faq", "items"], [...faqItems, { ...EMPTY_HELP_FAQ }])}
+              onRemove={(index) => updateHelpCenterField(["faq", "items"], faqItems.filter((_, itemIndex) => itemIndex !== index))}
+            />
+          </>
+        );
+      }
+      case "shopHero": {
+        const hero = shopContent?.hero || {};
+        return (
+          <>
+            <Input label="Title" value={hero.title || ""} onChange={(v) => updateShopField(["hero", "title"], v)} />
+            <Textarea label="Description" value={hero.description || ""} onChange={(v) => updateShopField(["hero", "description"], v)} />
+            <Input label="Background image URL" value={hero.backgroundImage || ""} onChange={(v) => updateShopField(["hero", "backgroundImage"], v)} />
+            <Input label="Background position" value={hero.backgroundPosition || "center"} onChange={(v) => updateShopField(["hero", "backgroundPosition"], v)} />
+            <FileInput
+              label="Upload background image"
+              onSelect={async (file) => {
+                const dataUrl = await readFileAsDataUrl(file);
+                updateShopField(["hero", "backgroundImage"], dataUrl);
+              }}
+            />
+          </>
+        );
+      }
+      case "shopCatalog":
+        return (
+          <>
+            <Input label="Search placeholder" value={shopContent?.searchPlaceholder || ""} onChange={(v) => updateShopField(["searchPlaceholder"], v)} />
+            <Input label="CTA text" value={shopContent?.ctaText || ""} onChange={(v) => updateShopField(["ctaText"], v)} />
+            <Input label="Catalog title" value={shopContent?.catalogTitle || ""} onChange={(v) => updateShopField(["catalogTitle"], v)} />
+            <Textarea label="Empty state message" value={shopContent?.emptyMessage || ""} onChange={(v) => updateShopField(["emptyMessage"], v)} />
+            <Input label="Maximum category filters" value={shopContent?.categoryLimit ?? 6} onChange={(v) => updateShopField(["categoryLimit"], v)} />
+          </>
+        );
       case "hero1":
       case "hero2": {
         const idx = activeSection === "hero1" ? 0 : 1;
@@ -278,25 +821,30 @@ export default function PageEditor() {
         );
       }
       case "products": {
+        const productsSection = { ...DEFAULT_PRODUCTS_SECTION, ...(content?.productsSection || {}) };
         return (
-          <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit,minmax(220px,1fr))", gap: 10 }}>
-            {(content?.products || []).map((p, idx) => (
-              <div key={idx} style={{ border: "1px solid #eee", borderRadius: 8, padding: 10, background: "white" }}>
-                <div style={{ fontWeight: 600, marginBottom: 6 }}>Product {idx + 1}</div>
-                <Input label="Title" value={p?.title || ""} onChange={(v) => updateArrayItem("products", idx, { ...(p || EMPTY_PRODUCT), title: v })} />
-                <Input label="Price" value={p?.price || ""} onChange={(v) => updateArrayItem("products", idx, { ...(p || EMPTY_PRODUCT), price: v })} />
-                <Input label="Alt text" value={p?.alt || ""} onChange={(v) => updateArrayItem("products", idx, { ...(p || EMPTY_PRODUCT), alt: v })} />
-                <Input label="Image URL" value={p?.image || ""} onChange={(v) => updateArrayItem("products", idx, { ...(p || EMPTY_PRODUCT), image: v })} />
-                <FileInput
-                  label="Upload image"
-                  onSelect={async (file) => {
-                    const dataUrl = await readFileAsDataUrl(file);
-                    updateArrayItem("products", idx, { ...(p || EMPTY_PRODUCT), image: dataUrl, alt: p?.alt || file.name });
-                  }}
-                />
-              </div>
-            ))}
-          </div>
+          <>
+            <Input label="Announcement text" value={productsSection.announcement || ""} onChange={(v) => updateField(["productsSection", "announcement"], v)} />
+            <Input label="Products section title" value={productsSection.title || ""} onChange={(v) => updateField(["productsSection", "title"], v)} />
+            <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit,minmax(220px,1fr))", gap: 10 }}>
+              {(content?.products || []).map((p, idx) => (
+                <div key={idx} style={{ border: "1px solid #eee", borderRadius: 8, padding: 10, background: "white" }}>
+                  <div style={{ fontWeight: 600, marginBottom: 6 }}>Product {idx + 1}</div>
+                  <Input label="Title" value={p?.title || ""} onChange={(v) => updateArrayItem("products", idx, { ...(p || EMPTY_PRODUCT), title: v })} />
+                  <Input label="Price" value={p?.price || ""} onChange={(v) => updateArrayItem("products", idx, { ...(p || EMPTY_PRODUCT), price: v })} />
+                  <Input label="Alt text" value={p?.alt || ""} onChange={(v) => updateArrayItem("products", idx, { ...(p || EMPTY_PRODUCT), alt: v })} />
+                  <Input label="Image URL" value={p?.image || ""} onChange={(v) => updateArrayItem("products", idx, { ...(p || EMPTY_PRODUCT), image: v })} />
+                  <FileInput
+                    label="Upload image"
+                    onSelect={async (file) => {
+                      const dataUrl = await readFileAsDataUrl(file);
+                      updateArrayItem("products", idx, { ...(p || EMPTY_PRODUCT), image: dataUrl, alt: p?.alt || file.name });
+                    }}
+                  />
+                </div>
+              ))}
+            </div>
+          </>
         );
       }
       case "actionShots":
@@ -362,98 +910,216 @@ export default function PageEditor() {
           <>
             <Input label="Title" value={hero.title || ""} onChange={(v) => setAboutContent((prev) => ({ ...(prev || {}), hero: { ...(hero || {}), title: v } }))} />
             <Textarea label="Subtitle" value={hero.subtitle || ""} onChange={(v) => setAboutContent((prev) => ({ ...(prev || {}), hero: { ...(hero || {}), subtitle: v } }))} />
-            <Input label="CTA text" value={hero.ctaText || ""} onChange={(v) => setAboutContent((prev) => ({ ...(prev || {}), hero: { ...(hero || {}), ctaText: v } }))} />
-            <Input label="CTA URL" value={hero.ctaUrl || ""} onChange={(v) => setAboutContent((prev) => ({ ...(prev || {}), hero: { ...(hero || {}), ctaUrl: v } }))} />
-            <Input label="Alt text" value={hero.alt || ""} onChange={(v) => setAboutContent((prev) => ({ ...(prev || {}), hero: { ...(hero || {}), alt: v } }))} />
-            <Input label="Image URL" value={hero.image || ""} onChange={(v) => setAboutContent((prev) => ({ ...(prev || {}), hero: { ...(hero || {}), image: v } }))} />
           </>
         );
       }
       case "aboutMission":
-        return <Textarea label="Mission" value={aboutContent?.mission || ""} onChange={(v) => setAboutContent((prev) => ({ ...(prev || {}), mission: v }))} />;
+        return <Textarea label="About Weluxo (paragraphs)" value={aboutContent?.mission || ""} onChange={(v) => setAboutContent((prev) => ({ ...(prev || {}), mission: v }))} />;
       case "aboutValues":
-        return <Textarea label="Values" value={aboutContent?.values || ""} onChange={(v) => setAboutContent((prev) => ({ ...(prev || {}), values: v }))} />;
+        return <Textarea label="Our Philosophy (paragraphs)" value={aboutContent?.values || ""} onChange={(v) => setAboutContent((prev) => ({ ...(prev || {}), values: v }))} />;
       case "aboutStory":
-        return (
-          <Textarea
-            label="Story (paragraphs separated by blank lines)"
-            value={(aboutContent?.story || []).join("\n\n")}
-            onChange={(v) => setAboutContent((prev) => ({ ...(prev || {}), story: v.split(/\n\s*\n/).filter(Boolean) }))}
-          />
-        );
+        return <Textarea label="Looking Ahead (paragraphs)" value={aboutContent?.story || ""} onChange={(v) => setAboutContent((prev) => ({ ...(prev || {}), story: v }))} />;
       case "aboutContactCta": {
         const cta = aboutContent?.contactCta || {};
         return (
           <>
-            <Input label="Headline" value={cta.title || ""} onChange={(v) => setAboutContent((prev) => ({ ...(prev || {}), contactCta: { ...(cta || {}), title: v } }))} />
-            <Textarea label="Body" value={cta.copy || ""} onChange={(v) => setAboutContent((prev) => ({ ...(prev || {}), contactCta: { ...(cta || {}), copy: v } }))} />
-            <Input label="Button text" value={cta.buttonText || ""} onChange={(v) => setAboutContent((prev) => ({ ...(prev || {}), contactCta: { ...(cta || {}), buttonText: v } }))} />
-            <Input label="Button URL" value={cta.buttonUrl || ""} onChange={(v) => setAboutContent((prev) => ({ ...(prev || {}), contactCta: { ...(cta || {}), buttonUrl: v } }))} />
+            <Input label="Footer title" value={cta.title || ""} onChange={(v) => setAboutContent((prev) => ({ ...(prev || {}), contactCta: { ...(cta || {}), title: v } }))} />
+            <Input label="Footer subtitle" value={cta.copy || ""} onChange={(v) => setAboutContent((prev) => ({ ...(prev || {}), contactCta: { ...(cta || {}), copy: v } }))} />
           </>
         );
       }
-      case "aboutApproach": {
-        const approach = Array.isArray(aboutContent?.approach) && aboutContent.approach.length ? aboutContent.approach : [EMPTY_APPROACH];
+      case "aboutApproach":
+        return <Textarea label="Our Commitment (paragraphs)" value={aboutContent?.approach || ""} onChange={(v) => setAboutContent((prev) => ({ ...(prev || {}), approach: v }))} />;
+      case "aboutTeam":
+        return <Textarea label="Why Customers Choose Weluxo (paragraphs)" value={aboutContent?.team || ""} onChange={(v) => setAboutContent((prev) => ({ ...(prev || {}), team: v }))} />;
+      case "whyHero": {
+        const hero = whyContent?.hero || {};
         return (
-          <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit,minmax(220px,1fr))", gap: 10 }}>
-            {approach.map((item, idx) => (
-              <div key={idx} style={{ border: "1px solid #eee", borderRadius: 8, padding: 10, background: "white" }}>
-                <Input label="Title" value={item?.title || ""} onChange={(v) => updateAboutArray("approach", idx, { ...(item || EMPTY_APPROACH), title: v })} />
-                <Textarea label="Copy" value={item?.copy || ""} onChange={(v) => updateAboutArray("approach", idx, { ...(item || EMPTY_APPROACH), copy: v })} />
-              </div>
-            ))}
-            <button
-              onClick={() => addAboutItem("approach", { ...EMPTY_APPROACH, title: "New step" })}
-              style={{ padding: "10px", borderRadius: 8, border: "1px dashed #94a3b8", background: "white", cursor: "pointer" }}
-            >
-              + Add step
-            </button>
-          </div>
+          <>
+            <Input label="Eyebrow" value={hero.eyebrow || ""} onChange={(v) => updateWhyField(["hero", "eyebrow"], v)} />
+            <Input label="Title" value={hero.title || ""} onChange={(v) => updateWhyField(["hero", "title"], v)} />
+            <Textarea label="Subtitle" value={hero.subtitle || ""} onChange={(v) => updateWhyField(["hero", "subtitle"], v)} />
+            <Input label="Alt text" value={hero.alt || ""} onChange={(v) => updateWhyField(["hero", "alt"], v)} />
+            <Input label="Image URL" value={hero.image || ""} onChange={(v) => updateWhyField(["hero", "image"], v)} />
+            <FileInput
+              label="Upload image"
+              onSelect={async (file) => {
+                const dataUrl = await readFileAsDataUrl(file);
+                updateWhyField(["hero", "image"], dataUrl);
+                updateWhyField(["hero", "alt"], hero.alt || file.name);
+              }}
+            />
+          </>
         );
       }
-      case "aboutTeam": {
-        const team = Array.isArray(aboutContent?.team) && aboutContent.team.length ? aboutContent.team : [EMPTY_TEAM];
+      case "whyCurated": {
+        const section = whyContent?.curatedProducts || {};
         return (
-          <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit,minmax(260px,1fr))", gap: 10 }}>
-            {team.map((member, idx) => (
-              <div key={idx} style={{ border: "1px solid #eee", borderRadius: 8, padding: 10, background: "white", position: "relative" }}>
-                <Input label="Name" value={member?.name || ""} onChange={(v) => updateAboutArray("team", idx, { ...(member || EMPTY_TEAM), name: v })} />
-                <Input label="Role" value={member?.role || ""} onChange={(v) => updateAboutArray("team", idx, { ...(member || EMPTY_TEAM), role: v })} />
-                <Textarea label="Bio" value={member?.bio || ""} onChange={(v) => updateAboutArray("team", idx, { ...(member || EMPTY_TEAM), bio: v })} />
-                <Input label="Photo URL" value={member?.img || ""} onChange={(v) => updateAboutArray("team", idx, { ...(member || EMPTY_TEAM), img: v })} />
-                <Input label="Alt text" value={member?.alt || ""} onChange={(v) => updateAboutArray("team", idx, { ...(member || EMPTY_TEAM), alt: v })} />
-                <FileInput
-                  label="Upload photo"
-                  onSelect={async (file) => {
-                    const dataUrl = await readFileAsDataUrl(file);
-                    updateAboutArray("team", idx, { ...(member || EMPTY_TEAM), img: dataUrl, alt: member?.alt || file.name });
-                  }}
-                />
-                <button
-                  onClick={() => removeAboutItem("team", idx)}
-                  style={{
-                    position: "absolute",
-                    top: 8,
-                    right: 8,
-                    border: "1px solid #e2e8f0",
-                    background: "white",
-                    color: "#ef4444",
-                    borderRadius: 6,
-                    padding: "4px 8px",
-                    cursor: "pointer",
-                  }}
-                >
-                  Delete
-                </button>
-              </div>
-            ))}
-            <button
-              onClick={() => addAboutItem("team", { ...EMPTY_TEAM, name: "New member" })}
-              style={{ padding: "10px", borderRadius: 8, border: "1px dashed #94a3b8", background: "white", cursor: "pointer" }}
-            >
-              + Add team member
-            </button>
-          </div>
+          <>
+            <Input label="Eyebrow" value={section.eyebrow || ""} onChange={(v) => updateWhyField(["curatedProducts", "eyebrow"], v)} />
+            <Input label="Title" value={section.title || ""} onChange={(v) => updateWhyField(["curatedProducts", "title"], v)} />
+            <Textarea label="Copy" value={section.copy || ""} onChange={(v) => updateWhyField(["curatedProducts", "copy"], v)} />
+          </>
+        );
+      }
+      case "whyShopping": {
+        const section = whyContent?.smartShopping || {};
+        return (
+          <>
+            <Input label="Eyebrow" value={section.eyebrow || ""} onChange={(v) => updateWhyField(["smartShopping", "eyebrow"], v)} />
+            <Input label="Title" value={section.title || ""} onChange={(v) => updateWhyField(["smartShopping", "title"], v)} />
+            <Textarea label="Checklist (one per line)" value={(section.items || []).join("\n")} onChange={(v) => updateWhyField(["smartShopping", "items"], v.split("\n").filter(Boolean))} />
+          </>
+        );
+      }
+      case "whyShipping": {
+        const section = whyContent?.globalShipping || {};
+        return (
+          <>
+            <Input label="Eyebrow" value={section.eyebrow || ""} onChange={(v) => updateWhyField(["globalShipping", "eyebrow"], v)} />
+            <Input label="Title" value={section.title || ""} onChange={(v) => updateWhyField(["globalShipping", "title"], v)} />
+            <Textarea label="Copy" value={section.copy || ""} onChange={(v) => updateWhyField(["globalShipping", "copy"], v)} />
+            <WhyCardEditor path={["globalShipping", "cards"]} cards={section.cards} onChange={updateWhyArrayItem} />
+          </>
+        );
+      }
+      case "whySupport": {
+        const section = whyContent?.customerSupport || {};
+        return (
+          <>
+            <Input label="Eyebrow" value={section.eyebrow || ""} onChange={(v) => updateWhyField(["customerSupport", "eyebrow"], v)} />
+            <Input label="Title" value={section.title || ""} onChange={(v) => updateWhyField(["customerSupport", "title"], v)} />
+            <Textarea label="Copy" value={section.copy || ""} onChange={(v) => updateWhyField(["customerSupport", "copy"], v)} />
+            <Textarea label="Checklist (one per line)" value={(section.items || []).join("\n")} onChange={(v) => updateWhyField(["customerSupport", "items"], v.split("\n").filter(Boolean))} />
+            <WhyLinkEditor path={["customerSupport", "links"]} links={section.links} onChange={updateWhyArrayItem} />
+          </>
+        );
+      }
+      case "whyQuality": {
+        const section = whyContent?.qualityFocus || {};
+        return (
+          <>
+            <Input label="Eyebrow" value={section.eyebrow || ""} onChange={(v) => updateWhyField(["qualityFocus", "eyebrow"], v)} />
+            <Input label="Title" value={section.title || ""} onChange={(v) => updateWhyField(["qualityFocus", "title"], v)} />
+            <Textarea label="Copy" value={section.copy || ""} onChange={(v) => updateWhyField(["qualityFocus", "copy"], v)} />
+            <WhyCardEditor path={["qualityFocus", "cards"]} cards={section.cards} onChange={updateWhyArrayItem} />
+          </>
+        );
+      }
+      case "whySecure": {
+        const section = whyContent?.secureShopping || {};
+        return (
+          <>
+            <Input label="Eyebrow" value={section.eyebrow || ""} onChange={(v) => updateWhyField(["secureShopping", "eyebrow"], v)} />
+            <Input label="Title" value={section.title || ""} onChange={(v) => updateWhyField(["secureShopping", "title"], v)} />
+            <Textarea label="Items (one per line)" value={(section.items || []).join("\n")} onChange={(v) => updateWhyField(["secureShopping", "items"], v.split("\n").filter(Boolean))} />
+          </>
+        );
+      }
+      case "whyPromise": {
+        const section = whyContent?.promise || {};
+        return (
+          <>
+            <Input label="Eyebrow" value={section.eyebrow || ""} onChange={(v) => updateWhyField(["promise", "eyebrow"], v)} />
+            <Input label="Title" value={section.title || ""} onChange={(v) => updateWhyField(["promise", "title"], v)} />
+            <Textarea label="Copy" value={section.copy || ""} onChange={(v) => updateWhyField(["promise", "copy"], v)} />
+          </>
+        );
+      }
+      case "whyCta": {
+        const section = whyContent?.finalCta || {};
+        return (
+          <>
+            <Input label="Title" value={section.title || ""} onChange={(v) => updateWhyField(["finalCta", "title"], v)} />
+            <Input label="Button text" value={section.buttonText || ""} onChange={(v) => updateWhyField(["finalCta", "buttonText"], v)} />
+            <Input label="Button URL" value={section.buttonUrl || ""} onChange={(v) => updateWhyField(["finalCta", "buttonUrl"], v)} />
+          </>
+        );
+      }
+      case "howHero": {
+        const hero = howContent?.hero || {};
+        return (
+          <>
+            <Input label="Eyebrow" value={hero.eyebrow || ""} onChange={(v) => updateHowField(["hero", "eyebrow"], v)} />
+            <Input label="Title" value={hero.title || ""} onChange={(v) => updateHowField(["hero", "title"], v)} />
+            <Textarea label="Copy" value={hero.copy || ""} onChange={(v) => updateHowField(["hero", "copy"], v)} />
+            <Input label="Primary CTA" value={hero.primaryCta || ""} onChange={(v) => updateHowField(["hero", "primaryCta"], v)} />
+            <Input label="Primary URL" value={hero.primaryUrl || ""} onChange={(v) => updateHowField(["hero", "primaryUrl"], v)} />
+            <Input label="Secondary CTA" value={hero.secondaryCta || ""} onChange={(v) => updateHowField(["hero", "secondaryCta"], v)} />
+            <Input label="Secondary URL" value={hero.secondaryUrl || ""} onChange={(v) => updateHowField(["hero", "secondaryUrl"], v)} />
+            <Input label="Image URL" value={hero.image || ""} onChange={(v) => updateHowField(["hero", "image"], v)} />
+            <Input label="Alt text" value={hero.alt || ""} onChange={(v) => updateHowField(["hero", "alt"], v)} />
+            <FileInput
+              label="Upload image"
+              onSelect={async (file) => {
+                const dataUrl = await readFileAsDataUrl(file);
+                updateHowField(["hero", "image"], dataUrl);
+                updateHowField(["hero", "alt"], hero.alt || file.name);
+              }}
+            />
+          </>
+        );
+      }
+      case "howProcess": {
+        const section = howContent?.processOverview || {};
+        return (
+          <>
+            <Input label="Eyebrow" value={section.eyebrow || ""} onChange={(v) => updateHowField(["processOverview", "eyebrow"], v)} />
+            <Input label="Title" value={section.title || ""} onChange={(v) => updateHowField(["processOverview", "title"], v)} />
+            <HowOverviewEditor steps={section.steps} onChange={updateHowArrayItem} />
+          </>
+        );
+      }
+      case "howSupport": {
+        const section = howContent?.support || {};
+        return (
+          <>
+            <Input label="Eyebrow" value={section.eyebrow || ""} onChange={(v) => updateHowField(["support", "eyebrow"], v)} />
+            <Input label="Title" value={section.title || ""} onChange={(v) => updateHowField(["support", "title"], v)} />
+            <Textarea label="Copy" value={section.copy || ""} onChange={(v) => updateHowField(["support", "copy"], v)} />
+            <HowLinkEditor path={["support", "links"]} links={section.links} onChange={updateHowArrayItem} />
+          </>
+        );
+      }
+      case "howWay": {
+        const section = howContent?.way || {};
+        return (
+          <>
+            <Input label="Eyebrow" value={section.eyebrow || ""} onChange={(v) => updateHowField(["way", "eyebrow"], v)} />
+            <Input label="Title" value={section.title || ""} onChange={(v) => updateHowField(["way", "title"], v)} />
+            <HowPrincipleEditor path={["way", "principles"]} principles={section.principles} onChange={updateHowArrayItem} />
+          </>
+        );
+      }
+      case "howFaq": {
+        const section = howContent?.faq || {};
+        const faqItems = Array.isArray(section.items) ? section.items : [];
+        return (
+          <>
+            <Input label="Eyebrow" value={section.eyebrow || ""} onChange={(v) => updateHowField(["faq", "eyebrow"], v)} />
+            <Input label="Title" value={section.title || ""} onChange={(v) => updateHowField(["faq", "title"], v)} />
+            <HowFaqEditor
+              path={["faq", "items"]}
+              items={faqItems}
+              onChange={updateHowArrayItem}
+              onAdd={() => updateHowField(["faq", "items"], [...faqItems, { ...EMPTY_HOW_FAQ }])}
+              onRemove={(index) => updateHowField(["faq", "items"], faqItems.filter((_, itemIndex) => itemIndex !== index))}
+            />
+          </>
+        );
+      }
+      case "howCta": {
+        const section = howContent?.finalCta || {};
+        return (
+          <>
+            <Input label="Eyebrow" value={section.eyebrow || ""} onChange={(v) => updateHowField(["finalCta", "eyebrow"], v)} />
+            <Input label="Title" value={section.title || ""} onChange={(v) => updateHowField(["finalCta", "title"], v)} />
+            <Textarea label="Copy" value={section.copy || ""} onChange={(v) => updateHowField(["finalCta", "copy"], v)} />
+            <Input label="Primary CTA" value={section.primaryCta || ""} onChange={(v) => updateHowField(["finalCta", "primaryCta"], v)} />
+            <Input label="Primary URL" value={section.primaryUrl || ""} onChange={(v) => updateHowField(["finalCta", "primaryUrl"], v)} />
+            <Input label="Secondary CTA" value={section.secondaryCta || ""} onChange={(v) => updateHowField(["finalCta", "secondaryCta"], v)} />
+            <Input label="Secondary URL" value={section.secondaryUrl || ""} onChange={(v) => updateHowField(["finalCta", "secondaryUrl"], v)} />
+          </>
         );
       }
       case "blogHero": {
@@ -513,7 +1179,7 @@ export default function PageEditor() {
     }
   };
 
-  if (loading || loadingBlog || loadingAbout) {
+  if (loading || loadingBlog || loadingAbout || loadingWhy || loadingHow || loadingFaq || loadingHelpCenter || loadingShop) {
     return <div style={{ padding: 16 }}>Loading dashboard editor...</div>;
   }
 
@@ -526,6 +1192,24 @@ export default function PageEditor() {
   if (!aboutContent) {
     return <div style={{ padding: 16, color: "#b00" }}>{error || "No about content loaded."}</div>;
   }
+  if (!whyContent) {
+    return <div style={{ padding: 16, color: "#b00" }}>{error || "No Why Weluxo content loaded."}</div>;
+  }
+  if (!howContent) {
+    return <div style={{ padding: 16, color: "#b00" }}>{error || "No How It Works content loaded."}</div>;
+  }
+  if (!faqContent) {
+    return <div style={{ padding: 16, color: "#b00" }}>{error || "No FAQ content loaded."}</div>;
+  }
+  if (!helpCenterContent) {
+    return <div style={{ padding: 16, color: "#b00" }}>{error || "No Help content loaded."}</div>;
+  }
+  if (!shopContent) {
+    return <div style={{ padding: 16, color: "#b00" }}>{error || "No Shop content loaded."}</div>;
+  }
+  if (!legalContent) {
+    return <div style={{ padding: 16, color: "#b00" }}>{error || "No legal page content loaded."}</div>;
+  }
 
   return (
     <div style={{ height: "100%", display: "flex", flexDirection: "column", background: "#0b0f1a" }}>
@@ -537,6 +1221,14 @@ export default function PageEditor() {
             { label: "Blog", path: "/blog" },
             { label: "Shop", path: "/shop" },
             { label: "About", path: "/aboutus" },
+            { label: "Why Weluxo", path: "/why-weluxo" },
+            { label: "How It Works", path: "/how-it-works" },
+            { label: "FAQ", path: "/faq" },
+            { label: "Help", path: "/help-center" },
+            { label: "Privacy", path: "/privacy-policy" },
+            { label: "Terms", path: "/terms-conditions" },
+            { label: "Shipping", path: "/shipping-policy" },
+            { label: "Returns", path: "/return-refund-policy" },
           ].map((item) => (
             <button
               key={item.path}
@@ -553,7 +1245,7 @@ export default function PageEditor() {
               {item.label}
             </button>
           ))}
-          <span style={{ color: "#64748b", fontSize: 12 }}>Home/Blog/About editable here; Shop is preview-only.</span>
+          <span style={{ color: "#64748b", fontSize: 12 }}>Home, Blog, Shop, About, Why Weluxo, How It Works, Help, and policy pages are editable here.</span>
         </div>
         {message && <span style={{ color: "#0a8", alignSelf: "center" }}>{message}</span>}
         {error && <span style={{ color: "#c00", alignSelf: "center" }}>{error}</span>}
@@ -614,6 +1306,16 @@ export default function PageEditor() {
             />
           </Box>
         )}
+        {showInlinePreview && previewPath === "/shop" && (
+          <ShopPage
+            initialContent={shopContent}
+            editable
+            onEdit={{
+              hero: () => openModal("shopHero"),
+              catalog: () => openModal("shopCatalog"),
+            }}
+          />
+        )}
         {showInlinePreview && previewPath === "/aboutus" && (
           <Box sx={{ my: 4 }}>
             <AboutSection
@@ -629,6 +1331,73 @@ export default function PageEditor() {
               }}
             />
           </Box>
+        )}
+        {showInlinePreview && previewPath === "/why-weluxo" && (
+          <WhyWeluxoSection
+            initialContent={whyContent}
+            editable
+            onEdit={{
+              hero: () => openModal("whyHero"),
+              curatedProducts: () => openModal("whyCurated"),
+              smartShopping: () => openModal("whyShopping"),
+              globalShipping: () => openModal("whyShipping"),
+              customerSupport: () => openModal("whySupport"),
+              qualityFocus: () => openModal("whyQuality"),
+              secureShopping: () => openModal("whySecure"),
+              promise: () => openModal("whyPromise"),
+              finalCta: () => openModal("whyCta"),
+            }}
+          />
+        )}
+        {showInlinePreview && previewPath === "/how-it-works" && (
+          <HowItWorksSection
+            initialContent={howContent}
+            editable
+            onEdit={{
+              hero: () => openModal("howHero"),
+              processOverview: () => openModal("howProcess"),
+              step: (index) => openModal(`howStep:${index}`),
+              support: () => openModal("howSupport"),
+              way: () => openModal("howWay"),
+              faq: () => openModal("howFaq"),
+              finalCta: () => openModal("howCta"),
+            }}
+          />
+        )}
+        {showInlinePreview && previewPath === "/faq" && (
+          <FaqPageSection
+            initialContent={faqContent}
+            editable
+            onEdit={{
+              hero: () => openModal("faqHero"),
+              faq: () => openModal("faqQuestions"),
+              support: () => openModal("faqSupport"),
+            }}
+          />
+        )}
+        {showInlinePreview && previewPath === "/help-center" && (
+          <HelpCenterSection
+            initialContent={helpCenterContent}
+            editable
+            onEdit={{
+              hero: () => openModal("helpHero"),
+              categories: () => openModal("helpCategories"),
+              contactSupport: () => openModal("helpContact"),
+              faq: () => openModal("helpFaq"),
+            }}
+          />
+        )}
+        {showInlinePreview && activeLegalSlug && (
+          <LegalPageSection
+            pageSlug={activeLegalSlug}
+            initialContent={legalContent[activeLegalSlug]}
+            editable
+            onEdit={{
+              hero: () => openModal(`legal:${activeLegalSlug}:hero`),
+              section: (index) => openModal(`legal:${activeLegalSlug}:section:${index}`),
+              faq: () => openModal(`legal:${activeLegalSlug}:faq`),
+            }}
+          />
         )}
         <Footer />
       </div>
@@ -708,5 +1477,184 @@ function FileInput({ label, onSelect }) {
         }}
       />
     </label>
+  );
+}
+
+function LegalTableEditor({ table, onChange }) {
+  if (!table) return null;
+  const headers = Array.isArray(table.headers) ? table.headers : [];
+  const rows = Array.isArray(table.rows) ? table.rows : [];
+  const updateHeader = (index, value) => {
+    const nextHeaders = [...headers];
+    nextHeaders[index] = value;
+    onChange({ ...table, headers: nextHeaders });
+  };
+  const updateCell = (rowIndex, cellIndex, value) => {
+    const nextRows = rows.map((row) => [...row]);
+    nextRows[rowIndex][cellIndex] = value;
+    onChange({ ...table, rows: nextRows });
+  };
+  return (
+    <div style={{ display: "grid", gap: 10, border: "1px solid #e5e7eb", borderRadius: 8, padding: 10, background: "#fafafa" }}>
+      <div style={{ fontWeight: 600 }}>Table content</div>
+      <Textarea label="Headers (one per line)" value={headers.join("\n")} onChange={(value) => onChange({ ...table, headers: value.split("\n").filter(Boolean) })} />
+      {rows.map((row, rowIndex) => (
+        <div key={rowIndex} style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit,minmax(160px,1fr))", gap: 8 }}>
+          {row.map((cell, cellIndex) => (
+            <Input key={`${rowIndex}-${cellIndex}`} label={`Row ${rowIndex + 1}, column ${cellIndex + 1}`} value={cell || ""} onChange={(value) => updateCell(rowIndex, cellIndex, value)} />
+          ))}
+        </div>
+      ))}
+    </div>
+  );
+}
+
+function LegalFaqEditor({ slug, path, items = [], onChange, onAdd, onRemove }) {
+  return (
+    <div style={{ display: "grid", gap: 10 }}>
+      {(Array.isArray(items) ? items : []).map((item, index) => (
+        <div key={index} style={{ border: "1px solid #eee", borderRadius: 8, padding: 10, background: "#fafafa", position: "relative" }}>
+          <div style={{ fontWeight: 600, marginBottom: 6 }}>FAQ {index + 1}</div>
+          <Input label="Question" value={item?.question || ""} onChange={(value) => onChange(slug, path, index, { ...(item || EMPTY_HOW_FAQ), question: value })} />
+          <Textarea label="Answer" value={item?.answer || ""} onChange={(value) => onChange(slug, path, index, { ...(item || EMPTY_HOW_FAQ), answer: value })} />
+          <button type="button" onClick={() => onRemove?.(index)} style={{ border: "1px solid #fecaca", color: "#b91c1c", background: "#fff", borderRadius: 6, padding: "6px 9px", cursor: "pointer" }}>Remove question</button>
+        </div>
+      ))}
+      <button type="button" onClick={onAdd} style={{ padding: "10px", borderRadius: 8, border: "1px dashed #94a3b8", background: "white", cursor: "pointer" }}>+ Add question</button>
+    </div>
+  );
+}
+
+function HowOverviewEditor({ steps = [], onChange }) {
+  return (
+    <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit,minmax(180px,1fr))", gap: 10 }}>
+      {(Array.isArray(steps) ? steps : []).map((step, index) => (
+        <div key={index} style={{ border: "1px solid #eee", borderRadius: 8, padding: 10, background: "#fafafa" }}>
+          <div style={{ fontWeight: 600, marginBottom: 6 }}>Journey step {index + 1}</div>
+          <Input label="Number" value={step?.number || ""} onChange={(v) => onChange(["processOverview", "steps"], index, { ...(step || {}), number: v })} />
+          <Input label="Label" value={step?.label || ""} onChange={(v) => onChange(["processOverview", "steps"], index, { ...(step || {}), label: v })} />
+        </div>
+      ))}
+    </div>
+  );
+}
+
+function HowLinkEditor({ path, links = [], onChange }) {
+  return (
+    <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit,minmax(220px,1fr))", gap: 10 }}>
+      {(Array.isArray(links) ? links : []).map((link, index) => (
+        <div key={index} style={{ border: "1px solid #eee", borderRadius: 8, padding: 10, background: "#fafafa" }}>
+          <div style={{ fontWeight: 600, marginBottom: 6 }}>Support link {index + 1}</div>
+          <Input label="Label" value={link?.label || ""} onChange={(v) => onChange(path, index, { ...(link || EMPTY_HOW_LINK), label: v })} />
+          <Input label="URL" value={link?.url || ""} onChange={(v) => onChange(path, index, { ...(link || EMPTY_HOW_LINK), url: v })} />
+        </div>
+      ))}
+    </div>
+  );
+}
+
+function HowPrincipleEditor({ path, principles = [], onChange }) {
+  return (
+    <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit,minmax(220px,1fr))", gap: 10 }}>
+      {(Array.isArray(principles) ? principles : []).map((principle, index) => (
+        <div key={index} style={{ border: "1px solid #eee", borderRadius: 8, padding: 10, background: "#fafafa" }}>
+          <div style={{ fontWeight: 600, marginBottom: 6 }}>Principle {index + 1}</div>
+          <Input label="Title" value={principle?.title || ""} onChange={(v) => onChange(path, index, { ...(principle || EMPTY_HOW_PRINCIPLE), title: v })} />
+          <Textarea label="Copy" value={principle?.copy || ""} onChange={(v) => onChange(path, index, { ...(principle || EMPTY_HOW_PRINCIPLE), copy: v })} />
+        </div>
+      ))}
+    </div>
+  );
+}
+
+function HowFaqEditor({ path, items = [], onChange, onAdd, onRemove }) {
+  return (
+    <div style={{ display: "grid", gap: 10 }}>
+      {(Array.isArray(items) ? items : []).map((item, index) => (
+        <div key={index} style={{ border: "1px solid #eee", borderRadius: 8, padding: 10, background: "#fafafa" }}>
+          <div style={{ fontWeight: 600, marginBottom: 6 }}>FAQ {index + 1}</div>
+          <Input label="Question" value={item?.question || ""} onChange={(v) => onChange(path, index, { ...(item || EMPTY_HOW_FAQ), question: v })} />
+          <Textarea label="Answer" value={item?.answer || ""} onChange={(v) => onChange(path, index, { ...(item || EMPTY_HOW_FAQ), answer: v })} />
+          <button type="button" onClick={() => onRemove?.(index)} style={{ border: "1px solid #fecaca", color: "#b91c1c", background: "#fff", borderRadius: 6, padding: "6px 9px", cursor: "pointer" }}>Remove question</button>
+        </div>
+      ))}
+      <button type="button" onClick={onAdd} style={{ padding: "10px", borderRadius: 8, border: "1px dashed #94a3b8", background: "white", cursor: "pointer" }}>+ Add question</button>
+    </div>
+  );
+}
+
+function FaqEditor({ path, items = [], onChange, onAdd, onRemove }) {
+  return (
+    <div style={{ display: "grid", gap: 10 }}>
+      {(Array.isArray(items) ? items : []).map((item, index) => (
+        <div key={index} style={{ border: "1px solid #eee", borderRadius: 8, padding: 10, background: "#fafafa" }}>
+          <div style={{ fontWeight: 600, marginBottom: 6 }}>Question {index + 1}</div>
+          <Input label="Question" value={item?.question || ""} onChange={(value) => onChange(path, index, { ...(item || EMPTY_FAQ_ITEM), question: value })} />
+          <Textarea label="Answer" value={item?.answer || ""} onChange={(value) => onChange(path, index, { ...(item || EMPTY_FAQ_ITEM), answer: value })} />
+          <button type="button" onClick={() => onRemove?.(index)} style={{ border: "1px solid #fecaca", color: "#b91c1c", background: "#fff", borderRadius: 6, padding: "6px 9px", cursor: "pointer" }}>Remove question</button>
+        </div>
+      ))}
+      <button type="button" onClick={onAdd} style={{ padding: "10px", borderRadius: 8, border: "1px dashed #94a3b8", background: "white", cursor: "pointer" }}>+ Add question</button>
+    </div>
+  );
+}
+
+function HelpCategoryEditor({ path, items = [], onChange, onAdd, onRemove }) {
+  return (
+    <div style={{ display: "grid", gap: 10 }}>
+      {(Array.isArray(items) ? items : []).map((item, index) => (
+        <div key={index} style={{ border: "1px solid #eee", borderRadius: 8, padding: 10, background: "#fafafa" }}>
+          <div style={{ fontWeight: 600, marginBottom: 6 }}>Help category {index + 1}</div>
+          <Input label="Category title" value={item?.title || ""} onChange={(value) => onChange(path, index, { ...(item || EMPTY_HELP_CATEGORY), title: value })} />
+          <Textarea label="Articles (one per line)" value={(item?.articles || []).join("\n")} onChange={(value) => onChange(path, index, { ...(item || EMPTY_HELP_CATEGORY), articles: value.split("\n").filter(Boolean) })} />
+          <button type="button" onClick={() => onRemove?.(index)} style={{ border: "1px solid #fecaca", color: "#b91c1c", background: "#fff", borderRadius: 6, padding: "6px 9px", cursor: "pointer" }}>Remove category</button>
+        </div>
+      ))}
+      <button type="button" onClick={onAdd} style={{ padding: "10px", borderRadius: 8, border: "1px dashed #94a3b8", background: "white", cursor: "pointer" }}>+ Add category</button>
+    </div>
+  );
+}
+
+function HelpFaqEditor({ path, items = [], onChange, onAdd, onRemove }) {
+  return (
+    <div style={{ display: "grid", gap: 10 }}>
+      {(Array.isArray(items) ? items : []).map((item, index) => (
+        <div key={index} style={{ border: "1px solid #eee", borderRadius: 8, padding: 10, background: "#fafafa" }}>
+          <div style={{ fontWeight: 600, marginBottom: 6 }}>FAQ {index + 1}</div>
+          <Input label="Question" value={item?.question || ""} onChange={(value) => onChange(path, index, { ...(item || EMPTY_HELP_FAQ), question: value })} />
+          <Textarea label="Answer" value={item?.answer || ""} onChange={(value) => onChange(path, index, { ...(item || EMPTY_HELP_FAQ), answer: value })} />
+          <button type="button" onClick={() => onRemove?.(index)} style={{ border: "1px solid #fecaca", color: "#b91c1c", background: "#fff", borderRadius: 6, padding: "6px 9px", cursor: "pointer" }}>Remove question</button>
+        </div>
+      ))}
+      <button type="button" onClick={onAdd} style={{ padding: "10px", borderRadius: 8, border: "1px dashed #94a3b8", background: "white", cursor: "pointer" }}>+ Add question</button>
+    </div>
+  );
+}
+
+function WhyCardEditor({ path, cards = [], onChange }) {
+  return (
+    <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit,minmax(220px,1fr))", gap: 10 }}>
+      {(Array.isArray(cards) ? cards : []).map((card, index) => (
+        <div key={index} style={{ border: "1px solid #eee", borderRadius: 8, padding: 10, background: "#fafafa" }}>
+          <div style={{ fontWeight: 600, marginBottom: 6 }}>Card {index + 1}</div>
+          <Input label="Title" value={card?.title || ""} onChange={(v) => onChange(path, index, { ...(card || EMPTY_WHY_CARD), title: v })} />
+          <Textarea label="Copy" value={card?.copy || ""} onChange={(v) => onChange(path, index, { ...(card || EMPTY_WHY_CARD), copy: v })} />
+        </div>
+      ))}
+    </div>
+  );
+}
+
+function WhyLinkEditor({ path, links = [], onChange }) {
+  return (
+    <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit,minmax(220px,1fr))", gap: 10 }}>
+      {(Array.isArray(links) ? links : []).map((link, index) => (
+        <div key={index} style={{ border: "1px solid #eee", borderRadius: 8, padding: 10, background: "#fafafa" }}>
+          <div style={{ fontWeight: 600, marginBottom: 6 }}>Support link {index + 1}</div>
+          <Input label="Label" value={link?.label || ""} onChange={(v) => onChange(path, index, { ...(link || EMPTY_WHY_LINK), label: v })} />
+          <Input label="URL" value={link?.url || ""} onChange={(v) => onChange(path, index, { ...(link || EMPTY_WHY_LINK), url: v })} />
+        </div>
+      ))}
+    </div>
   );
 }

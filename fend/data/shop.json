@@ -1,0 +1,13 @@
+{
+  "hero": {
+    "title": "Shop the Collection",
+    "description": "Discover curated essentials, trending drops, and limited releases tailored to your lifestyle.",
+    "backgroundImage": "https://images.unsplash.com/photo-1498050108023-c5249f4df085?auto=format&fit=crop&w=1400&q=80",
+    "backgroundPosition": "center"
+  },
+  "searchPlaceholder": "Search products",
+  "ctaText": "Start Shopping",
+  "catalogTitle": "Browse products",
+  "emptyMessage": "No products match your search.",
+  "categoryLimit": 6
+}
