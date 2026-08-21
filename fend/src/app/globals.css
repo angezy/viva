@@ -1,13 +1,28 @@
 :root {
-  --background: #ffffff;
-  --foreground: #171717;
-}
-
-@media (prefers-color-scheme: dark) {
-  :root {
-    --background: #0a0a0a;
-    --foreground: #ededed;
-  }
+  --background: var(--color-background);
+  --foreground: var(--color-text-primary);
+  --cream: var(--color-background);
+  --matte-white: #ffffff;
+  --charcoal: #2b2b2b;
+  --blue: var(--color-primary);
+  --orange: var(--color-accent);
+  --color-primary: #2563eb;
+  --color-primary-dark: #1746b2;
+  --color-primary-light: #5b8def;
+  --color-primary-soft: #eef4ff;
+  --color-accent: #f28c28;
+  --color-accent-dark: #c96a0e;
+  --color-accent-light: #ffb15a;
+  --color-accent-soft: #fff4e5;
+  --color-background: #fbf4e8;
+  --color-surface: #ffffff;
+  --color-surface-muted: #fffaf2;
+  --color-border: #e7dfd3;
+  --color-text-primary: #2b2b2b;
+  --color-text-secondary: #62656b;
+  --color-success: #2e8b57;
+  --color-warning: #f28c28;
+  --color-error: #c94a4a;
 }
 
 html,
@@ -17,9 +32,9 @@ body {
 }
 
 body {
-  color: var(--foreground);
-  background: var(--background);
-  font-family: Arial, Helvetica, sans-serif;
+  color: var(--color-text-primary);
+  background: var(--color-background);
+  font-family: var(--site-font-family, Arial, Helvetica, sans-serif);
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
 }
@@ -70,8 +85,4 @@ a {
   text-decoration: none;
 }
 
-@media (prefers-color-scheme: dark) {
-  html {
-    color-scheme: dark;
-  }
-}
+html { color-scheme: light; }

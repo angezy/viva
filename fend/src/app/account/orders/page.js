@@ -58,7 +58,7 @@ export default function OrdersPage() {
                 <div style={{ color: "#475569", marginBottom: 6 }}>
                   Placed: {order.placedAt ? new Date(order.placedAt).toLocaleString() : "-"}
                 </div>
-                <div style={{ fontWeight: 700, color: "#0f172a", marginBottom: 8 }}>
+                <div style={{ fontWeight: 700, color: "var(--color-text-primary)", marginBottom: 8 }}>
                   Total: ${order.total?.toFixed ? order.total.toFixed(2) : order.total}
                 </div>
                 <div style={{ color: "#475569", fontSize: 13 }}>

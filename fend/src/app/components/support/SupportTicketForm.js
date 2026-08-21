@@ -54,9 +54,9 @@ export default function SupportTicketForm() {
   };
 
   return (
-    <Box component="main" sx={{ bgcolor: "#f6f9f5", minHeight: "100vh", py: { xs: 3, md: 6 }, color: "#12372a" }}>
+    <Box component="main" sx={{ bgcolor: "var(--color-background)", minHeight: "100vh", py: { xs: 3, md: 6 }, color: "var(--color-text-primary)" }}>
       <Container maxWidth="md">
-        <Stack direction="row" justifyContent="space-between" alignItems="flex-start" gap={2} sx={{ mb: 3 }}><Box><Typography variant="overline" sx={{ color: "#3e785e", fontWeight: 800, letterSpacing: "0.14em" }}>SUPPORT REQUEST</Typography><Typography component="h1" sx={{ fontWeight: 850, letterSpacing: "-0.05em", fontSize: { xs: "2.5rem", md: "4rem" }, lineHeight: 1 }}>Create a support ticket</Typography><Typography sx={{ color: "#52645a", mt: 2, lineHeight: 1.7 }}>Tell us what happened. Include your order number when your request is about a purchase.</Typography></Box><Button component={Link} href="/account/support" sx={{ color: "#12372a", textTransform: "none", fontWeight: 800 }}>Back to Support</Button></Stack>
+        <Stack direction="row" justifyContent="space-between" alignItems="flex-start" gap={2} sx={{ mb: 3 }}><Box><Typography variant="overline" sx={{ color: "var(--color-primary)", fontWeight: 800, letterSpacing: "0.14em" }}>SUPPORT REQUEST</Typography><Typography component="h1" sx={{ fontWeight: 850, letterSpacing: "-0.05em", fontSize: { xs: "2.5rem", md: "4rem" }, lineHeight: 1 }}>Create a support ticket</Typography><Typography sx={{ color: "var(--color-text-secondary)", mt: 2, lineHeight: 1.7 }}>Tell us what happened. Include your order number when your request is about a purchase.</Typography></Box><Button component={Link} href="/account/support" sx={{ color: "var(--color-primary)", textTransform: "none", fontWeight: 800 }}>Back to Support</Button></Stack>
         <Paper component="form" onSubmit={submit} elevation={0} sx={{ p: { xs: 2.5, md: 4 }, borderRadius: 3, border: "1px solid #dbe7dc", bgcolor: "white" }}>
           <Grid container spacing={2}>
             <Grid item xs={12} sm={6}><TextField required fullWidth label="Customer name" value={form.customerName} onChange={(event) => update("customerName", event.target.value)} /></Grid>
@@ -66,11 +66,11 @@ export default function SupportTicketForm() {
             <Grid item xs={12} sm={3}><TextField select fullWidth label="Priority" value={form.priority} onChange={(event) => update("priority", event.target.value)}>{priorities.map((item) => <MenuItem key={item} value={item}>{item}</MenuItem>)}</TextField></Grid>
             <Grid item xs={12}><TextField required fullWidth label="Subject" value={form.subject} onChange={(event) => update("subject", event.target.value)} /></Grid>
             <Grid item xs={12}><RichTextEditor label="Message" value={form.contentHtml} onChange={(value) => update("contentHtml", value)} minHeight={280} /></Grid>
-            <Grid item xs={12}><Button component="label" variant="outlined" sx={{ borderRadius: 999, textTransform: "none", color: "#12372a", borderColor: "#8eaf96" }}>Add attachments<input hidden multiple type="file" accept="image/*,.pdf,.txt,.docx" onChange={(event) => setFiles(Array.from(event.target.files || []))} /></Button>{files.length > 0 && <Typography component="span" sx={{ ml: 2, color: "#607267", fontSize: 13 }}>{files.map((file) => file.name).join(", ")}</Typography>}</Grid>
+            <Grid item xs={12}><Button component="label" variant="outlined" sx={{ borderRadius: 999, textTransform: "none", color: "var(--color-primary)", borderColor: "var(--color-primary)" }}>Add attachments<input hidden multiple type="file" accept="image/*,.pdf,.txt,.docx" onChange={(event) => setFiles(Array.from(event.target.files || []))} /></Button>{files.length > 0 && <Typography component="span" sx={{ ml: 2, color: "var(--color-text-secondary)", fontSize: 13 }}>{files.map((file) => file.name).join(", ")}</Typography>}</Grid>
           </Grid>
           {error && <Alert severity="error" sx={{ mt: 2 }}>{error}</Alert>}
           {success && <Alert severity="success" sx={{ mt: 2 }}>{success}</Alert>}
-          <Button type="submit" disabled={saving} variant="contained" endIcon={<ArrowForwardIcon />} sx={{ mt: 3, borderRadius: 999, bgcolor: "#12372a", textTransform: "none", fontWeight: 800 }}>{saving ? "Sending..." : "Submit ticket"}</Button>
+          <Button type="submit" disabled={saving} variant="contained" endIcon={<ArrowForwardIcon />} sx={{ mt: 3, borderRadius: 999, bgcolor: "var(--color-primary)", textTransform: "none", fontWeight: 800 }}>{saving ? "Sending..." : "Submit ticket"}</Button>
         </Paper>
       </Container>
     </Box>

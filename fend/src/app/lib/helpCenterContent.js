@@ -1,6 +1,7 @@
 import { promises as fs } from "fs";
 import path from "path";
 import defaultContent from "../../../data/help-center.json";
+import { getSiteSettingsServer, siteUrlFor } from "./siteSettingsServer";
 
 export async function getHelpCenterContent() {
   try {
@@ -10,19 +11,21 @@ export async function getHelpCenterContent() {
   }
 }
 
-export function getHelpCenterMetadata(content) {
+export async function getHelpCenterMetadata(content) {
+  const site = await getSiteSettingsServer();
   const seo = content?.seo || {};
-  const title = seo.title || "Help | Weluxo Customer Support";
-  const description = seo.description || "Get help with Weluxo orders, shipping, returns, refunds, product support, and customer service.";
+  const title = seo.title || `Help | ${site.siteName} Customer Support`;
+  const description = seo.description || `Get help with ${site.siteName} orders, shipping, returns, refunds, product support, and customer service.`;
+  const url = siteUrlFor(site, "/help-center");
   return {
     title,
     description,
-    alternates: { canonical: "https://weluxo.com/help-center" },
+    alternates: { canonical: url },
     openGraph: {
       title: seo.ogTitle || title,
       description: seo.ogDescription || description,
-      url: "https://weluxo.com/help-center",
-      siteName: "Weluxo",
+      url,
+      siteName: site.siteName,
       type: "website",
     },
     twitter: { card: "summary", title: seo.ogTitle || title, description: seo.ogDescription || description },

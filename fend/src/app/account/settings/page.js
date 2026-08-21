@@ -68,7 +68,7 @@ export default function SettingsPage() {
           <span style={{ color: "#64748b", fontWeight: 600, fontSize: 13 }}>Name</span>
         </div>
         <form onSubmit={handleSave} style={{ display: "flex", flexDirection: "column", gap: 12 }}>
-          <label style={{ display: "flex", flexDirection: "column", gap: 6, color: "#0f172a", fontWeight: 600 }}>
+          <label style={{ display: "flex", flexDirection: "column", gap: 6, color: "var(--color-text-primary)", fontWeight: 600 }}>
             Display name
             <input
               type="text"

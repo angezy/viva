@@ -1,6 +1,9 @@
 import InfoPage from "../components/InfoPage";
+import { getSitePageMetadata } from "../lib/siteSettingsServer";
 
-export const metadata = { title: "Payment Security | Weluxo", description: "Learn how Weluxo protects payment and checkout information." };
+export async function generateMetadata() {
+  return getSitePageMetadata({ title: "Payment Security", description: "Learn how our store protects payment and checkout information.", path: "/payment-security" });
+}
 
 export default function PaymentSecurityPage() {
   return <InfoPage eyebrow="Security" title="Payment security" description="Your checkout should be clear, secure, and easy to understand." sections={[

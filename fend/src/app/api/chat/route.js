@@ -44,14 +44,14 @@ function answerFor(message, config) {
   return config.fallback;
 }
 
-async function notifyHumanSupport(conversationId, message) {
+async function notifyHumanSupport(conversationId, message, visitor = {}) {
   const backendUrl = String(process.env.BACKEND_URL || "").trim().replace(/\/$/, "");
   if (!backendUrl || !conversationId) return { humanSupport: false };
   try {
     const response = await fetch(`${backendUrl}/api/chat/notify`, {
       method: "POST",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ conversationId, message }),
+      body: JSON.stringify({ conversationId, message, name: visitor.name, email: visitor.email }),
       cache: "no-store",
     });
     const data = await response.json().catch(() => ({}));
@@ -69,8 +69,10 @@ export async function POST(request) {
     const body = await request.json();
     const message = clean(body?.message);
     const conversationId = clean(body?.conversationId).slice(0, 80);
+    const name = clean(body?.name).slice(0, 200);
+    const email = clean(body?.email).slice(0, 255);
     if (!message) return NextResponse.json({ error: "Message is required" }, { status: 400 });
-    const humanSupport = await notifyHumanSupport(conversationId, message);
+    const humanSupport = await notifyHumanSupport(conversationId, message, { name, email });
     const isHumanHandoff = Boolean(humanSupport.humanSupport);
     return NextResponse.json({
       reply: isHumanHandoff

@@ -22,6 +22,12 @@ export const defaultCheckoutState = {
     cardholderName: "",
     billingSameAsShipping: true,
   },
+  coupon: {
+    code: "",
+    discount: 0,
+    discountPercent: 0,
+    expiresAt: null,
+  },
 };
 
 export function readCheckoutState() {
@@ -34,6 +40,7 @@ export function readCheckoutState() {
       information: { ...defaultCheckoutState.information, ...(saved?.information || {}) },
       shipping: { ...defaultCheckoutState.shipping, ...(saved?.shipping || {}) },
       payment: { ...defaultCheckoutState.payment, ...(saved?.payment || {}) },
+      coupon: { ...defaultCheckoutState.coupon, ...(saved?.coupon || {}) },
     };
   } catch (_error) {
     return defaultCheckoutState;

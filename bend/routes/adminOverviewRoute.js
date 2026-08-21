@@ -2,6 +2,7 @@ const express = require('express');
 const jwt = require('jsonwebtoken');
 const sql = require('mssql');
 const { getPool } = require('../utils/dbConnection');
+const { ADMIN_AUTH_COOKIE_NAME } = require('../utils/cookieOptions');
 
 const router = express.Router();
 
@@ -19,7 +20,7 @@ function asNumber(value) {
 function requireAdmin(req, res, next) {
   const authorization = req.headers?.authorization || '';
   const bearer = authorization.toLowerCase().startsWith('bearer ') ? authorization.slice(7).trim() : null;
-  const token = bearer || req.cookies?.viva_token;
+  const token = bearer || req.cookies?.[ADMIN_AUTH_COOKIE_NAME];
   if (!token || !process.env.JWT_SECRET) return res.status(401).json({ error: 'Authentication required' });
   try {
     const user = jwt.verify(token, process.env.JWT_SECRET);
@@ -233,6 +234,18 @@ async function buildOptimizedOverview(pool, req, range) {
     (SELECT COALESCE(SUM(CASE WHEN [Type] IN (N'Earn', N'Adjustment') AND [Points] > 0 THEN [Points] ELSE 0 END), 0) FROM [CRM].[LoyaltyTransactions] WHERE [CreatedAt] >= @StartAt AND [CreatedAt] < @EndAt) AS [PointsIssued],
     (SELECT COALESCE(SUM(CASE WHEN [Type] = N'Redeem' THEN ABS([Points]) ELSE 0 END), 0) FROM [CRM].[LoyaltyTransactions] WHERE [CreatedAt] >= @StartAt AND [CreatedAt] < @EndAt) AS [PointsRedeemed];`;
 
+  const dailySalesQuery = `
+    SELECT CONVERT(char(10), CONVERT(date, o.[CreatedAt]), 23) AS [Day],
+      COALESCE(SUM(CASE WHEN o.[OrderStatus] <> N'Cancelled' AND o.[PaymentStatus] IN (N'Paid', N'PartiallyRefunded', N'Refunded')
+        THEN o.[TotalAmount] - COALESCE(o.[RefundedAmount], 0) ELSE 0 END), 0) AS [Revenue],
+      COUNT_BIG(*) AS [Orders],
+      SUM(CASE WHEN o.[PaymentStatus] IN (N'Paid', N'PartiallyRefunded', N'Refunded') THEN CONVERT(BIGINT, 1) ELSE CONVERT(BIGINT, 0) END) AS [PaidOrders],
+      SUM(CASE WHEN o.[OrderStatus] = N'Cancelled' THEN CONVERT(BIGINT, 1) ELSE CONVERT(BIGINT, 0) END) AS [CancelledOrders]
+    FROM [Commerce].[Orders] o
+    WHERE ${orderFilter}
+    GROUP BY CONVERT(char(10), CONVERT(date, o.[CreatedAt]), 23)
+    ORDER BY [Day];`;
+
   const topProductsQuery = `SELECT TOP (5) p.[Id], p.[Name], p.[SKU], SUM(oi.[Quantity]) AS [Units], SUM(oi.[TotalAmount]) AS [Revenue]
     FROM [Commerce].[OrderItems] oi JOIN [Commerce].[Products] p ON p.[Id] = oi.[ProductId] JOIN [Commerce].[Orders] o ON o.[Id] = oi.[OrderId]
     WHERE ${orderFilter} GROUP BY p.[Id], p.[Name], p.[SKU] ORDER BY SUM(oi.[TotalAmount]) DESC, SUM(oi.[Quantity]) DESC;`;
@@ -252,13 +265,14 @@ async function buildOptimizedOverview(pool, req, range) {
     runQuery(pool, req, range, 'support', supportMetrics),
     runQuery(pool, req, range, 'marketing', marketingMetrics),
     runQuery(pool, req, range, 'loyalty', loyaltyMetrics),
+    runQuery(pool, req, range, 'dailySales', dailySalesQuery),
     runQuery(pool, req, range, 'topProducts', topProductsQuery),
     runQuery(pool, req, range, 'topCustomers', topCustomersQuery),
     pool.request().query(`SELECT TOP (5) [Id], [TicketNumber], [Subject], [Priority], [Status], [UpdatedAt] FROM [CRM].[Tickets] ORDER BY [UpdatedAt] DESC;`),
     pool.request().query(`SELECT COALESCE(t.[Name], N'Unassigned') AS [Tier], COUNT_BIG(*) AS [Customers] FROM [CRM].[LoyaltyAccounts] a LEFT JOIN [CRM].[LoyaltyTiers] t ON t.[Id] = a.[TierId] GROUP BY t.[Name] ORDER BY COUNT_BIG(*) DESC;`)
   ]);
 
-  const [orders, items, finance, products, fulfillment, suppliers, customers, support, marketing, loyalty, topProducts, topCustomers, ticketResult, tierResult] = results;
+  const [orders, items, finance, products, fulfillment, suppliers, customers, support, marketing, loyalty, dailySales, topProducts, topCustomers, ticketResult, tierResult] = results;
   const row = orders[0] || {};
   const itemRow = items[0] || {};
   const financeRow = finance[0] || {};
@@ -278,6 +292,15 @@ async function buildOptimizedOverview(pool, req, range) {
   return {
     generatedAt: new Date().toISOString(),
     range: { key: range.key, start: range.start.toISOString(), endExclusive: range.end.toISOString() },
+    series: {
+      salesByDay: dailySales.map(day => ({
+        date: new Date(day.Day).toISOString().slice(0, 10),
+        revenue: asNumber(day.Revenue),
+        orders: asNumber(day.Orders),
+        paidOrders: asNumber(day.PaidOrders),
+        cancelledOrders: asNumber(day.CancelledOrders)
+      }))
+    },
     filters: {
       currency: req.query.currency || null, country: req.query.country || null,
       supplier: optionalUuid(req.query.supplier), product: optionalUuid(req.query.product),

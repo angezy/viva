@@ -10,7 +10,9 @@ const bcrypt = require('bcrypt');
 const jwt = require('jsonwebtoken');
 const cookieParser = require('cookie-parser');
 const {
-  AUTH_COOKIE_NAME,
+  ADMIN_AUTH_COOKIE_NAME,
+  CUSTOMER_AUTH_COOKIE_NAME,
+  LEGACY_AUTH_COOKIE_NAME,
   GUEST_COOKIE_NAME,
   authCookieOptions,
   guestCookieOptions,
@@ -20,6 +22,12 @@ const {
   isSendPulseMailerConfigured,
   sendPasswordResetCodeEmail,
 } = require("../utils/sendpulse");
+const {
+  calculateCouponDiscount,
+  couponIsUsable,
+  findCouponByCode,
+  normalizeCouponCode,
+} = require("../utils/coupons");
 
 // Setup uploads directory
 const uploadsDir = path.join(__dirname, '..', 'public', 'uploads');
@@ -59,18 +67,20 @@ const sessionCartCoupons = new Map(); // userId -> { code, discount }
 const sessionSavedCartItems = new Map(); // userId -> saved cart items
 let checkoutAttemptsTableEnsured = false;
 let passwordResetTableEnsured = false;
+let savedProductsTableEnsured = false;
 
 const passwordResetCodeTtlMinutes = Math.min(60, Math.max(5, Number(process.env.PASSWORD_RESET_CODE_TTL_MINUTES) || 10));
 const passwordResetMaxAttempts = Math.min(10, Math.max(3, Number(process.env.PASSWORD_RESET_MAX_ATTEMPTS) || 5));
 const passwordResetResendDelaySeconds = Math.min(300, Math.max(30, Number(process.env.PASSWORD_RESET_RESEND_DELAY_SECONDS) || 60));
 
-function getTokenFromRequest(req) {
+function getTokenFromRequest(req, sessionType = "customer") {
   const header = req.headers?.authorization || "";
   if (header.toLowerCase().startsWith("bearer ")) {
     return header.slice(7).trim();
   }
-  if (req.cookies && req.cookies.viva_token) {
-    return req.cookies.viva_token;
+  const cookieName = sessionType === "admin" ? ADMIN_AUTH_COOKIE_NAME : CUSTOMER_AUTH_COOKIE_NAME;
+  if (req.cookies && req.cookies[cookieName]) {
+    return req.cookies[cookieName];
   }
   return null;
 }
@@ -85,10 +95,13 @@ function decodeToken(token) {
 }
 
 function requireAuth(req, res, next) {
-  const token = getTokenFromRequest(req);
+  const token = getTokenFromRequest(req, "customer");
   const decoded = decodeToken(token);
   if (!decoded) {
     return res.status(401).json({ error: "Authentication required" });
+  }
+  if (String(decoded.role || "user").toLowerCase() === "admin") {
+    return res.status(403).json({ error: "Customer sign-in required" });
   }
   req.user = {
     id: decoded.sub,
@@ -99,18 +112,20 @@ function requireAuth(req, res, next) {
 }
 
 function requireAdmin(req, res, next) {
-  return requireAuth(req, res, () => {
-    if (String(req.user?.role || "").toLowerCase() !== "admin") {
-      return res.status(403).json({ error: "Admin access required" });
-    }
-    next();
-  });
+  const token = getTokenFromRequest(req, "admin");
+  const decoded = decodeToken(token);
+  if (!decoded) return res.status(401).json({ error: "Authentication required" });
+  if (String(decoded.role || "").toLowerCase() !== "admin") {
+    return res.status(403).json({ error: "Admin access required" });
+  }
+  req.user = { id: decoded.sub, email: decoded.email, role: decoded.role };
+  next();
 }
 
 function requireCheckoutIdentity(req, res, next) {
-  const token = getTokenFromRequest(req);
+  const token = getTokenFromRequest(req, "customer");
   const decoded = decodeToken(token);
-  if (decoded) {
+  if (decoded && String(decoded.role || "user").toLowerCase() !== "admin") {
     req.user = {
       id: decoded.sub,
       email: decoded.email,
@@ -130,9 +145,9 @@ function requireCheckoutIdentity(req, res, next) {
 }
 
 function maybeAttachUser(req, _res, next) {
-  const token = getTokenFromRequest(req);
+  const token = getTokenFromRequest(req, "customer");
   const decoded = decodeToken(token);
-  if (decoded) {
+  if (decoded && String(decoded.role || "user").toLowerCase() !== "admin") {
     req.user = {
       id: decoded.sub,
       email: decoded.email,
@@ -210,6 +225,145 @@ function isUniqueConstraintError(err) {
     err &&
     (err.number === 2627 || err.number === 2601 || /UNIQUE\s+KEY/i.test(err.message || ""))
   );
+}
+
+const GOOGLE_STATE_COOKIE_NAME = "viva_google_oauth_state";
+const GOOGLE_STATE_TTL_MS = 10 * 60 * 1000;
+
+function googleStateCookieOptions(maxAge = GOOGLE_STATE_TTL_MS) {
+  const domain = process.env.COOKIE_DOMAIN?.trim() || undefined;
+  return {
+    httpOnly: true,
+    secure: process.env.NODE_ENV === "production",
+    sameSite: "lax",
+    path: "/",
+    maxAge,
+    ...(domain ? { domain } : {}),
+  };
+}
+
+function firstForwardedValue(value) {
+  return String(value || "").split(",")[0].trim();
+}
+
+function getFrontendOrigin(req) {
+  const configured = process.env.FRONTEND_URL?.trim();
+  if (configured) {
+    return new URL(configured).origin;
+  }
+
+  const protocol = firstForwardedValue(req.headers?.["x-forwarded-proto"]) || req.protocol || "http";
+  const host = firstForwardedValue(req.headers?.["x-forwarded-host"]) || req.get("host");
+  return `${protocol}://${host}`;
+}
+
+function getGoogleRedirectUri(req) {
+  const configured = process.env.GOOGLE_REDIRECT_URI?.trim();
+  if (configured) return configured;
+  return `${getFrontendOrigin(req)}/api/auth/google/callback`;
+}
+
+function googleErrorRedirect(req, errorCode) {
+  const redirect = new URL("/signin", getFrontendOrigin(req));
+  redirect.searchParams.set("error", errorCode);
+  return redirect.toString();
+}
+
+function hasMatchingOAuthState(expected, actual) {
+  if (typeof expected !== "string" || typeof actual !== "string" || !expected || !actual) return false;
+  const expectedBuffer = Buffer.from(expected);
+  const actualBuffer = Buffer.from(actual);
+  return expectedBuffer.length === actualBuffer.length
+    && crypto.timingSafeEqual(expectedBuffer, actualBuffer);
+}
+
+async function exchangeGoogleCode(code, redirectUri) {
+  const tokenResponse = await fetch("https://oauth2.googleapis.com/token", {
+    method: "POST",
+    headers: { "Content-Type": "application/x-www-form-urlencoded" },
+    body: new URLSearchParams({
+      code,
+      client_id: process.env.GOOGLE_CLIENT_ID,
+      client_secret: process.env.GOOGLE_CLIENT_SECRET,
+      redirect_uri: redirectUri,
+      grant_type: "authorization_code",
+    }),
+  });
+  const tokenData = await tokenResponse.json().catch(() => null);
+  if (!tokenResponse.ok || !tokenData?.access_token) {
+    throw new Error("Google authorization code exchange failed");
+  }
+
+  const profileResponse = await fetch("https://openidconnect.googleapis.com/v1/userinfo", {
+    headers: { Authorization: `Bearer ${tokenData.access_token}` },
+  });
+  const profile = await profileResponse.json().catch(() => null);
+  if (!profileResponse.ok || !profile?.sub || !profile?.email || profile.email_verified !== true) {
+    throw new Error("Google account email could not be verified");
+  }
+
+  return profile;
+}
+
+async function findOrCreateGoogleUser(pool, profile, clientIp) {
+  const email = String(profile.email).trim().toLowerCase();
+  const existingResult = await pool.request()
+    .input("Email", sql.NVarChar(255), email)
+    .query("SELECT TOP 1 UserID, Email, Role FROM User_tbl WHERE LOWER(LTRIM(RTRIM(Email))) = @Email");
+  const existing = normalizeResult(existingResult)[0];
+
+  if (existing && String(existing.Role || "user").toLowerCase() === "admin") {
+    throw new Error("Google sign-in is not available for administrator accounts");
+  }
+
+  const optionalFields = [];
+  if (clientIp && (await hasUserColumn(pool, "lastip"))) optionalFields.push({ name: "LastIP", value: clientIp });
+  if (await hasUserColumn(pool, "fullname") && profile.name) optionalFields.push({ name: "FullName", value: String(profile.name).slice(0, 250) });
+  if (await hasUserColumn(pool, "avatarurl") && profile.picture) optionalFields.push({ name: "AvatarUrl", value: String(profile.picture).slice(0, 1000) });
+
+  if (existing) {
+    const setClauses = ["LastLogin = GETDATE()"];
+    let updateRequest = pool.request().input("UserId", sql.Int, Number(existing.UserID));
+    optionalFields.forEach((field, index) => {
+      setClauses.push(`[${field.name}] = @GoogleField${index}`);
+      updateRequest = updateRequest.input(`GoogleField${index}`, sql.NVarChar, field.value);
+    });
+    await updateRequest.query(`UPDATE User_tbl SET ${setClauses.join(", ")} WHERE UserID = @UserId`);
+    return { id: existing.UserID, email, role: existing.Role || "user" };
+  }
+
+  const username = `google_${String(profile.sub).replace(/[^a-zA-Z0-9_-]/g, "").slice(0, 90)}`;
+  const passwordHash = await bcrypt.hash(crypto.randomBytes(32).toString("hex"), 12);
+  const insertFields = [
+    { name: "Username", type: sql.NVarChar(100), parameter: "GoogleUsername", value: username },
+    { name: "Email", type: sql.NVarChar(255), parameter: "GoogleEmail", value: email },
+    { name: "PasswordHash", type: sql.NVarChar(255), parameter: "GooglePasswordHash", value: passwordHash },
+    { name: "Role", type: sql.NVarChar(50), parameter: "GoogleRole", value: "user" },
+  ];
+  optionalFields.forEach((field, index) => {
+    insertFields.push({
+      name: field.name,
+      type: sql.NVarChar,
+      parameter: `GoogleInsertField${index}`,
+      value: field.value,
+    });
+  });
+
+  let insertRequest = pool.request();
+  insertFields.forEach((field) => {
+    insertRequest = insertRequest.input(field.parameter, field.type, field.value);
+  });
+  await insertRequest.query(`
+    INSERT INTO User_tbl (${insertFields.map((field) => `[${field.name}]`).join(", ")}, CreatedAt)
+    VALUES (${insertFields.map((field) => `@${field.parameter}`).join(", ")}, GETDATE())
+  `);
+
+  const createdResult = await pool.request()
+    .input("Email", sql.NVarChar(255), email)
+    .query("SELECT TOP 1 UserID, Email, Role FROM User_tbl WHERE LOWER(LTRIM(RTRIM(Email))) = @Email");
+  const created = normalizeResult(createdResult)[0];
+  if (!created) throw new Error("Google account could not be created");
+  return { id: created.UserID, email, role: created.Role || "user" };
 }
 
 function getRequestIp(req) {
@@ -726,6 +880,51 @@ async function loadProductsByIds(pool, ids = []) {
   }
 }
 
+async function upsertSavedProduct(pool, userId, productId) {
+  const ensured = await ensureSavedProductsTable(pool);
+  if (!ensured) throw new Error("Saved products storage is unavailable");
+
+  await pool
+    .request()
+    .input("UserId", sql.Int, Number(userId))
+    .input("ProductId", sql.Int, Number(productId))
+    .query(`
+      MERGE [dbo].[SavedProducts_tbl] AS target
+      USING (SELECT @UserId AS UserId, @ProductId AS ProductId) AS source
+      ON target.UserId = source.UserId AND target.ProductId = source.ProductId
+      WHEN MATCHED THEN
+        UPDATE SET SavedAt = SYSUTCDATETIME()
+      WHEN NOT MATCHED THEN
+        INSERT (UserId, ProductId) VALUES (source.UserId, source.ProductId);
+    `);
+}
+
+async function loadSavedProductsForUser(pool, userId) {
+  const ensured = await ensureSavedProductsTable(pool);
+  if (!ensured) throw new Error("Saved products storage is unavailable");
+
+  const result = await pool
+    .request()
+    .input("UserId", sql.Int, Number(userId))
+    .query(`
+      SELECT ProductId, SavedAt
+      FROM [dbo].[SavedProducts_tbl]
+      WHERE UserId = @UserId
+      ORDER BY SavedAt DESC, SavedProductId DESC;
+    `);
+  const rows = normalizeResult(result);
+  const productMap = await loadProductsByIds(pool, rows.map((row) => row.ProductId));
+
+  return rows
+    .map((row) => {
+      const productId = Number(row.ProductId);
+      const product = productMap.get(productId);
+      if (!product) return null;
+      return { ...product, savedAt: row.SavedAt || row.savedAt || null };
+    })
+    .filter(Boolean);
+}
+
 function normalizeProductInput(body = {}) {
   const titleOrName = body.title ?? body.name ?? body.Name ?? "";
   const category = body.category ?? body.Category ?? null;
@@ -888,6 +1087,42 @@ async function ensureOrdersTable(pool) {
     return true;
   } catch (err) {
     console.error("Unable to ensure Orders_tbl:", err);
+    return false;
+  }
+}
+
+async function ensureSavedProductsTable(pool) {
+  if (savedProductsTableEnsured) return true;
+  try {
+    await pool.request().query(`
+      IF OBJECT_ID(N'[dbo].[SavedProducts_tbl]', N'U') IS NULL
+      BEGIN
+        CREATE TABLE [dbo].[SavedProducts_tbl] (
+          SavedProductId BIGINT IDENTITY(1,1) NOT NULL PRIMARY KEY,
+          UserId INT NOT NULL,
+          ProductId INT NOT NULL,
+          SavedAt DATETIME2(3) NOT NULL CONSTRAINT DF_SavedProducts_SavedAt DEFAULT SYSUTCDATETIME()
+        );
+      END
+      IF NOT EXISTS (
+        SELECT 1 FROM sys.indexes
+        WHERE name = N'UX_SavedProducts_User_Product'
+          AND object_id = OBJECT_ID(N'[dbo].[SavedProducts_tbl]')
+      )
+        CREATE UNIQUE INDEX UX_SavedProducts_User_Product
+          ON [dbo].[SavedProducts_tbl](UserId, ProductId);
+      IF NOT EXISTS (
+        SELECT 1 FROM sys.indexes
+        WHERE name = N'IX_SavedProducts_User_SavedAt'
+          AND object_id = OBJECT_ID(N'[dbo].[SavedProducts_tbl]')
+      )
+        CREATE INDEX IX_SavedProducts_User_SavedAt
+          ON [dbo].[SavedProducts_tbl](UserId, SavedAt DESC);
+    `);
+    savedProductsTableEnsured = true;
+    return true;
+  } catch (err) {
+    console.error("Unable to ensure SavedProducts_tbl:", err);
     return false;
   }
 }
@@ -1226,7 +1461,7 @@ async function stripeRequest(pathname, body) {
   return data;
 }
 
-function buildStripeCheckoutBody({ userId, cart, amount, currency, customerEmail, shippingMethod }) {
+function buildStripeCheckoutBody({ userId, cart, amount, currency, customerEmail, shippingMethod, discountAmount = 0, couponCode = "", discountPercent = 0 }) {
   const config = getPaymentProviderConfig();
   const body = new URLSearchParams();
   body.set("mode", "payment");
@@ -1235,16 +1470,33 @@ function buildStripeCheckoutBody({ userId, cart, amount, currency, customerEmail
   body.set("metadata[user_id]", String(userId));
   body.set("metadata[shipping_method]", shippingMethod);
   body.set("metadata[currency]", currency);
+  body.set("metadata[coupon_code]", couponCode || "");
+  body.set("metadata[discount_percent]", String(Number(discountPercent) || 0));
+  body.set("metadata[discount_amount]", String(Number(discountAmount) || 0));
   body.set("payment_intent_data[metadata][user_id]", String(userId));
   if (customerEmail) body.set("customer_email", customerEmail);
+
+  const discountCents = Math.min(
+    cart.reduce((sum, item) => sum + Math.max(0, Math.round((Number(item.price) || 0) * 100)) * Math.max(1, Number(item.quantity) || 1), 0),
+    Math.max(0, Math.round((Number(discountAmount) || 0) * 100)),
+  );
+  let remainingDiscountCents = discountCents;
 
   cart.forEach((item, index) => {
     const quantity = Math.max(1, Number(item.quantity) || 1);
     const unitAmount = Math.max(0, Math.round((Number(item.price) || 0) * 100));
+    const originalLineTotal = unitAmount * quantity;
+    const lineDiscount = index === cart.length - 1
+      ? Math.min(originalLineTotal, remainingDiscountCents)
+      : Math.min(originalLineTotal, Math.round(originalLineTotal * (Number(discountPercent) || 0) / 100));
+    remainingDiscountCents = Math.max(0, remainingDiscountCents - lineDiscount);
+    const discountedLineTotal = Math.max(0, originalLineTotal - lineDiscount);
     body.set(`line_items[${index}][price_data][currency]`, currency.toLowerCase());
-    body.set(`line_items[${index}][price_data][product_data][name]`, String(item.title || "Weluxo product").slice(0, 250));
-    body.set(`line_items[${index}][price_data][unit_amount]`, String(unitAmount));
-    body.set(`line_items[${index}][quantity]`, String(quantity));
+    body.set(`line_items[${index}][price_data][product_data][name]`, `${String(item.title || "Weluxo product").slice(0, 225)}${quantity > 1 ? ` (x${quantity})` : ""}`);
+    // Use one line per cart item so the server can preserve the exact cent-level
+    // discount while still showing the requested quantity in Stripe Checkout.
+    body.set(`line_items[${index}][price_data][unit_amount]`, String(discountedLineTotal));
+    body.set(`line_items[${index}][quantity]`, "1");
   });
 
   if (shippingMethod === "express") {
@@ -1427,6 +1679,7 @@ async function saveCanonicalOrderSnapshot(pool, userId, order) {
 
     try {
       const subtotal = Math.max(0, Number(order.subtotal ?? (Number(order.total) || 0) - (Number(order.shippingAmount) || 0)) || 0);
+      const discountAmount = Math.min(subtotal, Math.max(0, Number(order.discountAmount) || 0));
       const shippingAmount = Math.max(0, Number(order.shippingAmount) || 0);
       const total = Math.max(0, Number(order.total) || 0);
       const paymentStatus = String(order.paymentStatus || "pending").toLowerCase() === "paid" ? "Paid" : "Pending";
@@ -1440,6 +1693,7 @@ async function saveCanonicalOrderSnapshot(pool, userId, order) {
         .input("OrderStatus", sql.NVarChar(40), orderStatus)
         .input("PaymentStatus", sql.NVarChar(40), paymentStatus)
         .input("SubtotalAmount", sql.Decimal(19, 4), subtotal)
+        .input("DiscountAmount", sql.Decimal(19, 4), discountAmount)
         .input("ShippingAmount", sql.Decimal(19, 4), shippingAmount)
         .input("TotalAmount", sql.Decimal(19, 4), total)
         .input("CustomerEmail", sql.NVarChar(255), customerEmail)
@@ -1452,17 +1706,17 @@ async function saveCanonicalOrderSnapshot(pool, userId, order) {
           WHEN MATCHED THEN UPDATE SET
             [CustomerId] = @CustomerId, [Currency] = @Currency, [OrderStatus] = @OrderStatus,
             [PaymentStatus] = @PaymentStatus, [SubtotalAmount] = @SubtotalAmount,
-            [ShippingAmount] = @ShippingAmount, [TotalAmount] = @TotalAmount,
+            [DiscountAmount] = @DiscountAmount, [ShippingAmount] = @ShippingAmount, [TotalAmount] = @TotalAmount,
             [CustomerEmail] = @CustomerEmail, [CustomerPhone] = @CustomerPhone,
             [PlacedAt] = @PlacedAt, [PaidAt] = CASE WHEN @PaymentStatus = N'Paid' THEN COALESCE([PaidAt], SYSUTCDATETIME()) ELSE [PaidAt] END,
             [UpdatedAt] = SYSUTCDATETIME()
           WHEN NOT MATCHED THEN INSERT
             ([LegacyOrderId], [OrderNumber], [CustomerId], [Currency], [OrderStatus], [PaymentStatus],
-             [FulfillmentStatus], [SubtotalAmount], [ShippingAmount], [TotalAmount], [CustomerEmail],
+             [FulfillmentStatus], [SubtotalAmount], [DiscountAmount], [ShippingAmount], [TotalAmount], [CustomerEmail],
              [CustomerPhone], [SalesChannel], [Source], [PlacedAt], [PaidAt])
           VALUES
             (@LegacyOrderId, @OrderNumber, @CustomerId, @Currency, @OrderStatus, @PaymentStatus,
-             N'Unfulfilled', @SubtotalAmount, @ShippingAmount, @TotalAmount, @CustomerEmail,
+             N'Unfulfilled', @SubtotalAmount, @DiscountAmount, @ShippingAmount, @TotalAmount, @CustomerEmail,
              @CustomerPhone, N'OnlineStore', N'legacy-checkout', @PlacedAt,
              CASE WHEN @PaymentStatus = N'Paid' THEN @PlacedAt ELSE NULL END)
           OUTPUT INSERTED.[Id];
@@ -2532,11 +2786,6 @@ router.post("/api/password-reset/request", async (req, res) => {
     return res.status(400).json({ error: "Enter a valid email address" });
   }
 
-  // Do not accept reset requests until the server has a real transactional mailer.
-  if (!isSendPulseMailerConfigured()) {
-    return res.status(503).json({ error: "Password reset email is not configured" });
-  }
-
   try {
     const pool = await getPool();
     await ensurePasswordResetTable(pool);
@@ -2551,9 +2800,14 @@ router.post("/api/password-reset/request", async (req, res) => {
       `);
     const users = normalizeResult(userResult);
 
-    // Keep account existence private.
+    // A reset can only be started for an email registered in User_tbl.
     if (!users.length) {
-      return res.json({ ok: true, message: genericMessage });
+      return res.status(404).json({ error: "No customer account is registered with this email address" });
+    }
+
+    // Do not accept reset requests until the server has a real transactional mailer.
+    if (!isSendPulseMailerConfigured()) {
+      return res.status(503).json({ error: "Password reset email is not configured" });
     }
 
     const recentResult = await pool.request()
@@ -2572,20 +2826,19 @@ router.post("/api/password-reset/request", async (req, res) => {
 
     const code = createPasswordResetCode();
     const codeHash = hashResetValue(code);
-    const expiresAt = new Date(Date.now() + passwordResetCodeTtlMinutes * 60 * 1000);
 
     await pool.request()
       .input("UserID", sql.Int, users[0].UserID)
       .input("Email", sql.NVarChar(255), email)
       .input("CodeHash", sql.NVarChar(64), codeHash)
-      .input("ExpiresAt", sql.DateTime2, expiresAt)
+      .input("TtlMinutes", sql.Int, passwordResetCodeTtlMinutes)
       .query(`
         UPDATE dbo.password_reset_codes
         SET UsedAt = SYSUTCDATETIME()
         WHERE Email = @Email AND UsedAt IS NULL;
 
         INSERT INTO dbo.password_reset_codes (UserID, Email, CodeHash, ExpiresAt)
-        VALUES (@UserID, @Email, @CodeHash, @ExpiresAt)
+        VALUES (@UserID, @Email, @CodeHash, DATEADD(MINUTE, @TtlMinutes, SYSUTCDATETIME()))
       `);
 
     try {
@@ -2623,13 +2876,14 @@ router.post("/api/password-reset/verify", async (req, res) => {
     const codeHash = hashResetValue(code);
     const result = await pool.request()
       .input("Email", sql.NVarChar(255), email)
+      .input("CodeHash", sql.NVarChar(64), codeHash)
       .input("MaxAttempts", sql.Int, passwordResetMaxAttempts)
       .query(`
         SELECT TOP 1 Id, CodeHash, Attempts
         FROM dbo.password_reset_codes
         WHERE Email = @Email
+          AND CodeHash = @CodeHash
           AND UsedAt IS NULL
-          AND VerifiedAt IS NULL
           AND ExpiresAt > SYSUTCDATETIME()
           AND Attempts < @MaxAttempts
         ORDER BY CreatedAt DESC
@@ -2637,10 +2891,24 @@ router.post("/api/password-reset/verify", async (req, res) => {
     const rows = normalizeResult(result);
     const resetCode = rows[0];
 
-    if (!resetCode || resetCode.CodeHash !== codeHash) {
-      if (resetCode) {
+    if (!resetCode) {
+      const latestResult = await pool.request()
+        .input("Email", sql.NVarChar(255), email)
+        .input("MaxAttempts", sql.Int, passwordResetMaxAttempts)
+        .query(`
+          SELECT TOP 1 Id
+          FROM dbo.password_reset_codes
+          WHERE Email = @Email
+            AND UsedAt IS NULL
+            AND VerifiedAt IS NULL
+            AND ExpiresAt > SYSUTCDATETIME()
+            AND Attempts < @MaxAttempts
+          ORDER BY CreatedAt DESC
+        `);
+      const latestResetCode = normalizeResult(latestResult)[0];
+      if (latestResetCode) {
         await pool.request()
-          .input("Id", sql.BigInt, resetCode.Id)
+          .input("Id", sql.BigInt, latestResetCode.Id)
           .query("UPDATE dbo.password_reset_codes SET Attempts = Attempts + 1 WHERE Id = @Id AND UsedAt IS NULL AND VerifiedAt IS NULL");
       }
       return res.status(400).json({ error: "That code is invalid or expired" });
@@ -2654,11 +2922,13 @@ router.post("/api/password-reset/verify", async (req, res) => {
       .query(`
         UPDATE dbo.password_reset_codes
         SET ResetTokenHash = @ResetTokenHash,
-            VerifiedAt = SYSUTCDATETIME(),
-            Attempts = Attempts + 1
-        WHERE Id = @Id AND UsedAt IS NULL AND VerifiedAt IS NULL
+            VerifiedAt = COALESCE(VerifiedAt, SYSUTCDATETIME())
+        OUTPUT INSERTED.Id
+        WHERE Id = @Id
+          AND UsedAt IS NULL
+          AND ExpiresAt > SYSUTCDATETIME()
       `);
-    if (!updateResult.rowsAffected?.[0]) {
+    if (!normalizeResult(updateResult).length) {
       return res.status(400).json({ error: "That code is invalid or expired" });
     }
 
@@ -2677,8 +2947,8 @@ router.post("/api/password-reset/reset", async (req, res) => {
   if (!isValidEmail(email) || resetToken.length < 32) {
     return res.status(400).json({ error: "Your password reset session is invalid or expired" });
   }
-  if (password.length < 6 || password.length > 12) {
-    return res.status(400).json({ error: "Password must be between 6 and 12 characters" });
+  if (password.length < 6 || password.length > 64) {
+    return res.status(400).json({ error: "Password must be between 6 and 64 characters" });
   }
 
   try {
@@ -2717,10 +2987,11 @@ router.post("/api/password-reset/reset", async (req, res) => {
         .query(`
           UPDATE User_tbl
           SET PasswordHash = @PasswordHash
+          OUTPUT INSERTED.UserID
           WHERE UserID = @UserID
             AND LOWER(ISNULL(Role, 'user')) <> 'admin'
         `);
-      if (!passwordResult.rowsAffected?.[0]) {
+      if (!normalizeResult(passwordResult).length) {
         await transaction.rollback();
         return res.status(400).json({ error: "Your password reset session is invalid or expired" });
       }
@@ -2738,6 +3009,74 @@ router.post("/api/password-reset/reset", async (req, res) => {
   } catch (err) {
     console.error("/api/password-reset/reset error:", err && err.stack ? err.stack : err);
     return res.status(500).json({ error: "Unable to reset your password" });
+  }
+});
+
+// GOOGLE OAUTH
+router.get("/api/auth/google", (req, res) => {
+  if (!process.env.GOOGLE_CLIENT_ID || !process.env.GOOGLE_CLIENT_SECRET) {
+    return res.status(503).json({ error: "Google sign-in is not configured" });
+  }
+
+  try {
+    const state = crypto.randomBytes(32).toString("hex");
+    const redirectUri = getGoogleRedirectUri(req);
+    const authorizationUrl = new URL("https://accounts.google.com/o/oauth2/v2/auth");
+    authorizationUrl.search = new URLSearchParams({
+      client_id: process.env.GOOGLE_CLIENT_ID,
+      redirect_uri: redirectUri,
+      response_type: "code",
+      scope: "openid email profile",
+      state,
+      prompt: "select_account",
+    }).toString();
+
+    res.cookie(GOOGLE_STATE_COOKIE_NAME, state, googleStateCookieOptions());
+    return res.redirect(302, authorizationUrl.toString());
+  } catch (err) {
+    console.error("/api/auth/google setup error:", err);
+    return res.redirect(302, googleErrorRedirect(req, "google_unavailable"));
+  }
+});
+
+router.get("/api/auth/google/callback", async (req, res) => {
+  const state = req.query?.state;
+  const savedState = req.cookies?.[GOOGLE_STATE_COOKIE_NAME];
+  res.clearCookie(GOOGLE_STATE_COOKIE_NAME, googleStateCookieOptions(0));
+
+  if (req.query?.error) {
+    return res.redirect(302, googleErrorRedirect(req, "google_cancelled"));
+  }
+  if (!hasMatchingOAuthState(savedState, state) || !req.query?.code) {
+    return res.redirect(302, googleErrorRedirect(req, "google_invalid_state"));
+  }
+  if (!process.env.GOOGLE_CLIENT_ID || !process.env.GOOGLE_CLIENT_SECRET) {
+    return res.redirect(302, googleErrorRedirect(req, "google_unavailable"));
+  }
+
+  try {
+    const profile = await exchangeGoogleCode(String(req.query.code), getGoogleRedirectUri(req));
+    const pool = await getPool();
+    const user = await findOrCreateGoogleUser(pool, profile, getRequestIp(req));
+    if (!JWT_SECRET) {
+      throw new Error("Server misconfiguration: auth secret not configured");
+    }
+
+    const token = jwt.sign(
+      { sub: user.id, email: user.email, role: user.role },
+      JWT_SECRET,
+      { expiresIn: "1h" },
+    );
+    res.cookie(CUSTOMER_AUTH_COOKIE_NAME, token, authCookieOptions());
+    res.clearCookie(ADMIN_AUTH_COOKIE_NAME, clearCookieOptions());
+    res.clearCookie(LEGACY_AUTH_COOKIE_NAME, clearCookieOptions());
+    return res.redirect(302, `${getFrontendOrigin(req)}/account`);
+  } catch (err) {
+    console.error("/api/auth/google/callback error:", err && err.stack ? err.stack : err);
+    const errorCode = /administrator accounts/i.test(err?.message || "")
+      ? "google_admin_not_allowed"
+      : "google_signin_failed";
+    return res.redirect(302, googleErrorRedirect(req, errorCode));
   }
 });
 
@@ -2773,10 +3112,27 @@ async function handleLogin(req, res, expectedRoleOverride = null) {
     }
 
     const role = user.Role || "user";
-    if (desiredRole && role.toLowerCase() !== String(desiredRole).toLowerCase()) {
+    const normalizedRole = String(role).toLowerCase();
+    const normalizedDesiredRole = desiredRole ? String(desiredRole).toLowerCase() : null;
+    const validDesiredRole = !normalizedDesiredRole || ["admin", "user"].includes(normalizedDesiredRole);
+    const roleAllowed = normalizedDesiredRole === "admin"
+      ? normalizedRole === "admin"
+      : normalizedDesiredRole === "user"
+        ? ["user", "admin"].includes(normalizedRole)
+        : true;
+    if (!validDesiredRole || !roleAllowed) {
       console.error('/api/login role mismatch', { email, role, desiredRole });
       return res.status(403).json({ error: "Role not permitted for this login" });
     }
+
+    // An administrator may also use the customer portal. The resulting JWT is
+    // deliberately customer-scoped even though it belongs to the admin's
+    // account, so it cannot be used to call admin APIs.
+    const sessionRole = normalizedDesiredRole === "user"
+      ? "user"
+      : normalizedRole === "admin"
+        ? "admin"
+        : "user";
 
     // Update last login info, guard IP column presence
     const setClauses = ["LastLogin = GETDATE()"];
@@ -2797,14 +3153,19 @@ async function handleLogin(req, res, expectedRoleOverride = null) {
 
     // Sign JWT (use the actual PK column name)
     const token = jwt.sign(
-      { sub: user.UserID, email: user.Email, role: role },
+      { sub: user.UserID, email: user.Email, role: sessionRole, accountRole: normalizedRole },
       JWT_SECRET,
       { expiresIn: "1h" }
     );
 
-  res.cookie(AUTH_COOKIE_NAME, token, authCookieOptions());
+  const sessionCookieName = sessionRole === "admin"
+    ? ADMIN_AUTH_COOKIE_NAME
+    : CUSTOMER_AUTH_COOKIE_NAME;
+  res.cookie(sessionCookieName, token, authCookieOptions());
+  // Keep the portal sessions separate so an admin can use both portals.
+  res.clearCookie(LEGACY_AUTH_COOKIE_NAME, clearCookieOptions());
   // For SPA clients, return JSON rather than performing a server-side redirect.
-  res.status(200).json({ message: 'Logged in', role });
+  res.status(200).json({ message: 'Logged in', role: sessionRole });
 } catch (err) {
       console.error("/api/login error:", err && err.stack ? err.stack : err);
       res.status(500).json({ error: "Login failed", detail: err && err.message ? err.message : 'unknown error' });
@@ -2823,7 +3184,10 @@ router.post("/api/login/user", async (req, res) => {
   return handleLogin(req, res, "user");
 });
 router.post("/api/logout", (req, res) => {
-  res.clearCookie(AUTH_COOKIE_NAME, clearCookieOptions());
+  const sessionType = String(req.query?.role || "customer").toLowerCase();
+  const cookieName = sessionType === "admin" ? ADMIN_AUTH_COOKIE_NAME : CUSTOMER_AUTH_COOKIE_NAME;
+  res.clearCookie(cookieName, clearCookieOptions());
+  res.clearCookie(LEGACY_AUTH_COOKIE_NAME, clearCookieOptions());
   return res.json({ ok: true });
 });
 
@@ -2858,7 +3222,7 @@ router.get("/api/profile", requireAuth, async (req, res) => {
       createdAt: null,
       lastLogin: null,
     };
-    res.json(profile || fallback);
+    res.json(profile ? { ...profile, role: req.user.role } : fallback);
   } catch (err) {
     res.status(500).json({ error: "Profile lookup failed" });
   }
@@ -2931,10 +3295,11 @@ router.post("/api/payment/create", requireCheckoutIdentity, async (req, res) => 
   const cart = getCartForUser(userId);
   if (!cart.length) return res.status(400).json({ error: "Cart is empty" });
 
-  const subtotal = cart.reduce((sum, item) => sum + (Number(item.price) || 0) * (Number(item.quantity) || 0), 0);
+  const subtotal = roundCurrency(cart.reduce((sum, item) => sum + (Number(item.price) || 0) * (Number(item.quantity) || 0), 0));
   const shippingMethod = req.body?.shippingMethod === "express" ? "express" : "standard";
   const shippingAmount = shippingMethod === "express" ? 19.99 : 0;
-  const amount = subtotal + shippingAmount;
+  const sessionCoupon = sessionCartCoupons.get(userId);
+  const requestedCouponCode = normalizeCouponCode(req.body?.couponCode || sessionCoupon?.code);
   const currency = String(req.body?.currency || "USD").trim().toUpperCase();
   const customerEmail = String(req.body?.customerEmail || "").trim().toLowerCase();
   if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(customerEmail)) {
@@ -2942,6 +3307,26 @@ router.post("/api/payment/create", requireCheckoutIdentity, async (req, res) => 
   }
 
   try {
+    let coupon = null;
+    if (requestedCouponCode) {
+      const pool = await getPool();
+      coupon = await findCouponByCode(pool, requestedCouponCode);
+      if (!coupon) {
+        sessionCartCoupons.delete(userId);
+        return res.status(400).json({ error: "That promo code is not valid" });
+      }
+      if (!couponIsUsable(coupon)) {
+        sessionCartCoupons.delete(userId);
+        return res.status(400).json({ error: coupon.status === "Expired" ? "That promo code has expired" : "That promo code is inactive" });
+      }
+      sessionCartCoupons.set(userId, {
+        code: coupon.code,
+        discountPercent: coupon.discountPercent,
+        expiresAt: coupon.expiresAt,
+      });
+    }
+    const discountAmount = calculateCouponDiscount(subtotal, coupon);
+    const amount = Math.max(0, subtotal + shippingAmount - discountAmount);
     const session = await stripeRequest("/checkout/sessions", buildStripeCheckoutBody({
       userId,
       cart,
@@ -2949,6 +3334,9 @@ router.post("/api/payment/create", requireCheckoutIdentity, async (req, res) => 
       currency,
       customerEmail,
       shippingMethod,
+      discountAmount,
+      couponCode: coupon?.code || "",
+      discountPercent: coupon?.discountPercent || 0,
     }));
     if (!session.id || !session.url) {
       throw new Error("Stripe did not return a hosted checkout URL");
@@ -2960,6 +3348,10 @@ router.post("/api/payment/create", requireCheckoutIdentity, async (req, res) => 
       providerSessionId: session.id,
       userId,
       amount,
+      subtotal,
+      discountAmount,
+      couponCode: coupon?.code || null,
+      discountPercent: coupon?.discountPercent || 0,
       currency,
       method,
       shippingMethod,
@@ -3008,6 +3400,9 @@ router.post("/api/payment/confirm", requireCheckoutIdentity, async (req, res) =>
         providerSessionId: paymentId,
         userId,
         amount: Number(session.amount_total || 0) / 100,
+        discountAmount: Math.max(0, Number(session.metadata?.discount_amount || 0)),
+        couponCode: normalizeCouponCode(session.metadata?.coupon_code || "") || null,
+        discountPercent: Math.max(0, Number(session.metadata?.discount_percent || 0)),
         currency: String(session.currency || "usd").toUpperCase(),
         method: "card",
         shippingMethod: session.metadata?.shipping_method === "express" ? "express" : "standard",
@@ -3077,9 +3472,10 @@ router.post("/api/orders/create", requireCheckoutIdentity, async (req, res) => {
     return res.status(400).json({ error: "Complete shipping and customer information before creating the order" });
   }
 
-  const subtotal = cart.reduce((sum, item) => sum + (Number(item.price) || 0) * (Number(item.quantity) || 0), 0);
+  const subtotal = roundCurrency(cart.reduce((sum, item) => sum + (Number(item.price) || 0) * (Number(item.quantity) || 0), 0));
   const shipping = shippingAddress.shippingMethod === "express" ? 19.99 : 0;
-  const expectedTotal = subtotal + shipping;
+  const discountAmount = Math.min(subtotal, Math.max(0, Number(payment.discountAmount) || 0));
+  const expectedTotal = Math.max(0, subtotal + shipping - discountAmount);
   if (Math.round(Number(payment.amount || 0) * 100) !== Math.round(expectedTotal * 100)) {
     await recordCheckoutAttempt({ attemptId: payment.id, paymentId: payment.id, userId, cartId: userId, customerEmail: shippingAddress.email || payment.customerEmail, status: "order_failed", paymentError: "Payment amount does not match the current cart" });
     return res.status(409).json({ error: "Payment amount does not match the current cart" });
@@ -3089,6 +3485,8 @@ router.post("/api/orders/create", requireCheckoutIdentity, async (req, res) => {
     status: "Processing",
     total: expectedTotal,
     subtotal,
+    discountAmount,
+    couponCode: payment.couponCode || null,
     shippingAmount: shipping,
     placedAt: new Date().toISOString(),
     estimatedDelivery: addOrderDays(new Date(), shippingAddress.shippingMethod === "express" ? 3 : 8),
@@ -3128,6 +3526,69 @@ router.post("/api/orders/checkout", requireCheckoutIdentity, async (req, res) =>
   return res.status(410).json({ error: "Legacy checkout is disabled. Use the secure /checkout/payment flow." });
 });
 
+router.get("/api/saved-products", requireAuth, async (req, res) => {
+  try {
+    const userId = Number(req.user.id);
+    if (!Number.isInteger(userId)) {
+      return res.status(401).json({ error: "Invalid customer identity" });
+    }
+
+    const pool = await getPool();
+    const items = await loadSavedProductsForUser(pool, userId);
+    res.json({ items });
+  } catch (err) {
+    console.error("/api/saved-products GET error", err);
+    res.status(500).json({ error: "Unable to load saved products" });
+  }
+});
+
+router.post("/api/saved-products", requireAuth, async (req, res) => {
+  const productId = Number(req.body?.productId ?? req.body?.id);
+  const userId = Number(req.user.id);
+  if (!Number.isInteger(userId) || !Number.isInteger(productId) || productId <= 0) {
+    return res.status(400).json({ error: "A valid product is required" });
+  }
+
+  try {
+    const pool = await getPool();
+    const product = await loadProductById(pool, productId);
+    if (!product) {
+      return res.status(404).json({ error: "Product not found" });
+    }
+
+    await upsertSavedProduct(pool, userId, productId);
+    const items = await loadSavedProductsForUser(pool, userId);
+    res.status(201).json({ ok: true, item: { ...product, savedAt: new Date().toISOString() }, items });
+  } catch (err) {
+    console.error("/api/saved-products POST error", err);
+    res.status(500).json({ error: "Unable to save product" });
+  }
+});
+
+router.delete("/api/saved-products/:productId", requireAuth, async (req, res) => {
+  const productId = Number(req.params.productId);
+  const userId = Number(req.user.id);
+  if (!Number.isInteger(userId) || !Number.isInteger(productId) || productId <= 0) {
+    return res.status(400).json({ error: "A valid product is required" });
+  }
+
+  try {
+    const pool = await getPool();
+    const ensured = await ensureSavedProductsTable(pool);
+    if (!ensured) throw new Error("Saved products storage is unavailable");
+    await pool
+      .request()
+      .input("UserId", sql.Int, userId)
+      .input("ProductId", sql.Int, productId)
+      .query("DELETE FROM [dbo].[SavedProducts_tbl] WHERE UserId = @UserId AND ProductId = @ProductId");
+    const items = await loadSavedProductsForUser(pool, userId);
+    res.json({ ok: true, items });
+  } catch (err) {
+    console.error("/api/saved-products DELETE error", err);
+    res.status(500).json({ error: "Unable to remove saved product" });
+  }
+});
+
 router.get("/api/cart", requireCheckoutIdentity, async (req, res) => {
   try {
     const cart = getCartForUser(req.checkoutUserId);
@@ -3154,8 +3615,16 @@ router.get("/api/cart", requireCheckoutIdentity, async (req, res) => {
       };
     });
 
-    const subtotal = items.reduce((sum, item) => sum + (Number(item.price) || 0) * item.quantity, 0);
-    res.json({ items, subtotal });
+    const subtotal = roundCurrency(items.reduce((sum, item) => sum + (Number(item.price) || 0) * item.quantity, 0));
+    const coupon = getSessionCartCoupon(req.checkoutUserId);
+    const discount = cartDiscount(req.checkoutUserId, subtotal);
+    res.json({
+      items,
+      subtotal,
+      coupon: coupon ? { code: coupon.code, discountPercent: coupon.discountPercent, expiresAt: coupon.expiresAt } : null,
+      discount,
+      total: Math.max(0, subtotal - discount),
+    });
   } catch (err) {
     console.error("/api/cart GET error", err);
     res.status(500).json({ error: "Unable to load cart" });
@@ -3341,24 +3810,61 @@ router.patch(["/api/cart/:productId", "/api/cart/items/:productId"], requireChec
   res.json({ ok: true, items, subtotal });
 });
 
+function roundCurrency(value) {
+  return Number((Math.max(0, Number(value) || 0)).toFixed(2));
+}
+
 function cartSubtotal(userId) {
-  return getCartForUser(userId).reduce((sum, item) => sum + (Number(item.price) || 0) * (Number(item.quantity) || 0), 0);
+  return roundCurrency(getCartForUser(userId).reduce((sum, item) => sum + (Number(item.price) || 0) * (Number(item.quantity) || 0), 0));
+}
+
+function getSessionCartCoupon(userId) {
+  const coupon = sessionCartCoupons.get(userId);
+  if (!coupon) return null;
+  if (!coupon.expiresAt || new Date(coupon.expiresAt).getTime() <= Date.now()) {
+    sessionCartCoupons.delete(userId);
+    return null;
+  }
+  return coupon;
 }
 
 function cartDiscount(userId, subtotal = cartSubtotal(userId)) {
-  const coupon = sessionCartCoupons.get(userId);
-  if (!coupon) return 0;
-  return coupon.code === "WELCOME10" ? Number((subtotal * 0.1).toFixed(2)) : 0;
+  const coupon = getSessionCartCoupon(userId);
+  return coupon ? calculateCouponDiscount(subtotal, coupon) : 0;
 }
 
-router.post(["/api/cart/apply-coupon", "/api/cart/coupon"], requireCheckoutIdentity, (req, res) => {
-  const code = String(req.body?.code || "").trim().toUpperCase();
+router.post(["/api/cart/apply-coupon", "/api/cart/coupon"], requireCheckoutIdentity, async (req, res) => {
+  const code = normalizeCouponCode(req.body?.code);
   const subtotal = cartSubtotal(req.checkoutUserId);
   if (!code) return res.status(400).json({ error: "Enter a promo code" });
-  if (code !== "WELCOME10") return res.status(400).json({ error: "That promo code is not valid" });
-  sessionCartCoupons.set(req.checkoutUserId, { code });
-  const discount = cartDiscount(req.checkoutUserId, subtotal);
-  res.json({ ok: true, code, discount, subtotal, total: subtotal - discount });
+  try {
+    const pool = await getPool();
+    const coupon = await findCouponByCode(pool, code);
+    if (!coupon) return res.status(400).json({ error: "That promo code is not valid" });
+    if (!couponIsUsable(coupon)) {
+      sessionCartCoupons.delete(req.checkoutUserId);
+      return res.status(400).json({ error: coupon.status === "Expired" ? "That promo code has expired" : "That promo code is inactive" });
+    }
+    sessionCartCoupons.set(req.checkoutUserId, {
+      code: coupon.code,
+      discountPercent: coupon.discountPercent,
+      expiresAt: coupon.expiresAt,
+    });
+    const discount = cartDiscount(req.checkoutUserId, subtotal);
+    res.json({
+      ok: true,
+      code: coupon.code,
+      discountPercent: coupon.discountPercent,
+      expiresAt: coupon.expiresAt,
+      discount,
+      subtotal,
+      total: Math.max(0, subtotal - discount),
+      coupon: { code: coupon.code, discountPercent: coupon.discountPercent, expiresAt: coupon.expiresAt },
+    });
+  } catch (error) {
+    console.error("/api/cart/apply-coupon error", error);
+    res.status(500).json({ error: "Unable to validate promo code" });
+  }
 });
 
 router.post("/api/cart/shipping-estimate", requireCheckoutIdentity, (req, res) => {
@@ -3377,18 +3883,32 @@ router.post("/api/cart/shipping-estimate", requireCheckoutIdentity, (req, res) =
   });
 });
 
-router.post("/api/cart/save-item", requireCheckoutIdentity, (req, res) => {
+router.post("/api/cart/save-item", requireCheckoutIdentity, async (req, res) => {
   const productId = String(req.body?.productId || "");
   const cart = getCartForUser(req.checkoutUserId);
   const item = cart.find((entry) => String(entry.productId) === productId);
   if (!item) return res.status(404).json({ error: "Item not found" });
 
-  const saved = sessionSavedCartItems.get(req.checkoutUserId) || [];
-  sessionSavedCartItems.set(req.checkoutUserId, [...saved.filter((entry) => String(entry.productId) !== productId), { ...item, savedAt: new Date().toISOString() }]);
-  sessionCarts.set(req.checkoutUserId, cart.filter((entry) => String(entry.productId) !== productId));
-  const items = getCartForUser(req.checkoutUserId);
-  const subtotal = items.reduce((sum, entry) => sum + (Number(entry.price) || 0) * (Number(entry.quantity) || 0), 0);
-  res.json({ ok: true, items, subtotal, savedItems: sessionSavedCartItems.get(req.checkoutUserId) });
+  try {
+    let savedItems;
+    if (req.user && Number.isInteger(Number(req.user.id))) {
+      const pool = await getPool();
+      await upsertSavedProduct(pool, Number(req.user.id), Number(productId));
+      savedItems = await loadSavedProductsForUser(pool, Number(req.user.id));
+    } else {
+      const saved = sessionSavedCartItems.get(req.checkoutUserId) || [];
+      savedItems = [...saved.filter((entry) => String(entry.productId) !== productId), { ...item, savedAt: new Date().toISOString() }];
+      sessionSavedCartItems.set(req.checkoutUserId, savedItems);
+    }
+
+    sessionCarts.set(req.checkoutUserId, cart.filter((entry) => String(entry.productId) !== productId));
+    const items = getCartForUser(req.checkoutUserId);
+    const subtotal = items.reduce((sum, entry) => sum + (Number(entry.price) || 0) * (Number(entry.quantity) || 0), 0);
+    res.json({ ok: true, items, subtotal, savedItems });
+  } catch (err) {
+    console.error("/api/cart/save-item error", err);
+    res.status(500).json({ error: "Unable to save item" });
+  }
 });
 
 

@@ -45,10 +45,10 @@ export default function AdminSignupPage() {
   };
 
   return (
-    <div style={{ minHeight: "100vh", display: "flex", alignItems: "center", justifyContent: "center", background: "#0b1220", color: "white", padding: 24 }}>
-      <div style={{ width: "100%", maxWidth: 460, background: "rgba(15,23,42,0.8)", borderRadius: 16, padding: 24, border: "1px solid rgba(255,255,255,0.08)" }}>
+    <div style={{ minHeight: "100vh", display: "flex", alignItems: "center", justifyContent: "center", background: "var(--color-background)", color: "var(--color-text-primary)", padding: 24 }}>
+      <div style={{ width: "100%", maxWidth: 460, background: "#ffffff", borderRadius: 16, padding: 24, border: "1px solid var(--color-border)", boxShadow: "0 20px 60px rgba(43,43,43,0.08)" }}>
         <h1 style={{ margin: 0, fontSize: 28, fontWeight: 800 }}>Admin Signup</h1>
-        <p style={{ color: "#cbd5f5", marginBottom: 16 }}>Create an admin account with dashboard access.</p>
+        <p style={{ color: "var(--color-text-secondary)", marginBottom: 16 }}>Create an admin account with dashboard access.</p>
         {error && (
           <div style={{ color: "#fca5a5", background: "#7f1d1d", padding: 10, borderRadius: 8, border: "1px solid #f87171", marginBottom: 12 }}>
             {error}
@@ -59,7 +59,7 @@ export default function AdminSignupPage() {
             placeholder="Username"
             value={form.username}
             onChange={handleChange("username")}
-            style={{ padding: "10px 12px", borderRadius: 8, border: "1px solid #334155", background: "#0f172a", color: "white" }}
+            style={{ padding: "10px 12px", borderRadius: 8, border: "1px solid var(--color-border)", background: "var(--color-surface-muted)", color: "var(--color-text-primary)" }}
             required
           />
           <input
@@ -67,7 +67,7 @@ export default function AdminSignupPage() {
             type="email"
             value={form.email}
             onChange={handleChange("email")}
-            style={{ padding: "10px 12px", borderRadius: 8, border: "1px solid #334155", background: "#0f172a", color: "white" }}
+            style={{ padding: "10px 12px", borderRadius: 8, border: "1px solid var(--color-border)", background: "var(--color-surface-muted)", color: "var(--color-text-primary)" }}
             required
           />
           <input
@@ -75,20 +75,20 @@ export default function AdminSignupPage() {
             type="password"
             value={form.password}
             onChange={handleChange("password")}
-            style={{ padding: "10px 12px", borderRadius: 8, border: "1px solid #334155", background: "#0f172a", color: "white" }}
+            style={{ padding: "10px 12px", borderRadius: 8, border: "1px solid var(--color-border)", background: "var(--color-surface-muted)", color: "var(--color-text-primary)" }}
             required
           />
           <button
             type="submit"
             disabled={loading}
-            style={{ padding: "12px 14px", background: "#22c55e", border: "none", color: "white", borderRadius: 10, cursor: loading ? "default" : "pointer", fontWeight: 700 }}
+            style={{ padding: "12px 14px", background: "var(--color-primary)", border: "none", color: "#ffffff", borderRadius: 10, cursor: loading ? "default" : "pointer", fontWeight: 700 }}
           >
             {loading ? "Creating..." : "Create admin"}
           </button>
           <button
             type="button"
             onClick={() => router.push("/signin/admin")}
-            style={{ background: "transparent", border: "none", color: "#22c55e", cursor: "pointer" }}
+            style={{ background: "transparent", border: "none", color: "var(--color-primary)", cursor: "pointer" }}
           >
             Already have an admin account? Sign in
           </button>

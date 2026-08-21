@@ -1,5 +1,5 @@
 -- =====================================================
--- Viva default data and runtime compatibility seed
+-- Weluxo default data and runtime compatibility seed
 -- SQL Server
 --
 -- Run scripts/create_database.sql first, then run this file.
@@ -120,7 +120,7 @@ BEGIN
         blogLabel, blogHref, aboutusLabel, aboutusHref, facebook, instagram
     )
     VALUES (
-        N'Viva', N'Performance gear for everyday progress.',
+        N'Weluxo', N'Performance gear for everyday progress.',
         N'Home', N'/', N'Shop', N'/shop', N'Blog', N'/blog', N'About Us', N'/aboutus',
         N'https://www.facebook.com/', N'https://www.instagram.com/'
     );
@@ -139,23 +139,23 @@ END;
 GO
 
 -- Store products -----------------------------------------------------------
-IF NOT EXISTS (SELECT 1 FROM dbo.Products_tbl WHERE Name = N'Viva Training Mat')
+IF NOT EXISTS (SELECT 1 FROM dbo.Products_tbl WHERE Name = N'Weluxo Training Mat')
     INSERT INTO dbo.Products_tbl (Brand, Name, IMG, Category, Colort, Stock, Price, Description, Alt, ChosenCount)
-    VALUES (N'Viva', N'Viva Training Mat', N'https://images.unsplash.com/photo-1518611012118-696072aa579a?auto=format&fit=crop&w=900&q=80', N'Training', N'Black', 25, 49.99, N'Comfortable, durable support for every session.', N'Black training mat', 12);
+    VALUES (N'Weluxo', N'Weluxo Training Mat', N'https://images.unsplash.com/photo-1518611012118-696072aa579a?auto=format&fit=crop&w=900&q=80', N'Training', N'Black', 25, 49.99, N'Comfortable, durable support for every session.', N'Black training mat', 12);
 
 IF NOT EXISTS (SELECT 1 FROM dbo.Products_tbl WHERE Name = N'Power Grip Set')
     INSERT INTO dbo.Products_tbl (Brand, Name, IMG, Category, Colort, Stock, Price, Description, Alt, ChosenCount)
-    VALUES (N'Viva', N'Power Grip Set', N'https://images.unsplash.com/photo-1534367610401-9f5ed68180aa?auto=format&fit=crop&w=900&q=80', N'Strength', N'Blue', 40, 34.99, N'Secure, adjustable grips for strength training.', N'Blue power grips', 9);
+    VALUES (N'Weluxo', N'Power Grip Set', N'https://images.unsplash.com/photo-1534367610401-9f5ed68180aa?auto=format&fit=crop&w=900&q=80', N'Strength', N'Blue', 40, 34.99, N'Secure, adjustable grips for strength training.', N'Blue power grips', 9);
 
 IF NOT EXISTS (SELECT 1 FROM dbo.Products_tbl WHERE Name = N'Recovery Roller')
     INSERT INTO dbo.Products_tbl (Brand, Name, IMG, Category, Colort, Stock, Price, Description, Alt, ChosenCount)
-    VALUES (N'Viva', N'Recovery Roller', N'https://images.unsplash.com/photo-1518611012118-696072aa579a?auto=format&fit=crop&w=900&q=80', N'Recovery', N'Charcoal', 30, 29.99, N'Firm foam roller for post-workout recovery.', N'Charcoal foam roller', 7);
+    VALUES (N'Weluxo', N'Recovery Roller', N'https://images.unsplash.com/photo-1518611012118-696072aa579a?auto=format&fit=crop&w=900&q=80', N'Recovery', N'Charcoal', 30, 29.99, N'Firm foam roller for post-workout recovery.', N'Charcoal foam roller', 7);
 
-DECLARE @TrainingMatId int = (SELECT TOP (1) PID FROM dbo.Products_tbl WHERE Name = N'Viva Training Mat' ORDER BY PID);
+DECLARE @TrainingMatId int = (SELECT TOP (1) PID FROM dbo.Products_tbl WHERE Name = N'Weluxo Training Mat' ORDER BY PID);
 IF @TrainingMatId IS NOT NULL
 BEGIN
     IF NOT EXISTS (SELECT 1 FROM dbo.ProductAddress_tbl WHERE ProductId = @TrainingMatId)
-        INSERT INTO dbo.ProductAddress_tbl (ProductId, AddressLine) VALUES (@TrainingMatId, N'Viva distribution center');
+        INSERT INTO dbo.ProductAddress_tbl (ProductId, AddressLine) VALUES (@TrainingMatId, N'Weluxo distribution center');
     IF NOT EXISTS (SELECT 1 FROM dbo.ProductImages_tbl WHERE ProductId = @TrainingMatId)
         INSERT INTO dbo.ProductImages_tbl (ProductId, ImagePath)
         VALUES (@TrainingMatId, N'https://images.unsplash.com/photo-1518611012118-696072aa579a?auto=format&fit=crop&w=900&q=80');
@@ -167,26 +167,76 @@ IF NOT EXISTS (SELECT 1 FROM dbo.DashboardSettings WHERE SettingKey = N'emailNot
     INSERT INTO dbo.DashboardSettings (SettingKey, SettingValue) VALUES (N'emailNotifications', N'true');
 IF NOT EXISTS (SELECT 1 FROM dbo.DashboardSettings WHERE SettingKey = N'darkMode')
     INSERT INTO dbo.DashboardSettings (SettingKey, SettingValue) VALUES (N'darkMode', N'false');
+IF NOT EXISTS (SELECT 1 FROM dbo.DashboardSettings WHERE SettingKey = N'siteName')
+    INSERT INTO dbo.DashboardSettings (SettingKey, SettingValue) VALUES (N'siteName', N'Weluxo');
+IF NOT EXISTS (SELECT 1 FROM dbo.DashboardSettings WHERE SettingKey = N'siteDescription')
+    INSERT INTO dbo.DashboardSettings (SettingKey, SettingValue) VALUES (N'siteDescription', N'Weluxo Shop - Your partner in performance.');
+IF NOT EXISTS (SELECT 1 FROM dbo.DashboardSettings WHERE SettingKey = N'siteTagline')
+    INSERT INTO dbo.DashboardSettings (SettingKey, SettingValue) VALUES (N'siteTagline', N'Move with intent');
+IF NOT EXISTS (SELECT 1 FROM dbo.DashboardSettings WHERE SettingKey = N'siteUrl')
+    INSERT INTO dbo.DashboardSettings (SettingKey, SettingValue) VALUES (N'siteUrl', N'https://weluxo.com');
+IF NOT EXISTS (SELECT 1 FROM dbo.DashboardSettings WHERE SettingKey = N'siteKeywords')
+    INSERT INTO dbo.DashboardSettings (SettingKey, SettingValue) VALUES (N'siteKeywords', N'online shop, lifestyle products, performance gear');
+IF NOT EXISTS (SELECT 1 FROM dbo.DashboardSettings WHERE SettingKey = N'primaryColor')
+    INSERT INTO dbo.DashboardSettings (SettingKey, SettingValue) VALUES (N'primaryColor', N'#2563eb');
+IF NOT EXISTS (SELECT 1 FROM dbo.DashboardSettings WHERE SettingKey = N'primaryDarkColor')
+    INSERT INTO dbo.DashboardSettings (SettingKey, SettingValue) VALUES (N'primaryDarkColor', N'#1746b2');
+IF NOT EXISTS (SELECT 1 FROM dbo.DashboardSettings WHERE SettingKey = N'linkHoverColor')
+    INSERT INTO dbo.DashboardSettings (SettingKey, SettingValue) VALUES (N'linkHoverColor', N'#1746b2');
+IF NOT EXISTS (SELECT 1 FROM dbo.DashboardSettings WHERE SettingKey = N'primaryLightColor')
+    INSERT INTO dbo.DashboardSettings (SettingKey, SettingValue) VALUES (N'primaryLightColor', N'#5b8def');
+IF NOT EXISTS (SELECT 1 FROM dbo.DashboardSettings WHERE SettingKey = N'primarySoftColor')
+    INSERT INTO dbo.DashboardSettings (SettingKey, SettingValue) VALUES (N'primarySoftColor', N'#eef4ff');
+IF NOT EXISTS (SELECT 1 FROM dbo.DashboardSettings WHERE SettingKey = N'accentColor')
+    INSERT INTO dbo.DashboardSettings (SettingKey, SettingValue) VALUES (N'accentColor', N'#f28c28');
+IF NOT EXISTS (SELECT 1 FROM dbo.DashboardSettings WHERE SettingKey = N'accentDarkColor')
+    INSERT INTO dbo.DashboardSettings (SettingKey, SettingValue) VALUES (N'accentDarkColor', N'#c96a0e');
+IF NOT EXISTS (SELECT 1 FROM dbo.DashboardSettings WHERE SettingKey = N'accentLightColor')
+    INSERT INTO dbo.DashboardSettings (SettingKey, SettingValue) VALUES (N'accentLightColor', N'#ffb15a');
+IF NOT EXISTS (SELECT 1 FROM dbo.DashboardSettings WHERE SettingKey = N'accentSoftColor')
+    INSERT INTO dbo.DashboardSettings (SettingKey, SettingValue) VALUES (N'accentSoftColor', N'#fff4e5');
+IF NOT EXISTS (SELECT 1 FROM dbo.DashboardSettings WHERE SettingKey = N'backgroundColor')
+    INSERT INTO dbo.DashboardSettings (SettingKey, SettingValue) VALUES (N'backgroundColor', N'#fbf4e8');
+IF NOT EXISTS (SELECT 1 FROM dbo.DashboardSettings WHERE SettingKey = N'surfaceColor')
+    INSERT INTO dbo.DashboardSettings (SettingKey, SettingValue) VALUES (N'surfaceColor', N'#ffffff');
+IF NOT EXISTS (SELECT 1 FROM dbo.DashboardSettings WHERE SettingKey = N'surfaceMutedColor')
+    INSERT INTO dbo.DashboardSettings (SettingKey, SettingValue) VALUES (N'surfaceMutedColor', N'#fffaf2');
+IF NOT EXISTS (SELECT 1 FROM dbo.DashboardSettings WHERE SettingKey = N'borderColor')
+    INSERT INTO dbo.DashboardSettings (SettingKey, SettingValue) VALUES (N'borderColor', N'#e7dfd3');
+IF NOT EXISTS (SELECT 1 FROM dbo.DashboardSettings WHERE SettingKey = N'textPrimaryColor')
+    INSERT INTO dbo.DashboardSettings (SettingKey, SettingValue) VALUES (N'textPrimaryColor', N'#2b2b2b');
+IF NOT EXISTS (SELECT 1 FROM dbo.DashboardSettings WHERE SettingKey = N'textSecondaryColor')
+    INSERT INTO dbo.DashboardSettings (SettingKey, SettingValue) VALUES (N'textSecondaryColor', N'#62656b');
+IF NOT EXISTS (SELECT 1 FROM dbo.DashboardSettings WHERE SettingKey = N'successColor')
+    INSERT INTO dbo.DashboardSettings (SettingKey, SettingValue) VALUES (N'successColor', N'#2e8b57');
+IF NOT EXISTS (SELECT 1 FROM dbo.DashboardSettings WHERE SettingKey = N'warningColor')
+    INSERT INTO dbo.DashboardSettings (SettingKey, SettingValue) VALUES (N'warningColor', N'#f28c28');
+IF NOT EXISTS (SELECT 1 FROM dbo.DashboardSettings WHERE SettingKey = N'errorColor')
+    INSERT INTO dbo.DashboardSettings (SettingKey, SettingValue) VALUES (N'errorColor', N'#c94a4a');
+IF NOT EXISTS (SELECT 1 FROM dbo.DashboardSettings WHERE SettingKey = N'supportEmail')
+    INSERT INTO dbo.DashboardSettings (SettingKey, SettingValue) VALUES (N'supportEmail', N'support@weluxo.com');
+IF NOT EXISTS (SELECT 1 FROM dbo.DashboardSettings WHERE SettingKey = N'supportHours')
+    INSERT INTO dbo.DashboardSettings (SettingKey, SettingValue) VALUES (N'supportHours', N'Support available within 24-48 hours');
 
 IF NOT EXISTS (SELECT 1 FROM dbo.Notifications)
     INSERT INTO dbo.Notifications (Title, Message, IsRead, IsVisible)
-    VALUES (N'Welcome to Viva', N'Your store has been seeded with starter content and products.', 0, 1);
+    VALUES (N'Welcome to Weluxo', N'Your store has been seeded with starter content and products.', 0, 1);
 
-IF NOT EXISTS (SELECT 1 FROM dbo.Comments WHERE Name = N'Viva Team' AND Text = N'Welcome to Viva. We are glad you are here!')
+IF NOT EXISTS (SELECT 1 FROM dbo.Comments WHERE Name = N'Weluxo Team' AND Text = N'Welcome to Weluxo. We are glad you are here!')
     INSERT INTO dbo.Comments (Name, Text, Email, ShowComment)
-    VALUES (N'Viva Team', N'Welcome to Viva. We are glad you are here!', N'support@example.com', 1);
+    VALUES (N'Weluxo Team', N'Welcome to Weluxo. We are glad you are here!', N'support@example.com', 1);
 GO
 
 -- Initial administrator ----------------------------------------------------
--- Sign in once with admin@viva.local / ChangeMe123! and immediately change
+-- Sign in once with admin@weluxo.local / ChangeMe123! and immediately change
 -- the password or remove this account. The stored value is a bcrypt hash.
-IF NOT EXISTS (SELECT 1 FROM dbo.User_tbl WHERE Email = N'admin@viva.local')
+IF NOT EXISTS (SELECT 1 FROM dbo.User_tbl WHERE Email = N'admin@weluxo.local')
 BEGIN
     INSERT INTO dbo.User_tbl (Username, Email, PasswordHash, Role, FullName, Bio)
     VALUES (
-        N'admin', N'admin@viva.local',
+        N'admin', N'admin@weluxo.local',
         N'$2b$10$XfiojspZW62Zz24YgCEz8utkc4k0exUgRDFwbRnDzwu/PvbQyLEVO',
-        N'admin', N'Viva Administrator', N'Initial administrator account'
+        N'admin', N'Weluxo Administrator', N'Initial administrator account'
     );
 END;
 GO
@@ -194,4 +244,4 @@ GO
 COMMIT TRANSACTION;
 GO
 
-PRINT 'Viva default data has been seeded successfully.';
+PRINT 'Weluxo default data has been seeded successfully.';

@@ -11,18 +11,18 @@ import { useCheckoutData } from "../components/useCheckoutData";
 import { toast } from "../../lib/notifications";
 
 const fieldSx = {
-  "& .MuiOutlinedInput-root": { color: "white", backgroundColor: "rgba(255,255,255,0.04)" },
-  "& .MuiInputLabel-root": { color: "rgba(255,255,255,0.72)" },
-  "& .MuiOutlinedInput-notchedOutline": { borderColor: "rgba(255,255,255,0.2)" },
-  "&:hover .MuiOutlinedInput-notchedOutline": { borderColor: "rgba(255,255,255,0.38)" },
+  "& .MuiOutlinedInput-root": { color: "var(--color-text-primary)", backgroundColor: "#ffffff" },
+  "& .MuiInputLabel-root": { color: "var(--color-text-secondary)" },
+  "& .MuiOutlinedInput-notchedOutline": { borderColor: "var(--color-border)" },
+  "&:hover .MuiOutlinedInput-notchedOutline": { borderColor: "var(--color-primary)" },
   "& .Mui-focused .MuiOutlinedInput-notchedOutline": { borderColor: "#60a5fa" },
   "& .MuiSelect-select": { display: "block", width: "100%", minWidth: 0, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" },
 };
-const menuProps = { PaperProps: { sx: { maxHeight: 320, bgcolor: "#0f172a", color: "white", "& .MuiMenuItem-root:hover": { bgcolor: "rgba(96,165,250,0.16)" }, "& .Mui-selected": { bgcolor: "rgba(96,165,250,0.24) !important" } } } };
+const menuProps = { PaperProps: { sx: { maxHeight: 320, bgcolor: "#ffffff", color: "var(--color-text-primary)", "& .MuiMenuItem-root:hover": { bgcolor: "var(--color-primary-soft)" }, "& .Mui-selected": { bgcolor: "var(--color-primary-soft) !important" } } } };
 
 export default function CheckoutShippingPage() {
   const router = useRouter();
-  const { items, subtotal, loading, error: cartError } = useCheckoutData();
+  const { items, subtotal, discount, couponCode, loading, error: cartError } = useCheckoutData();
   const [form, setForm] = useState(readCheckoutState().shipping);
   const [error, setError] = useState("");
   const countryOptions = useMemo(() => Country.getAllCountries().map((country) => ({ code: country.isoCode, label: country.name })).sort((a, b) => a.label.localeCompare(b.label)), []);
@@ -58,12 +58,12 @@ export default function CheckoutShippingPage() {
   if (loading) return <CheckoutLoading />;
 
   return (
-    <CheckoutLayout currentStep="shipping" items={items} subtotal={subtotal} shippingMethod={form.method}>
+    <CheckoutLayout currentStep="shipping" items={items} subtotal={subtotal} discount={discount} couponCode={couponCode} shippingMethod={form.method}>
       {(cartError || error) && <Alert severity="error" sx={{ mb: 3 }}>{error || cartError}</Alert>}
-      <Card sx={{ width: "100%", minWidth: 0, bgcolor: "#0f172a", color: "white", border: "1px solid rgba(255,255,255,0.08)" }}>
+      <Card sx={{ width: "100%", minWidth: 0, bgcolor: "#ffffff", color: "var(--color-text-primary)", border: "1px solid var(--color-border)" }}>
         <CardContent sx={{ p: { xs: 3, md: 4 }, minHeight: { xs: 680, md: 720 }, boxSizing: "border-box" }}>
           <Typography variant="h5" sx={{ fontWeight: 900, mb: 1 }}>Shipping address</Typography>
-          <Typography sx={{ color: "rgba(255,255,255,0.68)", mb: 3 }}>Choose where you want your Weluxo order delivered.</Typography>
+          <Typography sx={{ color: "var(--color-text-secondary)", mb: 3 }}>Choose where you want your Weluxo order delivered.</Typography>
           <Box component="form" onSubmit={handleSubmit}>
             <Stack spacing={2.5}>
               <TextField select label="Country" value={form.country} onChange={changeCountry} required fullWidth sx={fieldSx} SelectProps={{ MenuProps: menuProps }}>
@@ -90,16 +90,16 @@ export default function CheckoutShippingPage() {
 
               <Box sx={{ pt: 1 }}>
                 <FormControl fullWidth>
-                  <FormLabel sx={{ color: "rgba(255,255,255,0.8)", mb: 1 }}>Shipping method</FormLabel>
+                  <FormLabel sx={{ color: "var(--color-text-primary)", mb: 1 }}>Shipping method</FormLabel>
                   <RadioGroup value={form.method} onChange={update("method")}>
-                    <FormControlLabel value="standard" control={<Radio />} label={<Box><Typography>Standard shipping</Typography><Typography variant="body2" color="rgba(255,255,255,0.62)">7–15 business days · Free</Typography></Box>} />
-                    <FormControlLabel value="express" control={<Radio />} label={<Box><Typography>Express shipping</Typography><Typography variant="body2" color="rgba(255,255,255,0.62)">3–7 business days · ${shippingCost("express").toFixed(2)}</Typography></Box>} />
+                    <FormControlLabel value="standard" control={<Radio />} label={<Box><Typography>Standard shipping</Typography><Typography variant="body2" color="var(--color-text-secondary)">7–15 business days · Free</Typography></Box>} />
+                    <FormControlLabel value="express" control={<Radio />} label={<Box><Typography>Express shipping</Typography><Typography variant="body2" color="var(--color-text-secondary)">3–7 business days · ${shippingCost("express").toFixed(2)}</Typography></Box>} />
                   </RadioGroup>
                 </FormControl>
               </Box>
               <Stack direction={{ xs: "column", sm: "row" }} spacing={1.5}>
                 <Button type="submit" variant="contained" size="large" sx={{ borderRadius: 999, py: 1.3, fontWeight: 800 }}>Continue to payment</Button>
-                <Button component={Link} href="/checkout/information" variant="outlined" sx={{ color: "white", borderColor: "rgba(255,255,255,0.3)", borderRadius: 999 }}>Back to information</Button>
+                <Button component={Link} href="/checkout/information" variant="outlined" sx={{ color: "var(--color-primary)", borderColor: "var(--color-primary)", borderRadius: 999 }}>Back to information</Button>
               </Stack>
             </Stack>
           </Box>

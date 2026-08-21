@@ -45,10 +45,10 @@ export default function CheckoutSuccessOrderPage() {
     <OrderOutcomeLayout type="success" eyebrow="Order confirmed" title="Thank you for your order!" description="Your order has been successfully placed. We’ll keep you updated as it moves through processing and delivery." orderId={orderId} actions={<><OutcomeButton href="/tracking">Track my order</OutcomeButton><OutcomeButton href="/shop" variant="outlined">Continue shopping</OutcomeButton></>}>
       {error && <Alert severity="info" sx={{ mb: 2 }}>{error}</Alert>}
       <Stack spacing={2.5}>
-        <Box sx={{ p: 2.5, borderRadius: 3, bgcolor: "rgba(255,255,255,0.04)" }}>
+        <Box sx={{ p: 2.5, borderRadius: 3, bgcolor: "var(--color-surface-muted)", border: "1px solid var(--color-border)" }}>
           <Typography variant="h6" sx={{ fontWeight: 800, mb: 1 }}>Customer email</Typography>
           <Typography>{shipping.email || "Your confirmation details are available in your account."}</Typography>
-          <Typography variant="body2" color="rgba(255,255,255,0.6)">A confirmation email will be sent when email delivery is connected.</Typography>
+          <Typography variant="body2" color="var(--color-text-secondary)">A confirmation email will be sent when email delivery is connected.</Typography>
         </Box>
         <Box>
           <Typography variant="h6" sx={{ fontWeight: 800, mb: 2 }}>Order summary</Typography>
@@ -60,22 +60,22 @@ export default function CheckoutSuccessOrderPage() {
               </Stack>
             ))}
           </Stack>
-          <Divider sx={{ borderColor: "rgba(255,255,255,0.12)", my: 2 }} />
+          <Divider sx={{ borderColor: "var(--color-border)", my: 2 }} />
           <Stack direction="row" justifyContent="space-between"><Typography sx={{ fontWeight: 900 }}>Total paid</Typography><Typography sx={{ fontWeight: 900 }}>${Number(order?.total || 0).toFixed(2)}</Typography></Stack>
         </Box>
-        <Box sx={{ p: 2.5, borderRadius: 3, bgcolor: "rgba(255,255,255,0.04)" }}>
+        <Box sx={{ p: 2.5, borderRadius: 3, bgcolor: "var(--color-surface-muted)", border: "1px solid var(--color-border)" }}>
           <Typography variant="h6" sx={{ fontWeight: 800, mb: 1 }}>Delivery information</Typography>
           <Typography color="primary.light">Estimated arrival: {arrival}</Typography>
           <Typography sx={{ mt: 1 }}>{shipping.fullName}</Typography>
-          <Typography color="rgba(255,255,255,0.68)">{[shipping.addressLine1, shipping.addressLine2, shipping.city, shipping.region, shipping.postalCode, shipping.country].filter(Boolean).join(", ") || "Shipping details are processing."}</Typography>
+          <Typography color="var(--color-text-secondary)">{[shipping.addressLine1, shipping.addressLine2, shipping.city, shipping.region, shipping.postalCode, shipping.country].filter(Boolean).join(", ") || "Shipping details are processing."}</Typography>
         </Box>
         <Box>
           <Typography variant="h6" sx={{ fontWeight: 800, mb: 1 }}>What happens next?</Typography>
-          <Stack spacing={0.75} color="rgba(255,255,255,0.78)">
+          <Stack spacing={0.75} color="var(--color-text-secondary)">
             <Typography>✓ Order confirmed</Typography><Typography>✓ Supplier processing</Typography><Typography>✓ Shipping tracking created</Typography><Typography>✓ Delivery</Typography>
           </Stack>
         </Box>
-        <Typography variant="body2" textAlign="center" color="rgba(255,255,255,0.6)">Need help? <a href="/contact" style={{ color: "inherit" }}>Contact Weluxo support</a> · <a href={`/invoice/${encodeURIComponent(orderId)}`} style={{ color: "inherit" }}>View invoice</a></Typography>
+        <Typography variant="body2" textAlign="center" color="var(--color-text-secondary)">Need help? <a href="/contact" style={{ color: "inherit" }}>Contact Weluxo support</a> · <a href={`/invoice/${encodeURIComponent(orderId)}`} style={{ color: "inherit" }}>View invoice</a></Typography>
       </Stack>
     </OrderOutcomeLayout>
   );

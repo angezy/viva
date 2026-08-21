@@ -32,7 +32,7 @@
   align-items: center;
   justify-content: center;
   padding: 2rem;
-  background: linear-gradient(135deg, #f7fbff 0%, #eef6ff 50%, #f7fff6 100%);
+  background: linear-gradient(135deg, var(--color-background) 0%, var(--color-primary-soft) 50%, var(--color-accent-soft) 100%);
 }
 
 .card {
@@ -49,12 +49,12 @@
   font-size: 1.5rem;
   font-weight: 700;
   margin-bottom: 0.25rem;
-  color: #0f172a;
+  color: var(--color-text-primary);
 }
 
 .subtitle {
   font-size: 0.95rem;
-  color: #475569;
+  color: var(--color-text-secondary);
   margin-bottom: 1.25rem;
 }
 
@@ -70,7 +70,7 @@
 
 .label {
   font-size: 0.85rem;
-  color: #334155;
+  color: var(--color-text-secondary);
   margin-bottom: 0.35rem;
 }
 
@@ -81,7 +81,7 @@
   background: #fbfdff;
   outline: none;
   font-size: 0.95rem;
-  color: #0f172a;
+  color: var(--color-text-primary);
 }
 
 .input:focus {
@@ -98,7 +98,7 @@
   margin-top: 0.5rem;
   padding: 0.7rem 1rem;
   border-radius: 10px;
-  background: linear-gradient(90deg,#2563eb,#7c3aed);
+  background: linear-gradient(90deg,var(--color-primary),var(--color-accent));
   color: white;
   border: none;
   cursor: pointer;
@@ -110,7 +110,7 @@
   margin-top: 0.75rem;
   text-align: center;
   font-size: 0.9rem;
-  color: #475569;
+  color: var(--color-text-secondary);
 }
 
 .error {

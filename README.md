@@ -67,6 +67,17 @@ JWT_SECRET=your_secret_key
 
 You may also need additional API-related variables depending on integrations used by the backend.
 
+To enable customer Google sign-in, add the Google OAuth credentials to `bend/.env` and register the callback URL in Google Cloud:
+
+```env
+GOOGLE_CLIENT_ID=your-google-client-id
+GOOGLE_CLIENT_SECRET=your-google-client-secret
+GOOGLE_REDIRECT_URI=http://localhost:3000/api/auth/google/callback
+FRONTEND_URL=http://localhost:3000
+```
+
+Use `https://your-domain/api/auth/google/callback` and the matching frontend origin in production. The Google client secret must remain in the backend environment only.
+
 ## Database Design
 
 ### Overview

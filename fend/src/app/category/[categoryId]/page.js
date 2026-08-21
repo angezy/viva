@@ -9,6 +9,7 @@ import {
   Typography,
 } from "@mui/material";
 import CategoryProductGrid from "./CategoryProductGrid";
+import { getSiteSettingsServer, siteUrlFor } from "../../lib/siteSettingsServer";
 
 export const dynamic = "force-dynamic";
 
@@ -73,17 +74,20 @@ export async function generateMetadata({ params }) {
   const { categoryId } = await params;
   const category = displayName(categoryId);
   const slug = slugify(categoryId);
+  const site = await getSiteSettingsServer();
+  const url = siteUrlFor(site, `/category/${slug}`);
 
   return {
-    title: `${category} | Weluxo Shop`,
-    description: `Explore the ${category} collection at Weluxo. Browse products, compare details, and find your next favorite.`,
+    title: `${category} | ${site.siteName} Shop`,
+    description: `Explore the ${category} collection at ${site.siteName}. Browse products, compare details, and find your next favorite.`,
     alternates: {
-      canonical: `/category/${slug}`,
+      canonical: url,
     },
     openGraph: {
-      title: `${category} | Weluxo Shop`,
-      description: `Shop the ${category} collection at Weluxo.`,
-      url: `/category/${slug}`,
+      title: `${category} | ${site.siteName} Shop`,
+      description: `Shop the ${category} collection at ${site.siteName}.`,
+      url,
+      siteName: site.siteName,
       type: "website",
     },
   };
@@ -125,12 +129,12 @@ export default async function CategoryPage({ params }) {
   const categoryName = categoryProducts[0].category;
 
   return (
-    <Box sx={{ backgroundColor: "#050714", minHeight: "100vh", color: "white", py: 5 }}>
+    <Box sx={{ backgroundColor: "var(--color-background)", minHeight: "100vh", color: "var(--color-text-primary)", py: 5 }}>
       <Container maxWidth="lg">
-        <Breadcrumbs sx={{ mb: 4, color: "rgba(255,255,255,0.65)" }}>
+        <Breadcrumbs sx={{ mb: 4, color: "var(--color-text-secondary)" }}>
           <Link href="/">Home</Link>
           <Link href="/shop">Shop</Link>
-          <Typography color="white">{categoryName}</Typography>
+          <Typography color="var(--color-text-primary)">{categoryName}</Typography>
         </Breadcrumbs>
 
         <Box
@@ -138,8 +142,8 @@ export default async function CategoryPage({ params }) {
             mb: 5,
             p: { xs: 3, md: 5 },
             borderRadius: 4,
-            background: "linear-gradient(135deg, rgba(59,130,246,0.28), rgba(16,185,129,0.2))",
-            border: "1px solid rgba(255,255,255,0.1)",
+            background: "linear-gradient(135deg, var(--color-primary-soft), var(--color-accent-soft))",
+            border: "1px solid var(--color-border)",
           }}
         >
           <Typography variant="overline" sx={{ letterSpacing: 3, color: "primary.light" }}>
@@ -148,10 +152,10 @@ export default async function CategoryPage({ params }) {
           <Typography variant="h1" sx={{ fontWeight: 900, fontSize: { xs: "2.5rem", md: "4rem" }, mb: 1 }}>
             {categoryName}
           </Typography>
-          <Typography sx={{ maxWidth: 700, color: "rgba(255,255,255,0.78)", lineHeight: 1.7 }}>
+          <Typography sx={{ maxWidth: 700, color: "var(--color-text-secondary)", lineHeight: 1.7 }}>
             Discover our {categoryName.toLowerCase()} collection, selected to help you move, train, recover, and perform at your best.
           </Typography>
-          <Typography sx={{ mt: 2, color: "rgba(255,255,255,0.62)" }}>
+          <Typography sx={{ mt: 2, color: "var(--color-text-secondary)" }}>
             {categoryProducts.length} {categoryProducts.length === 1 ? "product" : "products"}
           </Typography>
         </Box>

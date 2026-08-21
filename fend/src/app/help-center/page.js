@@ -5,7 +5,7 @@ import { getHelpCenterContent, getHelpCenterMetadata } from "../lib/helpCenterCo
 export const dynamic = "force-dynamic";
 
 export async function generateMetadata() {
-  return getHelpCenterMetadata(await getHelpCenterContent());
+  return await getHelpCenterMetadata(await getHelpCenterContent());
 }
 
 export default async function HelpCenterPage() {

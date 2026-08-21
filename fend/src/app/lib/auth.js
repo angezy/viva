@@ -1,6 +1,7 @@
 import jwt from "jsonwebtoken";
 
-export const COOKIE_NAME = "viva_token";
+export const ADMIN_COOKIE_NAME = "viva_admin_token";
+export const CUSTOMER_COOKIE_NAME = "viva_customer_token";
 const JWT_SECRET = process.env.JWT_SECRET;
 
 export function getAuthCookieOptions(maxAge = 60 * 60) {

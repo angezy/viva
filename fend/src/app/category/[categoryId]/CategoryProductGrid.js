@@ -30,7 +30,7 @@ export default function CategoryProductGrid({ products = [], categoryName = "Col
           <Typography id="category-products-title" variant="h5" sx={{ fontWeight: 800 }}>
             Browse {categoryName} products
           </Typography>
-          <Typography sx={{ color: "rgba(255,255,255,0.62)", mt: 0.5 }}>
+          <Typography sx={{ color: "var(--color-text-secondary)", mt: 0.5 }}>
             {filteredProducts.length} {filteredProducts.length === 1 ? "product" : "products"} in this collection
           </Typography>
         </Box>
@@ -39,30 +39,30 @@ export default function CategoryProductGrid({ products = [], categoryName = "Col
           value={search}
           onChange={(event) => setSearch(event.target.value)}
           size="small"
-          sx={{ minWidth: { xs: "100%", sm: 280 }, backgroundColor: "rgba(255,255,255,0.08)", borderRadius: 1, input: { color: "white" }, label: { color: "rgba(255,255,255,0.65)" }, fieldset: { borderColor: "rgba(255,255,255,0.25)" } }}
+          sx={{ minWidth: { xs: "100%", sm: 280 }, backgroundColor: "#ffffff", borderRadius: 1, input: { color: "var(--color-text-primary)" }, label: { color: "var(--color-text-secondary)" }, fieldset: { borderColor: "var(--color-border)" } }}
         />
       </Box>
 
       {filteredProducts.length === 0 ? (
-        <Box sx={{ p: 4, borderRadius: 3, border: "1px dashed rgba(255,255,255,0.25)" }}>
-          <Typography sx={{ color: "rgba(255,255,255,0.7)" }}>No products match your search in this category.</Typography>
+        <Box sx={{ p: 4, borderRadius: 3, border: "1px dashed var(--color-border)", bgcolor: "var(--color-surface-muted)" }}>
+          <Typography sx={{ color: "var(--color-text-secondary)" }}>No products match your search in this category.</Typography>
         </Box>
       ) : (
         <Grid container spacing={3}>
           {filteredProducts.map((product) => (
             <Grid item xs={12} sm={6} md={4} key={product.id}>
-              <Card sx={{ height: "100%", display: "flex", flexDirection: "column", overflow: "hidden", borderRadius: 4, bgcolor: "#0f172a", color: "white", border: "1px solid rgba(255,255,255,0.08)" }}>
+              <Card sx={{ height: "100%", display: "flex", flexDirection: "column", overflow: "hidden", borderRadius: 4, bgcolor: "#ffffff", color: "var(--color-text-primary)", border: "1px solid var(--color-border)" }}>
                 <Link href={`/product/${product.slug}`}>
                   <Box component="img" src={product.image} alt={product.alt} sx={{ display: "block", width: "100%", height: 250, objectFit: "cover" }} />
                 </Link>
                 <CardContent sx={{ display: "flex", flexDirection: "column", flexGrow: 1 }}>
                   <Typography variant="overline" sx={{ color: "secondary.light", letterSpacing: 1.5 }}>{product.brand}</Typography>
                   <Typography variant="h6" sx={{ fontWeight: 800, mb: 1 }}>{product.title}</Typography>
-                  <Typography variant="body2" sx={{ color: "rgba(255,255,255,0.7)", display: "-webkit-box", WebkitBoxOrient: "vertical", WebkitLineClamp: 3, overflow: "hidden", minHeight: 60 }}>
+                  <Typography variant="body2" sx={{ color: "var(--color-text-secondary)", display: "-webkit-box", WebkitBoxOrient: "vertical", WebkitLineClamp: 3, overflow: "hidden", minHeight: 60 }}>
                     {product.description}
                   </Typography>
                   <Box sx={{ mt: "auto", pt: 3, display: "flex", alignItems: "center", justifyContent: "space-between", gap: 2 }}>
-                    <Typography variant="h6" color="primary.light" sx={{ fontWeight: 800 }}>${product.price.toFixed(2)}</Typography>
+                    <Typography variant="h6" color="primary.main" sx={{ fontWeight: 800 }}>${product.price.toFixed(2)}</Typography>
                     <Button href={`/product/${product.slug}`} variant="contained" sx={{ borderRadius: 999, textTransform: "none" }}>View product</Button>
                   </Box>
                 </CardContent>

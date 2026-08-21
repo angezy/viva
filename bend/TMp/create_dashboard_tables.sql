@@ -8,5 +8,6 @@ PRINT 'Starting dashboard tables creation...';
 :r ./create_orders_tbl.sql
 :r ./create_notifications_tbl.sql
 :r ./create_dashboard_settings_tbl.sql
+:r ./create_coupons.sql
 
 PRINT 'Dashboard tables creation complete.';

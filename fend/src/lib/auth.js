@@ -1,7 +1,8 @@
 import jwt from 'jsonwebtoken';
 
 const JWT_SECRET = process.env.JWT_SECRET;
-const COOKIE_NAME = 'viva_token';
+export const ADMIN_COOKIE_NAME = 'viva_admin_token';
+export const CUSTOMER_COOKIE_NAME = 'viva_customer_token';
 
 export function signToken(payload, opts = {}) {
   return jwt.sign(payload, JWT_SECRET, { expiresIn: '2h', ...opts });
@@ -30,5 +31,3 @@ export function getAuthCookieOptions(maxAge = 60 * 60) {
     ...(domain ? { domain } : {}),
   };
 }
-
-export { COOKIE_NAME };

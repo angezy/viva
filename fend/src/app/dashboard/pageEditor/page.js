@@ -13,6 +13,7 @@ import HelpCenterSection from "@/app/components/HelpCenterSection";
 import LegalPageSection from "@/app/components/LegalPageSection";
 import ShopPage from "@/app/shop/page";
 import { Box } from "@mui/material";
+import { DEFAULT_SITE_CHROME } from "@/app/lib/siteChrome";
 
 const EMPTY_PRODUCT = { title: "", price: "", image: "", alt: "" };
 const DEFAULT_PRODUCTS_SECTION = {
@@ -70,6 +71,7 @@ export default function PageEditor() {
   const [helpCenterContent, setHelpCenterContent] = useState(null);
   const [legalContent, setLegalContent] = useState(null);
   const [shopContent, setShopContent] = useState(null);
+  const [siteChromeContent, setSiteChromeContent] = useState(null);
   const [loading, setLoading] = useState(true);
   const [loadingBlog, setLoadingBlog] = useState(true);
   const [loadingAbout, setLoadingAbout] = useState(true);
@@ -79,6 +81,7 @@ export default function PageEditor() {
   const [loadingHelpCenter, setLoadingHelpCenter] = useState(true);
   const [loadingLegal, setLoadingLegal] = useState(true);
   const [loadingShop, setLoadingShop] = useState(true);
+  const [loadingSiteChrome, setLoadingSiteChrome] = useState(true);
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState("");
   const [message, setMessage] = useState("");
@@ -129,6 +132,11 @@ export default function PageEditor() {
       .then((data) => mounted && setShopContent(data))
       .catch(() => mounted && setError("Failed to load Shop content"))
       .finally(() => mounted && setLoadingShop(false));
+    fetch("/api/dashboard/site-chrome")
+      .then((res) => (res.ok ? res.json() : Promise.reject()))
+      .then((data) => mounted && setSiteChromeContent(data))
+      .catch(() => mounted && setSiteChromeContent(DEFAULT_SITE_CHROME))
+      .finally(() => mounted && setLoadingSiteChrome(false));
     Promise.all(
       LEGAL_SLUGS.map((slug) =>
         fetch(`/api/dashboard/legal/${slug}`).then((res) => (res.ok ? res.json() : Promise.reject()))
@@ -199,6 +207,47 @@ export default function PageEditor() {
         cursor = cursor[key];
       }
       cursor[path[path.length - 1]] = value;
+      return next;
+    });
+  };
+
+  const updateSiteChromeField = (path, value) => {
+    setSiteChromeContent((prev) => {
+      const next = { ...(prev || {}) };
+      let cursor = next;
+      for (let i = 0; i < path.length - 1; i++) {
+        const key = path[i];
+        const current = cursor[key];
+        cursor[key] = Array.isArray(current)
+          ? [...current]
+          : current && typeof current === "object"
+          ? { ...current }
+          : {};
+        cursor = cursor[key];
+      }
+      cursor[path[path.length - 1]] = value;
+      return next;
+    });
+  };
+
+  const updateSiteChromeArrayItem = (path, index, value) => {
+    setSiteChromeContent((prev) => {
+      const next = { ...(prev || {}) };
+      let cursor = next;
+      for (let i = 0; i < path.length - 1; i++) {
+        const key = path[i];
+        const current = cursor[key];
+        cursor[key] = Array.isArray(current)
+          ? [...current]
+          : current && typeof current === "object"
+          ? { ...current }
+          : {};
+        cursor = cursor[key];
+      }
+      const key = path[path.length - 1];
+      const items = Array.isArray(cursor[key]) ? [...cursor[key]] : [];
+      items[index] = value;
+      cursor[key] = items;
       return next;
     });
   };
@@ -422,7 +471,7 @@ export default function PageEditor() {
   };
 
   async function handleSave() {
-    if (!content || !blogContent || !aboutContent || !whyContent || !howContent || !faqContent || !helpCenterContent || !legalContent || !shopContent) return;
+    if (!content || !blogContent || !aboutContent || !whyContent || !howContent || !faqContent || !helpCenterContent || !legalContent || !shopContent || !siteChromeContent) return;
     setSaving(true);
     setError("");
     setMessage("");
@@ -467,6 +516,11 @@ export default function PageEditor() {
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ content: shopContent }),
       });
+      const siteChromeRes = await fetch("/api/dashboard/site-chrome", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(siteChromeContent),
+      });
       const legalResponses = await Promise.all(
         LEGAL_SLUGS.map((slug) =>
           fetch(`/api/dashboard/legal/${slug}`, {
@@ -477,7 +531,7 @@ export default function PageEditor() {
         )
       );
 
-      if (!res.ok || !blogRes.ok || !aboutRes.ok || !whyRes.ok || !howRes.ok || !faqRes.ok || !helpCenterRes.ok || !shopRes.ok || legalResponses.some((response) => !response.ok)) throw new Error("save");
+      if (!res.ok || !blogRes.ok || !aboutRes.ok || !whyRes.ok || !howRes.ok || !faqRes.ok || !helpCenterRes.ok || !shopRes.ok || !siteChromeRes.ok || legalResponses.some((response) => !response.ok)) throw new Error("save");
       setMessage("Saved! Refresh preview if needed.");
     } catch (err) {
       setError("Save failed. Try again.");
@@ -576,6 +630,101 @@ export default function PageEditor() {
           </>
         );
       }
+    }
+    if (activeSection === "siteChrome") {
+      const header = siteChromeContent?.header || {};
+      const footer = siteChromeContent?.footer || {};
+      const updateHeader = (field, value) => updateSiteChromeField(["header", field], value);
+      const updateFooter = (field, value) => updateSiteChromeField(["footer", field], value);
+      const updateFooterNested = (field, nestedField, value) => updateSiteChromeField(["footer", field, nestedField], value);
+      const updateLink = (field, index, key, value) => {
+        const items = Array.isArray(footer[field]) ? footer[field] : [];
+        updateSiteChromeArrayItem(["footer", field], index, { ...(items[index] || {}), [key]: value });
+      };
+      const updateHeaderLink = (field, index, key, value) => {
+        const items = Array.isArray(header[field]) ? header[field] : [];
+        updateSiteChromeArrayItem(["header", field], index, { ...(items[index] || {}), [key]: value });
+      };
+      return (
+        <>
+          <h4 style={{ margin: "4px 0 0" }}>Header announcement</h4>
+          <Input label="Shipping message" value={header.announcementShipping || ""} onChange={(v) => updateHeader("announcementShipping", v)} />
+          <Input label="Support message" value={header.announcementSupport || ""} onChange={(v) => updateHeader("announcementSupport", v)} />
+          <Input label="Announcement separator" value={header.announcementSeparator || ""} onChange={(v) => updateHeader("announcementSeparator", v)} />
+
+          <h4 style={{ margin: "12px 0 0" }}>Header navigation and cart</h4>
+          {["searchPlaceholder", "searchButtonLabel", "trackOrderLabel", "signInLabel", "accountLabel", "accountTooltip", "signInTooltip", "cartTooltip", "shopAllLabel", "trendingLabel", "categoriesLabel", "categoryHeading", "blogLabel", "aboutLabel", "helpLabel", "helpTooltip", "allProductsLabel", "myAccountLabel", "ordersLabel", "supportLabel", "signOutLabel", "helpCenterLabel", "mobileTrackOrderLabel", "cartLabel", "mobileSearchPlaceholder", "yourCartLabel", "cartReadyLabel", "cartItemLabel", "cartItemsLabel", "closeCartLabel", "emptyCartLabel", "startShoppingLabel", "quantityLabel", "quantitySeparator", "subtotalLabel", "viewCartLabel", "checkoutLabel"].map((field) => (
+            <Input key={field} label={field.replace(/([A-Z])/g, " $1").replace(/^./, (letter) => letter.toUpperCase())} value={header[field] || ""} onChange={(v) => updateHeader(field, v)} />
+          ))}
+
+          <h4 style={{ margin: "12px 0 0" }}>Header category links</h4>
+          {(header.categoryLinks || []).map((link, index) => (
+            <div key={`category-${index}`} style={{ border: "1px solid #eee", borderRadius: 8, padding: 10, background: "#fafafa" }}>
+              <div style={{ fontWeight: 600, marginBottom: 6 }}>Category {index + 1}</div>
+              <Input label="Label" value={link?.label || ""} onChange={(v) => updateHeaderLink("categoryLinks", index, "label", v)} />
+              <Input label="URL" value={link?.href || ""} onChange={(v) => updateHeaderLink("categoryLinks", index, "href", v)} />
+            </div>
+          ))}
+          <h4 style={{ margin: "12px 0 0" }}>Header about links</h4>
+          {(header.aboutLinks || []).map((link, index) => (
+            <div key={`about-${index}`} style={{ border: "1px solid #eee", borderRadius: 8, padding: 10, background: "#fafafa" }}>
+              <div style={{ fontWeight: 600, marginBottom: 6 }}>About link {index + 1}</div>
+              <Input label="Label" value={link?.label || ""} onChange={(v) => updateHeaderLink("aboutLinks", index, "label", v)} />
+              <Input label="URL" value={link?.href || ""} onChange={(v) => updateHeaderLink("aboutLinks", index, "href", v)} />
+            </div>
+          ))}
+
+          <h4 style={{ margin: "12px 0 0" }}>Footer brand and trust cards</h4>
+          <Input label="Logo text" value={footer.logoText || ""} onChange={(v) => updateFooter("logoText", v)} />
+          <Textarea label="Brand description" value={footer.brandDescription || ""} onChange={(v) => updateFooter("brandDescription", v)} />
+          {(footer.trustItems || []).map((item, index) => (
+            <div key={`trust-${index}`} style={{ border: "1px solid #eee", borderRadius: 8, padding: 10, background: "#fafafa" }}>
+              <div style={{ fontWeight: 600, marginBottom: 6 }}>Trust card {index + 1}</div>
+              <Input label="Icon key (shipping, support, or secure)" value={item?.icon || ""} onChange={(v) => updateSiteChromeArrayItem(["footer", "trustItems"], index, { ...(item || {}), icon: v })} />
+              <Input label="Title" value={item?.title || ""} onChange={(v) => updateSiteChromeArrayItem(["footer", "trustItems"], index, { ...(item || {}), title: v })} />
+              <Textarea label="Copy" value={item?.copy || ""} onChange={(v) => updateSiteChromeArrayItem(["footer", "trustItems"], index, { ...(item || {}), copy: v })} />
+            </div>
+          ))}
+
+          <h4 style={{ margin: "12px 0 0" }}>Footer columns</h4>
+           <Input label="Shop column title" value={footer.columns?.shopTitle || ""} onChange={(v) => updateFooterNested("columns", "shopTitle", v)} />
+           <Input label="Support column title" value={footer.columns?.supportTitle || ""} onChange={(v) => updateFooterNested("columns", "supportTitle", v)} />
+           <Input label="Company column title" value={footer.columns?.companyTitle || ""} onChange={(v) => updateFooterNested("columns", "companyTitle", v)} />
+           <Input label="Legal column title" value={footer.columns?.legalTitle || ""} onChange={(v) => updateFooterNested("columns", "legalTitle", v)} />
+          {["shopLinks", "supportLinks", "companyLinks", "legalLinks"].map((field) => (
+            <div key={field} style={{ display: "grid", gap: 8 }}>
+              <h4 style={{ margin: "8px 0 0" }}>{field.replace(/([A-Z])/g, " $1").replace(/^./, (letter) => letter.toUpperCase())}</h4>
+              {(footer[field] || []).map((link, index) => (
+                <div key={`${field}-${index}`} style={{ border: "1px solid #eee", borderRadius: 8, padding: 10, background: "#fafafa" }}>
+                  <div style={{ fontWeight: 600, marginBottom: 6 }}>Link {index + 1}</div>
+                  <Input label="Label" value={link?.label || ""} onChange={(v) => updateLink(field, index, "label", v)} />
+                  <Input label="URL" value={link?.href || ""} onChange={(v) => updateLink(field, index, "href", v)} />
+                </div>
+              ))}
+            </div>
+          ))}
+
+          <h4 style={{ margin: "12px 0 0" }}>Footer support callout</h4>
+          <Input label="Eyebrow" value={footer.contact?.eyebrow || ""} onChange={(v) => updateFooterNested("contact", "eyebrow", v)} />
+          <Input label="Title" value={footer.contact?.title || ""} onChange={(v) => updateFooterNested("contact", "title", v)} />
+          <Textarea label="Copy" value={footer.contact?.copy || ""} onChange={(v) => updateFooterNested("contact", "copy", v)} />
+          <Input label="Button label" value={footer.contact?.buttonLabel || ""} onChange={(v) => updateFooterNested("contact", "buttonLabel", v)} />
+          <Input label="Button URL" value={footer.contact?.buttonHref || ""} onChange={(v) => updateFooterNested("contact", "buttonHref", v)} />
+
+          <h4 style={{ margin: "12px 0 0" }}>Footer utility text</h4>
+          <Input label="Copyright suffix" value={footer.copyrightSuffix || ""} onChange={(v) => updateFooter("copyrightSuffix", v)} />
+          <Input label="Security status" value={footer.securityLabel || ""} onChange={(v) => updateFooter("securityLabel", v)} />
+          <Input label="Support status" value={footer.supportStatusLabel || ""} onChange={(v) => updateFooter("supportStatusLabel", v)} />
+          <h4 style={{ margin: "12px 0 0" }}>Footer social links</h4>
+          {(footer.socials || []).map((social, index) => (
+            <div key={`social-${index}`} style={{ border: "1px solid #eee", borderRadius: 8, padding: 10, background: "#fafafa" }}>
+              <div style={{ fontWeight: 600, marginBottom: 6 }}>{social?.platform || `Social ${index + 1}`}</div>
+              <Input label="Accessible label" value={social?.label || ""} onChange={(v) => updateLink("socials", index, "label", v)} />
+              <Input label="URL" value={social?.href || ""} onChange={(v) => updateLink("socials", index, "href", v)} />
+            </div>
+          ))}
+        </>
+      );
     }
     switch (activeSection) {
       case "faqHero": {
@@ -1179,7 +1328,7 @@ export default function PageEditor() {
     }
   };
 
-  if (loading || loadingBlog || loadingAbout || loadingWhy || loadingHow || loadingFaq || loadingHelpCenter || loadingShop) {
+  if (loading || loadingBlog || loadingAbout || loadingWhy || loadingHow || loadingFaq || loadingHelpCenter || loadingShop || loadingSiteChrome) {
     return <div style={{ padding: 16 }}>Loading dashboard editor...</div>;
   }
 
@@ -1209,6 +1358,9 @@ export default function PageEditor() {
   }
   if (!legalContent) {
     return <div style={{ padding: 16, color: "#b00" }}>{error || "No legal page content loaded."}</div>;
+  }
+  if (!siteChromeContent) {
+    return <div style={{ padding: 16, color: "#b00" }}>{error || "No header and footer content loaded."}</div>;
   }
 
   return (
@@ -1245,7 +1397,20 @@ export default function PageEditor() {
               {item.label}
             </button>
           ))}
-          <span style={{ color: "#64748b", fontSize: 12 }}>Home, Blog, Shop, About, Why Weluxo, How It Works, Help, and policy pages are editable here.</span>
+          <button
+            onClick={() => openModal("siteChrome")}
+            style={{
+              padding: "6px 10px",
+              borderRadius: 6,
+              border: "1px solid #0a8a5b",
+              background: "#0a8a5b",
+              color: "white",
+              cursor: "pointer",
+            }}
+          >
+            Edit header & footer
+          </button>
+          <span style={{ color: "#64748b", fontSize: 12 }}>Page copy and global site text are editable here.</span>
         </div>
         {message && <span style={{ color: "#0a8", alignSelf: "center" }}>{message}</span>}
         {error && <span style={{ color: "#c00", alignSelf: "center" }}>{error}</span>}
@@ -1266,6 +1431,7 @@ export default function PageEditor() {
       </div>
 
       <div style={{ flex: 1, overflow: "auto" }}>
+        <Header initialChrome={siteChromeContent} disableNav />
         {!showInlinePreview && <iframe title="Preview" src={previewPath} style={{ width: "100%", height: "60vh", border: 0, background: "white" }} />}
         {showInlinePreview && previewPath === "/" && (
           <>
@@ -1399,11 +1565,11 @@ export default function PageEditor() {
             }}
           />
         )}
-        <Footer />
+        <Footer initialChrome={siteChromeContent} />
       </div>
 
       {modalOpen && (
-        <div style={{ position: "fixed", inset: 0, background: "rgba(0,0,0,0.4)", display: "flex", alignItems: "center", justifyContent: "center", zIndex: 80 }}>
+        <div style={{ position: "fixed", inset: 0, background: "rgba(0,0,0,0.4)", display: "flex", alignItems: "center", justifyContent: "center", zIndex: 2000 }}>
           <div style={{ width: 800, maxWidth: "95%", maxHeight: "90vh", overflow: "auto", background: "white", borderRadius: 10, padding: 16, boxShadow: "0 12px 40px rgba(0,0,0,0.25)" }}>
             <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 10 }}>
               <h3 style={{ margin: 0, textTransform: "capitalize" }}>{activeSection}</h3>

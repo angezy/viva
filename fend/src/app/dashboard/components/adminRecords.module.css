@@ -1,4 +1,4 @@
-.page { min-height: 100vh; padding: 28px; background: #f4f7fb; color: #142033; font-family: Inter, system-ui, sans-serif; }
+.page { min-height: 100vh; padding: 28px; background: #f4f7fb; color: #142033; font-family: var(--site-font-family, Inter, system-ui, sans-serif); }
 .header { margin-bottom: 18px; }
 .header a { color: #3159d9; font-size: 13px; font-weight: 750; text-decoration: none; }
 .header h1 { margin: 8px 0 4px; font-size: 30px; }

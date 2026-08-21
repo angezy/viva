@@ -1,5 +1,8 @@
-export default function FaqStructuredData({ content }) {
-  const siteUrl = "https://weluxo.com";
+import { getSiteSettingsServer, siteUrlFor } from "../lib/siteSettingsServer";
+
+export default async function FaqStructuredData({ content }) {
+  const site = await getSiteSettingsServer();
+  const siteUrl = siteUrlFor(site);
   const items = Array.isArray(content?.faq?.items) ? content.faq.items : [];
   const jsonLd = {
     "@context": "https://schema.org",
@@ -7,22 +10,22 @@ export default function FaqStructuredData({ content }) {
       {
         "@type": "Organization",
         "@id": `${siteUrl}/#organization`,
-        name: "Weluxo",
+        name: site.siteName,
         url: siteUrl,
       },
       {
         "@type": "WebPage",
         "@id": `${siteUrl}/faq#webpage`,
         url: `${siteUrl}/faq`,
-        name: content?.seo?.title || content?.hero?.title || "Weluxo FAQ",
-        description: content?.seo?.description || content?.hero?.intro || "Weluxo frequently asked questions.",
+        name: content?.seo?.title || content?.hero?.title || `${site.siteName} FAQ`,
+        description: content?.seo?.description || content?.hero?.intro || `${site.siteName} frequently asked questions.`,
         isPartOf: { "@id": `${siteUrl}/#website` },
       },
       {
         "@type": "WebSite",
         "@id": `${siteUrl}/#website`,
         url: siteUrl,
-        name: "Weluxo",
+        name: site.siteName,
         publisher: { "@id": `${siteUrl}/#organization` },
       },
       {

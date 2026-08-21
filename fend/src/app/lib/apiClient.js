@@ -1,5 +1,7 @@
 // Browser requests stay on the public frontend origin. Next.js proxies /api
 // server-side using BACKEND_URL, so a deployed browser never calls localhost.
+import { endLiveChatSession } from "./chatSession";
+
 export const API_BASE = "";
 
 async function parseJsonSafe(res) {
@@ -52,7 +54,8 @@ export function resetPassword(email, resetToken, password) {
 }
 
 export async function logoutRequest() {
-  await fetch(`${API_BASE}/api/logout`, { method: "POST", credentials: "include" });
+  await endLiveChatSession();
+  await fetch(`${API_BASE}/api/auth/signout?role=customer`, { credentials: "include" });
 }
 
 export async function fetchSession() {
@@ -250,5 +253,37 @@ export async function saveCartItem(item) {
   if (res.status === 401) throw new Error("unauthorized");
   if (!res.ok) throw new Error(data?.error || "Unable to save item");
   notifyCartUpdated(data);
+  return data;
+}
+
+export async function fetchSavedProducts() {
+  const res = await fetch(`${API_BASE}/api/saved-products`, { credentials: "include", cache: "no-store" });
+  if (res.status === 401) throw new Error("unauthorized");
+  const data = await parseJsonSafe(res);
+  if (!res.ok) throw new Error(data?.error || "Unable to load saved products");
+  return data || { items: [] };
+}
+
+export async function saveProduct(productId) {
+  const res = await fetch(`${API_BASE}/api/saved-products`, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    credentials: "include",
+    body: JSON.stringify({ productId }),
+  });
+  const data = await parseJsonSafe(res);
+  if (res.status === 401) throw new Error("unauthorized");
+  if (!res.ok) throw new Error(data?.error || "Unable to save product");
+  return data;
+}
+
+export async function removeSavedProduct(productId) {
+  const res = await fetch(`${API_BASE}/api/saved-products/${encodeURIComponent(productId)}`, {
+    method: "DELETE",
+    credentials: "include",
+  });
+  const data = await parseJsonSafe(res);
+  if (res.status === 401) throw new Error("unauthorized");
+  if (!res.ok) throw new Error(data?.error || "Unable to remove saved product");
   return data;
 }

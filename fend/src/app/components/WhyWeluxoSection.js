@@ -40,10 +40,10 @@ function EditButton({ onClick, editable }) {
         position: "absolute",
         top: 12,
         right: 12,
-        color: "#12372a",
-        bgcolor: "rgba(255,255,255,0.92)",
+        color: "var(--color-text-primary)",
+        bgcolor: "#ffffff",
         zIndex: 2,
-        "&:hover": { bgcolor: "white" },
+          "&:hover": { bgcolor: "var(--color-surface-muted)" },
       }}
     >
       <EditIcon fontSize="small" />
@@ -58,7 +58,7 @@ function Paragraphs({ text, sx = {} }) {
         .split("\n\n")
         .filter(Boolean)
         .map((paragraph, index) => (
-          <Typography key={index} sx={{ color: "#52635b", lineHeight: 1.8, mb: 2, ...sx }}>
+          <Typography key={index} sx={{ color: "var(--color-text-secondary)", lineHeight: 1.8, mb: 2, ...sx }}>
             {paragraph}
           </Typography>
         ))}
@@ -70,7 +70,7 @@ function SectionLabel({ children }) {
   return (
     <Typography
       variant="overline"
-      sx={{ color: "#3d785d", fontWeight: 800, letterSpacing: "0.14em", display: "block", mb: 1 }}
+      sx={{ color: "var(--color-primary)", fontWeight: 800, letterSpacing: "0.14em", display: "block", mb: 1 }}
     >
       {children}
     </Typography>
@@ -113,7 +113,7 @@ export default function WhyWeluxoSection({ initialContent = null, onEdit = {}, e
   const secureItems = Array.isArray(secure.items) ? secure.items : [];
 
   return (
-    <Box sx={{ bgcolor: "#f5f8f3", color: "#12372a", minHeight: "100vh", fontFamily: "'Space Grotesk','Segoe UI',sans-serif" }}>
+    <Box sx={{ bgcolor: "var(--color-background)", color: "var(--color-text-primary)", minHeight: "100vh", fontFamily: "var(--site-font-family, 'Space Grotesk','Segoe UI',sans-serif)" }}>
       <Container maxWidth="lg" sx={{ px: { xs: 2, md: 4 }, py: { xs: 3, md: 5 } }}>
         <Box
           sx={{
@@ -121,8 +121,8 @@ export default function WhyWeluxoSection({ initialContent = null, onEdit = {}, e
             gridTemplateColumns: { xs: "1fr", md: "1.05fr 0.95fr" },
             gap: { xs: 3, md: 6 },
             alignItems: "stretch",
-            bgcolor: "#0e2b20",
-            color: "white",
+            bgcolor: "#ffffff",
+            color: "var(--color-text-primary)",
             borderRadius: { xs: 3, md: 5 },
             overflow: "hidden",
             position: "relative",
@@ -134,13 +134,13 @@ export default function WhyWeluxoSection({ initialContent = null, onEdit = {}, e
             <Typography variant="h1" sx={{ fontSize: { xs: "2.8rem", md: "5rem" }, lineHeight: 0.98, letterSpacing: "-0.05em", fontWeight: 800, maxWidth: 620 }}>
               {hero.title}
             </Typography>
-            <Typography sx={{ color: "rgba(255,255,255,0.76)", fontSize: { xs: "1rem", md: "1.15rem" }, lineHeight: 1.75, maxWidth: 560, mt: 3 }}>
+            <Typography sx={{ color: "var(--color-text-secondary)", fontSize: { xs: "1rem", md: "1.15rem" }, lineHeight: 1.75, maxWidth: 560, mt: 3 }}>
               {hero.subtitle}
             </Typography>
           </Box>
           <Box sx={{ minHeight: { xs: 270, md: 480 }, position: "relative" }}>
             <Box component="img" src={hero.image} alt={hero.alt || hero.title} sx={{ width: "100%", height: "100%", display: "block", objectFit: "cover" }} />
-            <Box sx={{ position: "absolute", inset: 0, background: "linear-gradient(90deg, rgba(14,43,32,0.15), transparent 45%)" }} />
+            <Box sx={{ position: "absolute", inset: 0, background: "linear-gradient(90deg, rgba(37,99,235,0.14), transparent 45%)" }} />
           </Box>
         </Box>
 
@@ -155,7 +155,7 @@ export default function WhyWeluxoSection({ initialContent = null, onEdit = {}, e
           <Box sx={{ pt: { md: 1 } }}><Paragraphs text={curated.copy} /></Box>
         </Box>
 
-        <Box sx={{ bgcolor: "#e4efe6", borderRadius: { xs: 3, md: 5 }, p: { xs: 3, md: 6 }, position: "relative" }}>
+        <Box sx={{ bgcolor: "var(--color-accent-soft)", borderRadius: { xs: 3, md: 5 }, p: { xs: 3, md: 6 }, position: "relative" }}>
           <EditButton onClick={onEdit.smartShopping} editable={editable} />
           <Box sx={{ maxWidth: 660, mb: 4 }}>
             <SectionLabel>{shopping.eyebrow}</SectionLabel>
@@ -167,7 +167,7 @@ export default function WhyWeluxoSection({ initialContent = null, onEdit = {}, e
             {shoppingItems.map((item, index) => (
               <Grid item xs={12} sm={6} key={`${item}-${index}`}>
                 <Box sx={{ display: "flex", gap: 1.5, alignItems: "flex-start", p: 2.25, bgcolor: "rgba(255,255,255,0.72)", borderRadius: 2.5, height: "100%" }}>
-                  <CheckCircleOutlineIcon sx={{ color: "#3d785d", mt: 0.15 }} />
+                  <CheckCircleOutlineIcon sx={{ color: "var(--color-primary)", mt: 0.15 }} />
                   <Typography sx={{ fontWeight: 650, lineHeight: 1.5 }}>{item}</Typography>
                 </Box>
               </Grid>
@@ -182,18 +182,18 @@ export default function WhyWeluxoSection({ initialContent = null, onEdit = {}, e
               <SectionLabel>{shipping.eyebrow}</SectionLabel>
               <Typography variant="h2" sx={{ fontWeight: 800, letterSpacing: "-0.04em", fontSize: { xs: "2.2rem", md: "3.5rem" }, lineHeight: 1.02 }}>{shipping.title}</Typography>
             </Box>
-            <Typography sx={{ color: "#52635b", lineHeight: 1.8, maxWidth: 520 }}>{shipping.copy}</Typography>
+            <Typography sx={{ color: "var(--color-text-secondary)", lineHeight: 1.8, maxWidth: 520 }}>{shipping.copy}</Typography>
           </Box>
           <Grid container spacing={2}>
             {shippingCards.map((card, index) => {
               const Icon = shippingIcons[index % shippingIcons.length];
               return (
                 <Grid item xs={12} md={4} key={`${card.title}-${index}`}>
-                  <Card sx={{ height: "100%", borderRadius: 3, bgcolor: "#fff", border: "1px solid #dbe7dc", boxShadow: "none" }}>
+                  <Card sx={{ height: "100%", borderRadius: 3, bgcolor: "#ffffff", border: "1px solid var(--color-border)", boxShadow: "none" }}>
                     <CardContent sx={{ p: 3 }}>
-                      <Icon sx={{ color: "#3d785d", fontSize: 34, mb: 3 }} />
+                      <Icon sx={{ color: "var(--color-accent)", fontSize: 34, mb: 3 }} />
                       <Typography variant="h6" sx={{ fontWeight: 800, mb: 1 }}>{card.title}</Typography>
-                      <Typography sx={{ color: "#617168", lineHeight: 1.65 }}>{card.copy}</Typography>
+                      <Typography sx={{ color: "var(--color-text-secondary)", lineHeight: 1.65 }}>{card.copy}</Typography>
                     </CardContent>
                   </Card>
                 </Grid>
@@ -202,26 +202,26 @@ export default function WhyWeluxoSection({ initialContent = null, onEdit = {}, e
           </Grid>
         </Box>
 
-        <Box sx={{ bgcolor: "#0e2b20", color: "white", borderRadius: { xs: 3, md: 5 }, p: { xs: 3, md: 6 }, position: "relative" }}>
+        <Box sx={{ bgcolor: "#ffffff", color: "var(--color-text-primary)", border: "1px solid var(--color-border)", borderRadius: { xs: 3, md: 5 }, p: { xs: 3, md: 6 }, position: "relative" }}>
           <EditButton onClick={onEdit.customerSupport} editable={editable} />
           <Box sx={{ display: "grid", gridTemplateColumns: { xs: "1fr", md: "0.9fr 1.1fr" }, gap: { xs: 4, md: 10 } }}>
             <Box>
               <SectionLabel>{support.eyebrow}</SectionLabel>
               <Typography variant="h2" sx={{ fontWeight: 800, letterSpacing: "-0.04em", fontSize: { xs: "2.2rem", md: "3.5rem" }, lineHeight: 1.02, mb: 2 }}>{support.title}</Typography>
-              <Typography sx={{ color: "rgba(255,255,255,0.72)", lineHeight: 1.8 }}>{support.copy}</Typography>
+              <Typography sx={{ color: "var(--color-text-secondary)", lineHeight: 1.8 }}>{support.copy}</Typography>
             </Box>
             <Box>
               <Stack spacing={1.25} sx={{ mb: 4 }}>
                 {supportItems.map((item, index) => (
-                  <Typography key={`${item}-${index}`} sx={{ color: "rgba(255,255,255,0.84)", display: "flex", gap: 1.25, lineHeight: 1.5 }}>
-                    <CheckCircleOutlineIcon sx={{ color: "#9ad3ad", fontSize: 21 }} />{item}
+                  <Typography key={`${item}-${index}`} sx={{ color: "var(--color-text-primary)", display: "flex", gap: 1.25, lineHeight: 1.5 }}>
+                    <CheckCircleOutlineIcon sx={{ color: "var(--color-primary)", fontSize: 21 }} />{item}
                   </Typography>
                 ))}
               </Stack>
-              <Divider sx={{ borderColor: "rgba(255,255,255,0.16)", mb: 2 }} />
+              <Divider sx={{ borderColor: "var(--color-border)", mb: 2 }} />
               <Stack direction={{ xs: "column", sm: "row" }} spacing={1} flexWrap="wrap">
                 {supportLinks.map((link, index) => (
-                  <Button key={`${link.label}-${index}`} component={Link} href={link.url || "#"} endIcon={<ArrowOutwardIcon />} sx={{ color: "#c4efd0", justifyContent: "flex-start", textTransform: "none", px: 0, mr: 2 }}>
+                  <Button key={`${link.label}-${index}`} component={Link} href={link.url || "#"} endIcon={<ArrowOutwardIcon />} sx={{ color: "var(--color-primary)", justifyContent: "flex-start", textTransform: "none", px: 0, mr: 2 }}>
                     {link.label}
                   </Button>
                 ))}
@@ -235,18 +235,18 @@ export default function WhyWeluxoSection({ initialContent = null, onEdit = {}, e
           <Box sx={{ maxWidth: 680, mb: 5 }}>
             <SectionLabel>{quality.eyebrow}</SectionLabel>
             <Typography variant="h2" sx={{ fontWeight: 800, letterSpacing: "-0.04em", fontSize: { xs: "2.2rem", md: "3.5rem" }, lineHeight: 1.02, mb: 2 }}>{quality.title}</Typography>
-            <Typography sx={{ color: "#52635b", lineHeight: 1.8 }}>{quality.copy}</Typography>
+            <Typography sx={{ color: "var(--color-text-secondary)", lineHeight: 1.8 }}>{quality.copy}</Typography>
           </Box>
           <Grid container spacing={2}>
             {qualityCards.map((card, index) => {
               const Icon = qualityIcons[index % qualityIcons.length];
               return (
                 <Grid item xs={12} sm={4} key={`${card.title}-${index}`}>
-                  <Card sx={{ height: "100%", borderRadius: 3, bgcolor: "#fff", border: "1px solid #dbe7dc", boxShadow: "none" }}>
+                  <Card sx={{ height: "100%", borderRadius: 3, bgcolor: "#ffffff", border: "1px solid var(--color-border)", boxShadow: "none" }}>
                     <CardContent sx={{ p: 3 }}>
-                      <Icon sx={{ color: "#3d785d", fontSize: 30, mb: 4 }} />
+                      <Icon sx={{ color: "var(--color-accent)", fontSize: 30, mb: 4 }} />
                       <Typography variant="h6" sx={{ fontWeight: 800, mb: 1 }}>{card.title}</Typography>
-                      <Typography sx={{ color: "#617168", lineHeight: 1.65 }}>{card.copy}</Typography>
+                      <Typography sx={{ color: "var(--color-text-secondary)", lineHeight: 1.65 }}>{card.copy}</Typography>
                     </CardContent>
                   </Card>
                 </Grid>
@@ -255,7 +255,7 @@ export default function WhyWeluxoSection({ initialContent = null, onEdit = {}, e
           </Grid>
         </Box>
 
-        <Box sx={{ borderTop: "1px solid #d7e3d8", borderBottom: "1px solid #d7e3d8", py: { xs: 6, md: 8 }, position: "relative" }}>
+        <Box sx={{ borderTop: "1px solid var(--color-border)", borderBottom: "1px solid var(--color-border)", py: { xs: 6, md: 8 }, position: "relative" }}>
           <EditButton onClick={onEdit.secureShopping} editable={editable} />
           <Box sx={{ display: "grid", gridTemplateColumns: { xs: "1fr", md: "0.8fr 1.2fr" }, gap: { xs: 3, md: 8 }, alignItems: "center" }}>
             <Box>
@@ -265,8 +265,8 @@ export default function WhyWeluxoSection({ initialContent = null, onEdit = {}, e
             <Grid container spacing={1.5}>
               {secureItems.map((item, index) => (
                 <Grid item xs={12} sm={6} key={`${item}-${index}`}>
-                  <Box sx={{ display: "flex", alignItems: "center", gap: 1.25, p: 2, bgcolor: "#fff", border: "1px solid #dbe7dc", borderRadius: 2.5 }}>
-                    {index === 0 ? <LockOutlinedIcon sx={{ color: "#3d785d" }} /> : <CheckCircleOutlineIcon sx={{ color: "#3d785d" }} />}
+                  <Box sx={{ display: "flex", alignItems: "center", gap: 1.25, p: 2, bgcolor: "#ffffff", border: "1px solid var(--color-border)", borderRadius: 2.5 }}>
+                    {index === 0 ? <LockOutlinedIcon sx={{ color: "var(--color-primary)" }} /> : <CheckCircleOutlineIcon sx={{ color: "var(--color-primary)" }} />}
                     <Typography sx={{ fontWeight: 700 }}>{item}</Typography>
                   </Box>
                 </Grid>
@@ -279,13 +279,13 @@ export default function WhyWeluxoSection({ initialContent = null, onEdit = {}, e
           <EditButton onClick={onEdit.promise} editable={editable} />
           <SectionLabel>{promise.eyebrow}</SectionLabel>
           <Typography variant="h2" sx={{ fontWeight: 800, letterSpacing: "-0.04em", fontSize: { xs: "2.5rem", md: "4.4rem" }, lineHeight: 1.02, mb: 3 }}>{promise.title}</Typography>
-          <Typography sx={{ color: "#52635b", fontSize: { xs: "1.05rem", md: "1.2rem" }, lineHeight: 1.8 }}>{promise.copy}</Typography>
+          <Typography sx={{ color: "var(--color-text-secondary)", fontSize: { xs: "1.05rem", md: "1.2rem" }, lineHeight: 1.8 }}>{promise.copy}</Typography>
         </Box>
 
-        <Box sx={{ bgcolor: "#d9ebdc", borderRadius: { xs: 3, md: 5 }, p: { xs: 3, md: 6 }, textAlign: "center", position: "relative" }}>
+        <Box sx={{ bgcolor: "var(--color-primary-soft)", border: "1px solid rgba(37,99,235,0.16)", borderRadius: { xs: 3, md: 5 }, p: { xs: 3, md: 6 }, textAlign: "center", position: "relative" }}>
           <EditButton onClick={onEdit.finalCta} editable={editable} />
           <Typography variant="h4" sx={{ fontWeight: 800, letterSpacing: "-0.03em", mb: 3 }}>{finalCta.title}</Typography>
-          <Button component={Link} href={finalCta.buttonUrl || "/shop"} variant="contained" size="large" endIcon={<ArrowOutwardIcon />} sx={{ bgcolor: "#12372a", color: "white", borderRadius: 999, px: 3.5, py: 1.25, textTransform: "none", fontWeight: 800, "&:hover": { bgcolor: "#1d543e" } }}>
+          <Button component={Link} href={finalCta.buttonUrl || "/shop"} variant="contained" size="large" endIcon={<ArrowOutwardIcon />} sx={{ bgcolor: "var(--color-accent)", color: "var(--color-text-primary)", borderRadius: 999, px: 3.5, py: 1.25, textTransform: "none", fontWeight: 800, "&:hover": { bgcolor: "var(--color-accent-dark)" } }}>
             {finalCta.buttonText}
           </Button>
         </Box>

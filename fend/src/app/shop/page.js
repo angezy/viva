@@ -1,6 +1,7 @@
 
 "use client";
 import { useEffect, useMemo, useState } from "react";
+import Link from "next/link";
 import {
   Container,
   Typography,
@@ -32,6 +33,64 @@ const DEFAULT_SHOP_CONTENT = {
   catalogTitle: "Browse products",
   emptyMessage: "No products match your search.",
 };
+
+function slugify(value) {
+  return String(value || "")
+    .normalize("NFKD")
+    .replace(/[\u0300-\u036f]/g, "")
+    .toLowerCase()
+    .trim()
+    .replace(/[^a-z0-9]+/g, "-")
+    .replace(/^-+|-+$/g, "");
+}
+
+function productHref(product, title) {
+  const explicitSlug = product.slug || product.Slug || product.handle || product.Handle;
+  const normalizedSlug = String(explicitSlug || "")
+    .replace(/^\/product\//, "")
+    .replace(/^\//, "")
+    .replace(/\/$/, "");
+  return `/product/${encodeURIComponent(slugify(normalizedSlug || title))}`;
+}
+
+function ShopProductCard({ product, title, description, price, image, trending = false, onAdd }) {
+  return (
+    <Card
+      sx={{
+        ...(trending ? { flex: "0 0 260px", minHeight: 390 } : { width: 300, minWidth: 300, maxWidth: 300, height: 500 }),
+        borderRadius: 4,
+        overflow: "hidden",
+        backgroundColor: "#ffffff",
+        color: "var(--color-text-primary)",
+        border: "1px solid var(--color-border)",
+        boxShadow: trending ? "0 16px 40px rgba(43,43,43,0.08)" : "0 20px 50px rgba(43,43,43,0.08)",
+        display: "flex",
+        flexDirection: "column",
+        transition: "transform 180ms ease, box-shadow 180ms ease",
+        "&:hover": { transform: "translateY(-4px)", boxShadow: "0 20px 42px rgba(43,43,43,0.13)" },
+      }}
+    >
+      <Box component={Link} href={productHref(product, title)} sx={{ display: "flex", flex: 1, flexDirection: "column", color: "inherit", textDecoration: "none", "&:focus-visible": { outline: "3px solid var(--color-primary-light)", outlineOffset: -3 } }} aria-label={`View ${title}`}>
+        <CardMedia component="img" height={trending ? 180 : 220} image={image} alt={title} sx={{ objectFit: "cover" }} />
+        <CardContent sx={{ flexGrow: 1, display: "flex", flexDirection: "column", minHeight: trending ? 190 : 210 }}>
+          {trending && <Chip label="Trending" size="small" sx={{ alignSelf: "flex-start", mb: 1.5, backgroundColor: "var(--color-accent-soft)", color: "var(--color-accent-dark)", fontWeight: 700 }} />}
+          <Typography variant="h6" sx={{ fontWeight: 700 }}>{title}</Typography>
+          <Typography variant="body2" sx={{ color: "var(--color-text-secondary)", mb: 2, display: "-webkit-box", WebkitLineClamp: 2, WebkitBoxOrient: "vertical", overflow: "hidden" }}>
+            {description}
+          </Typography>
+          <Typography variant="h6" color="primary.main" sx={{ mt: "auto", fontWeight: 800 }}>
+            ${price.toFixed ? price.toFixed(2) : price}
+          </Typography>
+        </CardContent>
+      </Box>
+      <Box sx={{ px: 2, pb: 2 }}>
+        <Button fullWidth variant="contained" color="primary" size={trending ? "small" : "medium"} sx={{ borderRadius: 999 }} onClick={() => onAdd(product)}>
+          Add to Cart
+        </Button>
+      </Box>
+    </Card>
+  );
+}
 
 export default function ShopPage({ initialContent = null, editable = false, onEdit = {} }) {
   const [products, setProducts] = useState([]);
@@ -145,7 +204,7 @@ export default function ShopPage({ initialContent = null, editable = false, onEd
     ) : null;
 
   return (
-    <Box sx={{ backgroundColor: "#050714", minHeight: "100vh", color: "#fff" }}>
+    <Box sx={{ backgroundColor: "var(--color-background)", minHeight: "100vh", color: "var(--color-text-primary)" }}>
       <Box
         sx={{
           position: "relative",
@@ -154,7 +213,7 @@ export default function ShopPage({ initialContent = null, editable = false, onEd
           backgroundPosition: hero.backgroundPosition || "center",
           py: { xs: 8, md: 10 },
           textAlign: "center",
-          color: "#fff",
+          color: "#ffffff",
         }}
       >
         {editButton("hero", "shop hero")}
@@ -173,10 +232,10 @@ export default function ShopPage({ initialContent = null, editable = false, onEd
               variant="outlined"
               sx={{
                 minWidth: { xs: "100%", sm: 320 },
-                backgroundColor: "rgba(255,255,255,0.12)",
+                backgroundColor: "#ffffff",
                 borderRadius: 2,
-                input: { color: "#fff" },
-                fieldset: { border: "none" },
+                input: { color: "var(--color-text-primary)" },
+                fieldset: { borderColor: "var(--color-border)" },
               }}
             />
             <Button
@@ -194,19 +253,15 @@ export default function ShopPage({ initialContent = null, editable = false, onEd
 
       <Container id="shop-catalog" maxWidth="lg" sx={{ py: 6, position: "relative" }}>
         {editButton("catalog", "shop catalog")}
-        <Box component="section" aria-labelledby="trending-collection-title" sx={{ mb: 7 }}>
-          <Typography id="trending-collection-title" variant="h4" sx={{ fontWeight: 800, mb: 0.5 }}>
-            Trending collection
-          </Typography>
-          <Typography variant="body1" sx={{ color: "rgba(255,255,255,0.68)", mb: 3 }}>
-            The pieces everyone is talking about right now.
-          </Typography>
-          {trendingProducts.length === 0 ? (
-            <Box sx={{ border: "1px dashed rgba(255,255,255,0.2)", borderRadius: 3, p: 3, color: "rgba(255,255,255,0.65)" }}>
-              Trending products will appear here when they are selected in the product editor.
-            </Box>
-          ) : (
-            <Box sx={{ display: "flex", gap: 2, overflowX: "auto", pb: 2, scrollbarWidth: "thin" }}>
+        {trendingProducts.length > 0 && (
+          <Box component="section" aria-labelledby="trending-collection-title" sx={{ mb: 7 }}>
+            <Typography id="trending-collection-title" variant="h4" sx={{ fontWeight: 800, mb: 0.5 }}>
+              Trending collection
+            </Typography>
+            <Typography variant="body1" sx={{ color: "var(--color-text-secondary)", mb: 3 }}>
+              The pieces everyone is talking about right now.
+            </Typography>
+            <Box sx={{ display: "flex", justifyContent: { xs: "flex-start", lg: "center" }, gap: 2, overflowX: "auto", pb: 2, scrollbarWidth: "thin" }}>
               {trendingProducts.map((product) => {
                 const title = product.name || product.Name || product.title || "Untitled";
                 const description = product.Description || product.description || "No description available.";
@@ -214,28 +269,11 @@ export default function ShopPage({ initialContent = null, editable = false, onEd
                 const firstImage = Array.isArray(product.images) && product.images.length > 0 ? product.images[0] : null;
                 const image = firstImage || product.Img || product.IMG || product.img || product.image || product.imageUrl ||
                   "https://images.unsplash.com/photo-1505740420928-5e560c06d30e?auto=format&fit=crop&w=800&q=80";
-                return (
-                  <Card key={`trending-${product.id ?? product.PID ?? title}`} sx={{ flex: "0 0 260px", minHeight: 390, borderRadius: 4, overflow: "hidden", background: "linear-gradient(180deg, rgba(15,23,42,0.95), rgba(2,6,23,0.9))", color: "#fff", border: "1px solid rgba(45,212,191,0.28)", boxShadow: "0 16px 40px rgba(2,6,23,0.45)" }}>
-                    <CardMedia component="img" height="180" image={image} alt={title} sx={{ objectFit: "cover" }} />
-                    <CardContent sx={{ minHeight: 210, display: "flex", flexDirection: "column" }}>
-                      <Chip label="Trending" size="small" sx={{ alignSelf: "flex-start", mb: 1.5, backgroundColor: "#0f766e", color: "#fff", fontWeight: 700 }} />
-                      <Typography variant="h6" sx={{ fontWeight: 700 }}>{title}</Typography>
-                      <Typography variant="body2" sx={{ color: "rgba(255,255,255,0.68)", mb: 2, display: "-webkit-box", WebkitLineClamp: 2, WebkitBoxOrient: "vertical", overflow: "hidden" }}>
-                        {description}
-                      </Typography>
-                      <Stack direction="row" justifyContent="space-between" alignItems="center" sx={{ mt: "auto" }}>
-                        <Typography variant="h6" color="primary.light">${price.toFixed ? price.toFixed(2) : price}</Typography>
-                        <Button variant="contained" color="primary" size="small" sx={{ borderRadius: 999 }} onClick={() => handleAddProduct(product)}>
-                          Add
-                        </Button>
-                      </Stack>
-                    </CardContent>
-                  </Card>
-                );
+                return <ShopProductCard key={`trending-${product.id ?? product.PID ?? title}`} product={product} title={title} description={description} price={price} image={image} trending onAdd={handleAddProduct} />;
               })}
             </Box>
-          )}
-        </Box>
+          </Box>
+        )}
 
         <Box id="browse-products" sx={{ scrollMarginTop: 24 }}>
         <Typography variant="h5" sx={{ fontWeight: 800, mb: 3 }}>
@@ -246,7 +284,7 @@ export default function ShopPage({ initialContent = null, editable = false, onEd
             {shopContent.emptyMessage || DEFAULT_SHOP_CONTENT.emptyMessage}
           </Typography>
         ) : (
-          <Grid container spacing={3}>
+          <Grid container spacing={3} justifyContent="center">
             {visibleProducts.map((product) => {
               const title = product.name || product.Name || product.title || "Untitled";
               const description = product.Description || product.description || "No description available.";
@@ -267,44 +305,7 @@ export default function ShopPage({ initialContent = null, editable = false, onEd
                 product.imageUrl ||
                 "https://images.unsplash.com/photo-1505740420928-5e560c06d30e?auto=format&fit=crop&w=800&q=80";
 
-              return (
-                <Grid item xs={12} sm={6} md={4} key={product.id ?? product.PID ?? title}>
-                  <Card
-                    sx={{
-                      width: 300,
-                      minWidth: 300,
-                      maxWidth: 300,
-                      height: 500,
-                      borderRadius: 4,
-                      overflow: "hidden",
-                      background: "linear-gradient(180deg, rgba(15,23,42,0.95), rgba(2,6,23,0.9))",
-                      color: "#fff",
-                      border: "1px solid rgba(255,255,255,0.05)",
-                      boxShadow: "0 20px 50px rgba(2,6,23,0.6)",
-              display: "flex",
-              flexDirection: "column",
-            }}
-          >
-            <CardMedia component="img" height="220" image={image} alt={title} sx={{ objectFit: "cover" }} />
-            <CardContent sx={{ flexGrow: 1, display: "flex", flexDirection: "column" }}>
-              <Typography variant="h6" sx={{ fontWeight: 700 }}>
-                {title}
-              </Typography>
-              <Typography variant="body2" sx={{ color: "rgba(255,255,255,0.7)", mb: 2 }}>
-                {description}
-              </Typography>
-              <Stack direction="row" justifyContent="space-between" alignItems="center" sx={{ mt: "auto" }}>
-                <Typography variant="h6" color="primary.light">
-                  ${price.toFixed ? price.toFixed(2) : price}
-                </Typography>
-                <Button variant="contained" color="primary" sx={{ borderRadius: 999 }} onClick={() => handleAddProduct(product)}>
-                  Add to Cart
-                </Button>
-              </Stack>
-            </CardContent>
-          </Card>
-                </Grid>
-              );
+              return <Grid item xs={12} sm={6} md={4} key={product.id ?? product.PID ?? title}><ShopProductCard product={product} title={title} description={description} price={price} image={image} onAdd={handleAddProduct} /></Grid>;
             })}
           </Grid>
         )}

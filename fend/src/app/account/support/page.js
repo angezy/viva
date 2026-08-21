@@ -1,7 +1,10 @@
 import SupportTicketList from "../../components/support/SupportTicketList";
+import { getSitePageMetadata } from "../../lib/siteSettingsServer";
 
 export const dynamic = "force-dynamic";
-export const metadata = { title: "My Support Tickets | Weluxo", robots: { index: false, follow: false } };
+export async function generateMetadata() {
+  return getSitePageMetadata({ title: "My Support Tickets", path: "/account/support", robots: { index: false, follow: false } });
+}
 
 export default function AccountSupportPage() {
   return <SupportTicketList />;

@@ -1,9 +1,9 @@
+import { getSitePageMetadata } from "../../../lib/siteSettingsServer";
+
 export async function generateMetadata({ params }) {
   const { orderId } = await params;
   return {
-    title: `Order Confirmed | Weluxo`,
-    description: "Your Weluxo order has been successfully confirmed. Track your shipment and receive updates.",
-    alternates: { canonical: `/checkout/success/${encodeURIComponent(orderId)}` },
+    ...(await getSitePageMetadata({ title: "Order Confirmed", description: "Your order has been successfully confirmed. Track your shipment and receive updates.", path: `/checkout/success/${encodeURIComponent(orderId)}` })),
   };
 }
 

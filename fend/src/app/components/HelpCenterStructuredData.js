@@ -1,5 +1,8 @@
-export default function HelpCenterStructuredData({ content }) {
-  const siteUrl = "https://weluxo.com";
+import { getSiteSettingsServer, siteUrlFor } from "../lib/siteSettingsServer";
+
+export default async function HelpCenterStructuredData({ content }) {
+  const site = await getSiteSettingsServer();
+  const siteUrl = siteUrlFor(site);
   const faqItems = Array.isArray(content?.faq?.items) ? content.faq.items : [];
   const jsonLd = {
     "@context": "https://schema.org",
@@ -7,12 +10,12 @@ export default function HelpCenterStructuredData({ content }) {
       {
         "@type": "Organization",
         "@id": `${siteUrl}/#organization`,
-        name: "Weluxo",
+        name: site.siteName,
         url: siteUrl,
         contactPoint: {
           "@type": "ContactPoint",
           contactType: "customer service",
-          email: content?.contactSupport?.email || "support@weluxo.com",
+          email: content?.contactSupport?.email || site.supportEmail,
           availableLanguage: ["English"],
         },
       },
@@ -20,15 +23,15 @@ export default function HelpCenterStructuredData({ content }) {
         "@type": "WebPage",
         "@id": `${siteUrl}/help-center#webpage`,
         url: `${siteUrl}/help-center`,
-        name: content?.seo?.title || "Help | Weluxo Customer Support",
-        description: content?.seo?.description || "Weluxo customer support and help.",
+        name: content?.seo?.title || `Help | ${site.siteName} Customer Support`,
+        description: content?.seo?.description || `${site.siteName} customer support and help.`,
         isPartOf: { "@id": `${siteUrl}/#website` },
       },
       {
         "@type": "WebSite",
         "@id": `${siteUrl}/#website`,
         url: siteUrl,
-        name: "Weluxo",
+        name: site.siteName,
         publisher: { "@id": `${siteUrl}/#organization` },
       },
       {

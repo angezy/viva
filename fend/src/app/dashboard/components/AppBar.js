@@ -2,7 +2,7 @@
 
 import React from 'react'
 
-export default function AppBar({ onToggleSidebar, onSignOut }) {
+export default function AppBar({ onToggleSidebar, onSignOut, siteName = 'Weluxo' }) {
   return (
     <header style={{
       height: 64,
@@ -38,7 +38,7 @@ export default function AppBar({ onToggleSidebar, onSignOut }) {
         </span>
       </button>
 
-      <div style={{ fontWeight: 700 }}>My App</div>
+      <div style={{ fontWeight: 700 }}>{siteName} Admin</div>
 
       <div style={{ marginLeft: 'auto', display: 'flex', alignItems: 'center', gap: 12 }}>
         <button

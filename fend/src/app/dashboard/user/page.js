@@ -31,6 +31,7 @@ import {
   MenuItem,
   TextField,
 } from "@mui/material";
+import { toast } from "../../lib/notifications";
 
 function formatDate(value) {
   if (!value) return "-";
@@ -52,6 +53,9 @@ export default function UsersPage() {
   const [edit, setEdit] = useState(null);
   const [saving, setSaving] = useState(false);
   const [deleting, setDeleting] = useState(false);
+  const [createAdminOpen, setCreateAdminOpen] = useState(false);
+  const [adminForm, setAdminForm] = useState({ username: "", email: "", password: "" });
+  const [creatingAdmin, setCreatingAdmin] = useState(false);
 
   const fetchUsers = async () => {
     setLoading(true);
@@ -72,6 +76,31 @@ export default function UsersPage() {
     fetchUsers();
   }, []);
 
+  const handleCreateAdmin = async (event) => {
+    event.preventDefault();
+    setCreatingAdmin(true);
+    try {
+      const res = await fetch("/api/register/admin", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        credentials: "include",
+        body: JSON.stringify(adminForm),
+      });
+      const data = await res.json().catch(() => ({}));
+      if (!res.ok) {
+        throw new Error(data.error || data.message || "Admin creation failed");
+      }
+      toast.success("Admin created");
+      setAdminForm({ username: "", email: "", password: "" });
+      setCreateAdminOpen(false);
+      await fetchUsers();
+    } catch (err) {
+      toast.error("Admin creation failed", { description: err.message || "Please try again." });
+    } finally {
+      setCreatingAdmin(false);
+    }
+  };
+
   const rowsToRender = loading ? Array.from({ length: 5 }) : users;
 
   return (
@@ -85,9 +114,14 @@ export default function UsersPage() {
             All registered users with their roles and activity.
           </Typography>
         </div>
-        {!loading && (
-          <Chip label={`${users.length} total`} color="primary" variant="outlined" size="small" />
-        )}
+        <Stack direction="row" spacing={1.5} alignItems="center">
+          {!loading && (
+            <Chip label={`${users.length} total`} color="primary" variant="outlined" size="small" />
+          )}
+          <Button variant="contained" onClick={() => setCreateAdminOpen(true)}>
+            Create admin
+          </Button>
+        </Stack>
       </Stack>
 
       {loading && <LinearProgress sx={{ mb: 2 }} />}
@@ -193,6 +227,61 @@ export default function UsersPage() {
           </TableBody>
         </Table>
       </TableContainer>
+
+      <Dialog
+        open={createAdminOpen}
+        onClose={() => !creatingAdmin && setCreateAdminOpen(false)}
+        maxWidth="sm"
+        fullWidth
+      >
+        <Box component="form" onSubmit={handleCreateAdmin}>
+          <DialogTitle>Create admin</DialogTitle>
+          <DialogContent dividers>
+            <Stack spacing={2} sx={{ pt: 1 }}>
+              <Typography variant="body2" color="text.secondary">
+                Add an administrator with access to the dashboard.
+              </Typography>
+              <TextField
+                label="Username"
+                value={adminForm.username}
+                onChange={(event) => setAdminForm((prev) => ({ ...prev, username: event.target.value }))}
+                autoComplete="username"
+                required
+                fullWidth
+                disabled={creatingAdmin}
+              />
+              <TextField
+                label="Email"
+                type="email"
+                value={adminForm.email}
+                onChange={(event) => setAdminForm((prev) => ({ ...prev, email: event.target.value }))}
+                autoComplete="email"
+                required
+                fullWidth
+                disabled={creatingAdmin}
+              />
+              <TextField
+                label="Password"
+                type="password"
+                value={adminForm.password}
+                onChange={(event) => setAdminForm((prev) => ({ ...prev, password: event.target.value }))}
+                autoComplete="new-password"
+                required
+                fullWidth
+                disabled={creatingAdmin}
+              />
+            </Stack>
+          </DialogContent>
+          <DialogActions>
+            <Button onClick={() => setCreateAdminOpen(false)} disabled={creatingAdmin}>
+              Cancel
+            </Button>
+            <Button type="submit" variant="contained" disabled={creatingAdmin}>
+              {creatingAdmin ? "Creating..." : "Create admin"}
+            </Button>
+          </DialogActions>
+        </Box>
+      </Dialog>
 
       <Dialog open={!!selected} onClose={() => setSelected(null)} maxWidth="sm" fullWidth>
         <DialogTitle>User details</DialogTitle>

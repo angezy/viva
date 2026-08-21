@@ -5,7 +5,7 @@ import { getFaqContent, getFaqMetadata } from "../lib/faqContent";
 export const dynamic = "force-dynamic";
 
 export async function generateMetadata() {
-  return getFaqMetadata(await getFaqContent());
+  return await getFaqMetadata(await getFaqContent());
 }
 
 export default async function FaqPage() {

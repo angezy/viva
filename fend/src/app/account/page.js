@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useMemo, useState } from "react";
-import { fetchSession, fetchProfile, fetchOrders, logoutRequest } from "../lib/apiClient";
+import { fetchSession, fetchProfile, fetchOrders, fetchSavedProducts, logoutRequest } from "../lib/apiClient";
 import styles from "./account.module.css";
 
 const cardGradients = [
@@ -15,6 +15,7 @@ export default function AccountPage() {
   const [user, setUser] = useState(null);
   const [profile, setProfile] = useState(null);
   const [orders, setOrders] = useState([]);
+  const [savedProducts, setSavedProducts] = useState([]);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
@@ -27,9 +28,14 @@ export default function AccountPage() {
         return;
       }
       setUser(session.user);
-      const [prof, ord] = await Promise.all([fetchProfile(), fetchOrders()]);
+      const [prof, ord, saved] = await Promise.all([
+        fetchProfile(),
+        fetchOrders(),
+        fetchSavedProducts().catch(() => ({ items: [] })),
+      ]);
       setProfile(prof || session.user);
       setOrders(ord.orders || []);
+      setSavedProducts(saved.items || []);
       setLoading(false);
     }
     load();
@@ -91,6 +97,7 @@ export default function AccountPage() {
     { title: "Delivered", value: totals.delivered, badge: "Completed" },
     { title: "Pending / processing", value: totals.pending, badge: "In progress" },
     { title: "Total spent", value: `$${totals.totalSpent.toFixed(2)}`, badge: "All time" },
+    { title: "Saved products", value: savedProducts.length, badge: "For later" },
   ];
 
   const segments = [
@@ -110,6 +117,7 @@ export default function AccountPage() {
         <div className={styles.linkRow}>
           <button className={styles.primaryBtn} onClick={handleLogout}>Sign out</button>
           <button className={styles.ghostBtn} onClick={() => (location.href = "/account/support")}>Support</button>
+          <button className={styles.ghostBtn} onClick={() => (location.href = "/account/saved")}>Saved products</button>
           <button className={styles.ghostBtn} onClick={() => (location.href = "/shop")}>Shop</button>
         </div>
       </div>
@@ -164,11 +172,33 @@ export default function AccountPage() {
                   <span className={styles.dot} style={{ background: seg.color }} />
                   <span>{seg.label}</span>
                 </div>
-                <strong style={{ color: "#0f172a" }}>{seg.value}</strong>
+                <strong style={{ color: "var(--color-text-primary)" }}>{seg.value}</strong>
               </li>
             ))}
           </ul>
         </article>
+      </section>
+
+      <section className={styles.panel} style={{ marginTop: 14 }}>
+        <div className={styles.panelHeader}>
+          <div className={styles.panelTitle}>Saved products</div>
+          <button className={styles.ghostBtn} onClick={() => (location.href = "/account/saved")}>View all</button>
+        </div>
+        {savedProducts.length === 0 ? (
+          <div style={{ color: "#475569" }}>You have no saved products yet. Use the heart on a product to keep it here.</div>
+        ) : (
+          <div className={styles.savedPreview}>
+            {savedProducts.slice(0, 4).map((item) => (
+              <a key={item.id} className={styles.savedPreviewItem} href={`/product/${item.id}`}>
+                <img src={item.images?.[0] || item.img || item.image || "https://placehold.co/96x96?text=Weluxo"} alt={item.alt || item.name || "Saved product"} />
+                <span>
+                  <strong>{item.name || item.title || "Weluxo product"}</strong>
+                  <small>${Number(item.price || 0).toFixed(2)}</small>
+                </span>
+              </a>
+            ))}
+          </div>
+        )}
       </section>
 
       <section className={styles.panel} style={{ marginTop: 14 }}>
@@ -191,7 +221,7 @@ export default function AccountPage() {
                 <div style={{ color: "#475569", marginBottom: 6 }}>
                   Placed: {order.placedAt ? new Date(order.placedAt).toLocaleString() : "-"}
                 </div>
-                <div style={{ fontWeight: 700, color: "#0f172a", marginBottom: 8 }}>
+                <div style={{ fontWeight: 700, color: "var(--color-text-primary)", marginBottom: 8 }}>
                   Total: ${order.total?.toFixed ? order.total.toFixed(2) : order.total}
                 </div>
                 <div style={{ color: "#475569", fontSize: 13 }}>

@@ -2,18 +2,18 @@ import { Box, Button, Card, CardContent, Container, Stack, Typography } from "@m
 
 export default function InfoPage({ eyebrow, title, description, sections = [], actions = true }) {
   return (
-    <Box sx={{ minHeight: "100vh", bgcolor: "#f8fafc", color: "#0f172a", py: 7 }}>
+    <Box sx={{ minHeight: "100vh", bgcolor: "var(--color-background)", color: "var(--color-text-primary)", py: 7 }}>
       <Container maxWidth="md">
-        <Card sx={{ borderRadius: 4, boxShadow: "0 18px 50px rgba(15,23,42,0.1)" }}>
+        <Card sx={{ borderRadius: 4, border: "1px solid var(--color-border)", boxShadow: "0 18px 50px rgba(43,43,43,0.08)" }}>
           <CardContent sx={{ p: { xs: 3, md: 5 } }}>
-            <Typography variant="overline" sx={{ color: "#2563eb", letterSpacing: 3 }}>{eyebrow}</Typography>
+            <Typography variant="overline" sx={{ color: "var(--color-primary)", letterSpacing: 3 }}>{eyebrow}</Typography>
             <Typography variant="h2" sx={{ fontWeight: 900, fontSize: { xs: "2.2rem", md: "3.2rem" }, mb: 1 }}>{title}</Typography>
-            <Typography sx={{ color: "#475569", lineHeight: 1.7, mb: 4 }}>{description}</Typography>
+            <Typography sx={{ color: "var(--color-text-secondary)", lineHeight: 1.7, mb: 4 }}>{description}</Typography>
             <Stack spacing={3}>
               {sections.map((section) => (
                 <Box key={section.title}>
                   <Typography variant="h6" sx={{ fontWeight: 800, mb: 1 }}>{section.title}</Typography>
-                  <Typography sx={{ color: "#475569", lineHeight: 1.75 }}>{section.body}</Typography>
+                  <Typography sx={{ color: "var(--color-text-secondary)", lineHeight: 1.75 }}>{section.body}</Typography>
                 </Box>
               ))}
             </Stack>

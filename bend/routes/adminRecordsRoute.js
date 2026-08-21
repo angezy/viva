@@ -2,13 +2,14 @@ const express = require('express');
 const jwt = require('jsonwebtoken');
 const sql = require('mssql');
 const { getPool } = require('../utils/dbConnection');
+const { ADMIN_AUTH_COOKIE_NAME } = require('../utils/cookieOptions');
 
 const router = express.Router();
 
 function requireAdmin(req, res, next) {
   const authorization = req.headers?.authorization || '';
   const bearer = authorization.toLowerCase().startsWith('bearer ') ? authorization.slice(7).trim() : null;
-  const token = bearer || req.cookies?.viva_token;
+  const token = bearer || req.cookies?.[ADMIN_AUTH_COOKIE_NAME];
   if (!token || !process.env.JWT_SECRET) return res.status(401).json({ error: 'Authentication required' });
   try {
     const user = jwt.verify(token, process.env.JWT_SECRET);

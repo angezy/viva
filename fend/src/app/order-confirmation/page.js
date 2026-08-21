@@ -1,6 +1,9 @@
 import InfoPage from "../components/InfoPage";
+import { getSitePageMetadata } from "../lib/siteSettingsServer";
 
-export const metadata = { title: "Order Confirmation | Weluxo", description: "Find your Weluxo order confirmation, tracking, and invoice links." };
+export async function generateMetadata() {
+  return getSitePageMetadata({ title: "Order Confirmation", description: "Find your order confirmation, tracking, and invoice links.", path: "/order-confirmation" });
+}
 
 export default function OrderConfirmationPage() {
   return <InfoPage eyebrow="Orders" title="Order confirmation" description="After checkout, your confirmation page includes your order number, total, delivery information, tracking, and invoice links." sections={[

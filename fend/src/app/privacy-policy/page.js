@@ -7,7 +7,7 @@ const slug = "privacy-policy";
 export const dynamic = "force-dynamic";
 
 export async function generateMetadata() {
-  return getLegalMetadata(await getLegalContent(slug, defaultContent), slug);
+  return await getLegalMetadata(await getLegalContent(slug, defaultContent), slug);
 }
 
 export default async function PrivacyPolicyPage() {

@@ -20,6 +20,7 @@ import LocalShippingOutlinedIcon from '@mui/icons-material/LocalShippingOutlined
 import CampaignOutlinedIcon from '@mui/icons-material/CampaignOutlined'
 import LoyaltyOutlinedIcon from '@mui/icons-material/LoyaltyOutlined'
 import RateReviewOutlinedIcon from '@mui/icons-material/RateReviewOutlined'
+import LocalOfferOutlinedIcon from '@mui/icons-material/LocalOfferOutlined'
 import styles from './sidebar.module.css'
 
 const navItems = [
@@ -34,6 +35,7 @@ const navItems = [
   { label: 'API Products', href: '/dashboard/api-products', icon: ExtensionOutlinedIcon },
   { label: 'Users', href: '/dashboard/user', icon: GroupOutlinedIcon },
   { label: 'Marketing', href: '/dashboard/marketing', icon: CampaignOutlinedIcon },
+  { label: 'Coupons', href: '/dashboard/coupons', icon: LocalOfferOutlinedIcon },
   { label: 'Loyalty', href: '/dashboard/loyalty', icon: LoyaltyOutlinedIcon },
   { label: 'Settings', href: '/dashboard/Settings', icon: SettingsOutlinedIcon },
   { label: 'Messages', href: '/dashboard/item6', icon: ChatBubbleOutlineIcon },
@@ -43,7 +45,7 @@ const navItems = [
   { label: 'Support Tickets', href: '/dashboard/tikects', icon: SupportAgentOutlinedIcon }
 ]
 
-export default function Sidebar({ open = true, onClose = () => {} }) {
+export default function Sidebar({ open = true, onClose = () => {}, siteName = 'Weluxo' }) {
   const [isDesktop, setIsDesktop] = useState(false)
   const pathname = usePathname()
 
@@ -109,7 +111,7 @@ export default function Sidebar({ open = true, onClose = () => {} }) {
         style={isDesktop ? desktopStyle : mobileStyle}
       >
         <div className={styles.header}>
-          <div className={styles.logo}>Projects</div>
+          <div className={styles.logo}>{siteName}</div>
           {!isDesktop && (
             <button
               onClick={onClose}

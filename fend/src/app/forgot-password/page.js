@@ -1,15 +1,19 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import Link from "next/link";
 import {
   Alert,
   Box,
   Button,
+  IconButton,
+  InputAdornment,
   Stack,
   TextField,
   Typography,
 } from "@mui/material";
+import VisibilityIcon from "@mui/icons-material/Visibility";
+import VisibilityOffIcon from "@mui/icons-material/VisibilityOff";
 import {
   requestPasswordReset,
   resetPassword,
@@ -30,8 +34,11 @@ export default function ForgotPasswordPage() {
   const [resetToken, setResetToken] = useState("");
   const [password, setPassword] = useState("");
   const [confirmPassword, setConfirmPassword] = useState("");
+  const [showPassword, setShowPassword] = useState(false);
+  const [showConfirmPassword, setShowConfirmPassword] = useState(false);
   const [error, setError] = useState("");
   const [loading, setLoading] = useState(false);
+  const verifyInFlightRef = useRef(false);
 
   useEffect(() => {
     try {
@@ -64,6 +71,8 @@ export default function ForgotPasswordPage() {
 
   async function handleVerify(event) {
     event.preventDefault();
+    if (verifyInFlightRef.current) return;
+    verifyInFlightRef.current = true;
     clearError();
     setLoading(true);
     try {
@@ -74,6 +83,7 @@ export default function ForgotPasswordPage() {
     } catch (verifyError) {
       setError(verifyError.message || "That code is invalid or expired");
     } finally {
+      verifyInFlightRef.current = false;
       setLoading(false);
     }
   }
@@ -85,8 +95,8 @@ export default function ForgotPasswordPage() {
       setError("Passwords do not match.");
       return;
     }
-    if (password.length < 6 || password.length > 12) {
-      setError("Password must be between 6 and 12 characters.");
+    if (password.length < 6 || password.length > 64) {
+      setError("Password must be between 6 and 64 characters.");
       return;
     }
 
@@ -108,6 +118,8 @@ export default function ForgotPasswordPage() {
     setResetToken("");
     setPassword("");
     setConfirmPassword("");
+    setShowPassword(false);
+    setShowConfirmPassword(false);
     clearError();
   }
 
@@ -140,7 +152,7 @@ export default function ForgotPasswordPage() {
             autoComplete="email"
             sx={inputSx}
           />
-          <Button type="submit" variant="contained" size="large" disabled={loading} sx={{ borderRadius: 999, py: 1.25, bgcolor: "#12372a", textTransform: "none", fontWeight: 800 }}>
+          <Button type="submit" variant="contained" size="large" disabled={loading} sx={{ borderRadius: 999, py: 1.25, bgcolor: "var(--color-primary)", textTransform: "none", fontWeight: 800 }}>
             {loading ? "Sending code..." : "Send verification code"}
           </Button>
         </Stack>
@@ -158,7 +170,7 @@ export default function ForgotPasswordPage() {
             inputProps={{ inputMode: "numeric", maxLength: 6 }}
             sx={inputSx}
           />
-          <Button type="submit" variant="contained" size="large" disabled={loading || code.length !== 6} sx={{ borderRadius: 999, py: 1.25, bgcolor: "#12372a", textTransform: "none", fontWeight: 800 }}>
+          <Button type="submit" variant="contained" size="large" disabled={loading || code.length !== 6} sx={{ borderRadius: 999, py: 1.25, bgcolor: "var(--color-primary)", textTransform: "none", fontWeight: 800 }}>
             {loading ? "Checking code..." : "Verify code"}
           </Button>
           <Stack direction="row" justifyContent="space-between" alignItems="center">
@@ -172,35 +184,63 @@ export default function ForgotPasswordPage() {
         <Stack spacing={2} component="form" onSubmit={handleReset}>
           <TextField
             label="New password"
-            type="password"
+            type={showPassword ? "text" : "password"}
             value={password}
             onChange={(event) => { setPassword(event.target.value); clearError(); }}
             required
             fullWidth
-            inputProps={{ minLength: 6, maxLength: 12 }}
+            inputProps={{ minLength: 6, maxLength: 64 }}
+            InputProps={{
+              endAdornment: (
+                <InputAdornment position="end">
+                  <IconButton
+                    aria-label={showPassword ? "Hide new password" : "Show new password"}
+                    onClick={() => setShowPassword((visible) => !visible)}
+                    onMouseDown={(event) => event.preventDefault()}
+                    edge="end"
+                  >
+                    {showPassword ? <VisibilityOffIcon /> : <VisibilityIcon />}
+                  </IconButton>
+                </InputAdornment>
+              ),
+            }}
             autoComplete="new-password"
-            helperText="Use 6–12 characters."
+            helperText="Use 6–64 characters."
             sx={inputSx}
           />
           <TextField
             label="Confirm new password"
-            type="password"
+            type={showConfirmPassword ? "text" : "password"}
             value={confirmPassword}
             onChange={(event) => { setConfirmPassword(event.target.value); clearError(); }}
             required
             fullWidth
-            inputProps={{ minLength: 6, maxLength: 12 }}
+            inputProps={{ minLength: 6, maxLength: 64 }}
+            InputProps={{
+              endAdornment: (
+                <InputAdornment position="end">
+                  <IconButton
+                    aria-label={showConfirmPassword ? "Hide confirmed password" : "Show confirmed password"}
+                    onClick={() => setShowConfirmPassword((visible) => !visible)}
+                    onMouseDown={(event) => event.preventDefault()}
+                    edge="end"
+                  >
+                    {showConfirmPassword ? <VisibilityOffIcon /> : <VisibilityIcon />}
+                  </IconButton>
+                </InputAdornment>
+              ),
+            }}
             autoComplete="new-password"
             sx={inputSx}
           />
-          <Button type="submit" variant="contained" size="large" disabled={loading} sx={{ borderRadius: 999, py: 1.25, bgcolor: "#12372a", textTransform: "none", fontWeight: 800 }}>
+          <Button type="submit" variant="contained" size="large" disabled={loading} sx={{ borderRadius: 999, py: 1.25, bgcolor: "var(--color-primary)", textTransform: "none", fontWeight: 800 }}>
             {loading ? "Updating password..." : "Set new password"}
           </Button>
         </Stack>
       )}
 
       {step === "success" && (
-        <Button component={Link} href="/signin" variant="contained" size="large" fullWidth sx={{ borderRadius: 999, py: 1.25, bgcolor: "#12372a", textTransform: "none", fontWeight: 800 }}>
+        <Button component={Link} href="/signin" variant="contained" size="large" fullWidth sx={{ borderRadius: 999, py: 1.25, bgcolor: "var(--color-primary)", textTransform: "none", fontWeight: 800 }}>
           Return to sign in
         </Button>
       )}

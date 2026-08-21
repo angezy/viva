@@ -1,6 +1,7 @@
-const siteUrl = (process.env.SITE_URL || process.env.NEXT_PUBLIC_SITE_URL || "https://weluxo.com").replace(/\/$/, "");
+import { getSiteSettingsServer, siteUrlFor } from "./lib/siteSettingsServer";
 
-export default function robots() {
+export default async function robots() {
+  const siteUrl = siteUrlFor(await getSiteSettingsServer());
   return {
     rules: [
       {

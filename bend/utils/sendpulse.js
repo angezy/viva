@@ -13,6 +13,8 @@ function getConfig() {
     clientSecret: String(process.env.SENDPULSE_CLIENT_SECRET || "").trim(),
     fromEmail: String(process.env.SENDPULSE_FROM_EMAIL || "").trim(),
     fromName: String(process.env.SENDPULSE_FROM_NAME || "Weluxo Support").trim(),
+    adminFromEmail: String(process.env.SENDPULSE_ADMIN_FROM_EMAIL || "").trim(),
+    adminFromName: String(process.env.SENDPULSE_ADMIN_FROM_NAME || "Weluxo Notifications").trim(),
     adminEmail: String(process.env.SUPPORT_ADMIN_EMAIL || "").trim(),
     adminName: String(process.env.SUPPORT_ADMIN_NAME || "Weluxo Support").trim(),
     appBaseUrl: String(process.env.APP_BASE_URL || "").replace(/\/+$/, ""),
@@ -87,17 +89,30 @@ function encodeBase64(value) {
 }
 
 function getTicketMessage(ticket) {
-  const message = Array.isArray(ticket?.messages) ? ticket.messages[0] : null;
+  const messages = Array.isArray(ticket?.messages) ? ticket.messages : [];
+  const message = messages[messages.length - 1] || null;
   return {
     html: message?.contentHtml || escapeHtml(message?.contentText || ""),
     text: message?.contentText || "",
+    attachments: Array.isArray(message?.attachments) ? message.attachments : [],
   };
 }
 
-function buildTicketEmail(ticket, config) {
+function resolveAttachmentUrl(config, value) {
+  const rawUrl = String(value || "").trim();
+  if (/^https?:\/\//i.test(rawUrl)) return rawUrl;
+  if (config.appBaseUrl && rawUrl.startsWith("/")) return `${config.appBaseUrl}${rawUrl}`;
+  return "";
+}
+
+function buildTicketEmail(ticket, config, options = {}) {
+  const recipient = options.recipient === "customer" ? "customer" : "admin";
+  const eventType = options.eventType === "reply" ? "reply" : "created";
   const message = getTicketMessage(ticket);
-  const dashboardUrl = config.appBaseUrl ? `${config.appBaseUrl}/dashboard/tikects/${ticket.id}` : "";
-  const safeDashboardUrl = escapeHtml(dashboardUrl);
+  const ticketUrl = config.appBaseUrl
+    ? `${config.appBaseUrl}/${recipient === "admin" ? "dashboard/tikects" : "support/tickets"}/${ticket.id}`
+    : "";
+  const safeTicketUrl = escapeHtml(ticketUrl);
   const safeTicketNumber = escapeHtml(ticket.ticketNumber);
   const safeSubject = escapeHtml(ticket.subject);
   const safeName = escapeHtml(ticket.customerName);
@@ -106,25 +121,51 @@ function buildTicketEmail(ticket, config) {
   const safePriority = escapeHtml(ticket.priority);
   const safeOrder = escapeHtml(ticket.orderId || "Not provided");
   const safeText = String(message.text || "").trim();
-  const action = dashboardUrl
-    ? `<p><a href="${safeDashboardUrl}" style="display:inline-block;padding:12px 18px;background:#12372a;color:#ffffff;text-decoration:none;border-radius:8px;font-weight:700">Open ticket in dashboard</a></p>`
+  const attachments = message.attachments
+    .map((attachment) => ({
+      name: String(attachment?.name || "Attachment"),
+      url: resolveAttachmentUrl(config, attachment?.url),
+    }))
+    .filter((attachment) => attachment.url);
+  const attachmentsHtml = attachments.length
+    ? `<div style="margin-top:20px;padding:14px 16px;background:#f5f7f5;border:1px solid #e6eee7;border-radius:10px"><h2 style="font-size:16px;margin:0 0 8px">Attachments</h2><ul style="margin:0;padding-left:20px">${attachments.map((attachment) => `<li style="margin:5px 0"><a href="${escapeHtml(attachment.url)}" style="color:#2d6a4f">${escapeHtml(attachment.name)}</a></li>`).join("")}</ul></div>`
     : "";
-  const html = `<!doctype html><html><body style="margin:0;background:#f5f7f5;color:#132019;font-family:Arial,sans-serif"><div style="max-width:620px;margin:32px auto;padding:28px;background:#ffffff;border:1px solid #dbe7dc;border-radius:16px"><p style="color:#3e785e;font-size:11px;font-weight:700;letter-spacing:2px;text-transform:uppercase">NEW SUPPORT TICKET</p><h1 style="margin:8px 0 22px;font-size:26px">${safeTicketNumber}: ${safeSubject}</h1><table style="width:100%;border-collapse:collapse;font-size:14px"><tr><td style="padding:7px 0;color:#718278">Customer</td><td style="padding:7px 0;font-weight:700">${safeName} &lt;${safeEmail}&gt;</td></tr><tr><td style="padding:7px 0;color:#718278">Category</td><td style="padding:7px 0;font-weight:700">${safeCategory}</td></tr><tr><td style="padding:7px 0;color:#718278">Priority</td><td style="padding:7px 0;font-weight:700">${safePriority}</td></tr><tr><td style="padding:7px 0;color:#718278">Order</td><td style="padding:7px 0;font-weight:700">${safeOrder}</td></tr></table><hr style="border:0;border-top:1px solid #e6eee7;margin:22px 0"><h2 style="font-size:16px">Customer message</h2><div style="line-height:1.65">${message.html}</div>${action}</div></body></html>`;
-  const text = `New support ticket ${ticket.ticketNumber}\n\nSubject: ${ticket.subject}\nCustomer: ${ticket.customerName} <${ticket.customerEmail}>\nCategory: ${ticket.category}\nPriority: ${ticket.priority}\nOrder: ${ticket.orderId || "Not provided"}\n\nCustomer message:\n${safeText}${dashboardUrl ? `\n\nOpen ticket: ${dashboardUrl}` : ""}`;
+  const attachmentsText = attachments.length
+    ? `\n\nAttachments:\n${attachments.map((attachment) => `${attachment.name} - ${attachment.url}`).join("\n")}`
+    : "";
+  const heading = eventType === "created"
+    ? (recipient === "admin" ? "New support ticket" : "We received your support ticket")
+    : (recipient === "admin" ? "Customer replied to a support ticket" : "Support replied to your ticket");
+  const messageHeading = eventType === "created"
+    ? (recipient === "admin" ? "Customer message" : "Your message")
+    : (recipient === "admin" ? "Customer reply" : "Support reply");
+  const actionLabel = recipient === "admin" ? "Open ticket in dashboard" : "View ticket conversation";
+  const action = ticketUrl
+    ? `<p><a href="${safeTicketUrl}" style="display:inline-block;padding:12px 18px;background:#12372a;color:#ffffff;text-decoration:none;border-radius:8px;font-weight:700">${actionLabel}</a></p>`
+    : "";
+  const html = `<!doctype html><html><body style="margin:0;background:#f5f7f5;color:#132019;font-family:Arial,sans-serif"><div style="max-width:620px;margin:32px auto;padding:28px;background:#ffffff;border:1px solid #dbe7dc;border-radius:16px"><p style="color:#3e785e;font-size:11px;font-weight:700;letter-spacing:2px;text-transform:uppercase">WELUXO SUPPORT</p><h1 style="margin:8px 0 22px;font-size:26px">${heading}</h1><p style="font-size:16px;font-weight:700;margin-bottom:8px">${safeTicketNumber}: ${safeSubject}</p><table style="width:100%;border-collapse:collapse;font-size:14px"><tr><td style="padding:7px 0;color:#718278">Customer</td><td style="padding:7px 0;font-weight:700">${safeName} &lt;${safeEmail}&gt;</td></tr><tr><td style="padding:7px 0;color:#718278">Category</td><td style="padding:7px 0;font-weight:700">${safeCategory}</td></tr><tr><td style="padding:7px 0;color:#718278">Priority</td><td style="padding:7px 0;font-weight:700">${safePriority}</td></tr><tr><td style="padding:7px 0;color:#718278">Order</td><td style="padding:7px 0;font-weight:700">${safeOrder}</td></tr></table><hr style="border:0;border-top:1px solid #e6eee7;margin:22px 0"><h2 style="font-size:16px">${messageHeading}</h2><div style="line-height:1.65">${message.html}</div>${attachmentsHtml}${action}</div></body></html>`;
+  const text = `${heading}\n\nTicket: ${ticket.ticketNumber}\nSubject: ${ticket.subject}\nCustomer: ${ticket.customerName} <${ticket.customerEmail}>\nCategory: ${ticket.category}\nPriority: ${ticket.priority}\nOrder: ${ticket.orderId || "Not provided"}\n\n${messageHeading}:\n${safeText}${attachmentsText}${ticketUrl ? `\n\nView ticket: ${ticketUrl}` : ""}`;
   return {
-    subject: `[Weluxo Support] ${ticket.ticketNumber} · ${ticket.subject}`,
+    subject: `[Weluxo Support] ${ticket.ticketNumber} - ${ticket.subject}`,
     html,
     text,
   };
 }
 
-async function sendSupportTicketEmail(ticket) {
+async function sendSupportTicketEmail(ticket, options = {}) {
   const config = getConfig();
   if (!config.enabled) return { sent: false, skipped: true, reason: "disabled" };
-  if (!isSendPulseConfigured()) return { sent: false, skipped: true, reason: "not_configured" };
+  if (!isSendPulseMailerConfigured()) return { sent: false, skipped: true, reason: "not_configured" };
+
+  const recipient = options.recipient === "customer" ? "customer" : "admin";
+  const recipientEmail = String(options.recipientEmail || (recipient === "customer" ? ticket?.customerEmail : config.adminEmail) || "").trim();
+  if (!recipientEmail) return { sent: false, skipped: true, reason: "recipient_missing" };
+  const fromEmail = recipient === "admin" ? (config.adminFromEmail || config.fromEmail) : config.fromEmail;
+  if (!fromEmail) throw new Error("Configure a verified SendPulse sender email");
+  if (fromEmail.toLowerCase() === recipientEmail.toLowerCase()) throw new Error("SENDPULSE_ADMIN_FROM_EMAIL must be different from the admin recipient");
 
   const token = await getAccessToken(config);
-  const email = buildTicketEmail(ticket, config);
+  const email = buildTicketEmail(ticket, config, options);
   const response = await fetchWithTimeout(`${config.apiBaseUrl}/smtp/emails`, {
     method: "POST",
     headers: {
@@ -136,8 +177,8 @@ async function sendSupportTicketEmail(ticket) {
         html: encodeBase64(email.html),
         text: encodeBase64(email.text),
         subject: email.subject,
-        from: { name: config.fromName, email: config.fromEmail },
-        to: [{ name: config.adminName, email: config.adminEmail }],
+        from: { name: recipient === "admin" ? config.adminFromName : config.fromName, email: fromEmail },
+        to: [{ name: recipient === "customer" ? (ticket.customerName || "Weluxo customer") : (options.recipientName || config.adminName), email: recipientEmail }],
       },
     }),
   });

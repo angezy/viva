@@ -7,10 +7,10 @@
 
 .loadingState, .emptyState {
   padding: 32px;
-  border: 1px solid #dbe7dc;
+  border: 1px solid var(--color-border);
   border-radius: 22px;
-  background: rgba(255, 255, 255, 0.82);
-  color: #52645a;
+  background: #ffffff;
+  color: var(--color-text-secondary);
 }
 
 .hero {
@@ -22,18 +22,18 @@
   justify-content: space-between;
   padding: 30px 34px;
   border-radius: 24px;
-  background: #0e2b20;
+  background: var(--color-primary);
   color: #fff;
-  box-shadow: 0 20px 46px rgba(18, 55, 42, 0.2);
+  box-shadow: 0 20px 46px rgba(37, 99, 235, 0.2);
 }
 
 .heroGlow { position: absolute; width: 390px; height: 390px; right: -110px; top: -190px; border-radius: 50%; background: rgba(203, 232, 210, 0.16); }
 .heroContent, .heroMark { position: relative; z-index: 1; }
 .eyebrow, .sectionKicker { font-size: 10px; font-weight: 850; letter-spacing: .16em; text-transform: uppercase; }
-.eyebrow { color: #a8d8b8; margin-bottom: 16px; }
+.eyebrow { color: var(--color-accent-soft); margin-bottom: 16px; }
 .hero h1 { margin: 0; max-width: 620px; font-size: clamp(2.3rem, 6vw, 4.4rem); line-height: .94; letter-spacing: -.07em; }
-.hero h1 span { color: #cbe8d2; }
-.hero p { max-width: 480px; margin: 18px 0 0; color: rgba(255,255,255,.72); line-height: 1.65; }
+.hero h1 span { color: var(--color-accent-soft); }
+.hero p { max-width: 480px; margin: 18px 0 0; color: rgba(255,255,255,.84); line-height: 1.65; }
 .heroMeta { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 22px; }
 .heroMeta span { padding: 7px 11px; border: 1px solid rgba(203,232,210,.26); border-radius: 999px; color: #cbe8d2; font-size: 11px; }
 .heroMark { display: flex; flex-direction: column; align-items: flex-end; color: #cbe8d2; }
@@ -50,7 +50,7 @@
 .inputRow { display: flex; gap: 10px; }
 .inputRow input { min-width: 0; flex: 1; height: 48px; padding: 0 15px; border: 1px solid #bfd3c2; border-radius: 12px; outline: none; color: #132019; background: #fbfdfb; font: inherit; }
 .inputRow input:focus { border-color: #3e785e; box-shadow: 0 0 0 4px rgba(62,120,94,.12); }
-.inputRow button, .signInCard a { border: 0; border-radius: 12px; padding: 0 18px; background: #12372a; color: white; font: inherit; font-weight: 850; cursor: pointer; }
+.inputRow button, .signInCard a { border: 0; border-radius: 12px; padding: 0 18px; background: var(--color-primary); color: white; font: inherit; font-weight: 850; cursor: pointer; }
 .inputRow button:disabled { cursor: wait; opacity: .7; }
 .recentOrders { display: flex; align-items: center; flex-wrap: wrap; gap: 8px; margin-top: 14px; color: #718278; font-size: 12px; }
 .recentOrders button { border: 1px solid #c9decd; border-radius: 999px; padding: 6px 10px; background: #f2f8f3; color: #28533c; cursor: pointer; font: inherit; font-weight: 750; }
@@ -80,8 +80,8 @@
 .step strong { overflow: hidden; color: #718278; font-size: 12px; text-overflow: ellipsis; white-space: nowrap; }
 .step small { margin-top: 2px; font-size: 10px; }
 .step.complete, .step.current { color: #24623f; }
-.step.complete .stepDot, .step.current .stepDot { border-color: #3e785e; background: #12372a; color: #cbe8d2; }
-.step.current strong { color: #12372a; }
+.step.complete .stepDot, .step.current .stepDot { border-color: var(--color-primary); background: var(--color-primary); color: #ffffff; }
+.step.current strong { color: var(--color-primary); }
 .progressTrack { height: 5px; margin: 22px 5% 0; overflow: hidden; border-radius: 99px; background: #e3eee5; }
 .progressTrack span { display: block; height: 100%; border-radius: inherit; background: linear-gradient(90deg, #3e785e, #a8d8b8); transition: width .3s ease; }
 .items { display: flex; flex-direction: column; gap: 13px; margin-top: 20px; }

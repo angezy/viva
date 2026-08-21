@@ -44,7 +44,7 @@ function EditButton({ onClick, editable }) {
       size="small"
       aria-label="Edit section"
       onClick={onClick}
-      sx={{ position: "absolute", top: 12, right: 12, zIndex: 3, color: "#173a2b", bgcolor: "rgba(255,255,255,0.94)", "&:hover": { bgcolor: "white" } }}
+      sx={{ position: "absolute", top: 12, right: 12, zIndex: 3, color: "var(--color-primary)", bgcolor: "#ffffff", "&:hover": { bgcolor: "var(--color-surface-muted)" } }}
     >
       <EditIcon fontSize="small" />
     </IconButton>
@@ -52,7 +52,7 @@ function EditButton({ onClick, editable }) {
 }
 
 function Label({ children, light = false }) {
-  return <Typography variant="overline" sx={{ color: light ? "#a8d8b8" : "#3e785e", letterSpacing: "0.14em", fontWeight: 800, display: "block", mb: 1 }}>{children}</Typography>;
+  return <Typography variant="overline" sx={{ color: light ? "var(--color-accent)" : "var(--color-primary)", letterSpacing: "0.14em", fontWeight: 800, display: "block", mb: 1 }}>{children}</Typography>;
 }
 
 function ActionButton({ href, children, variant = "contained" }) {
@@ -62,7 +62,7 @@ function ActionButton({ href, children, variant = "contained" }) {
       href={href || "/shop"}
       variant={variant}
       endIcon={<ArrowForwardIcon />}
-      sx={{ borderRadius: 999, px: 2.25, py: 1.1, textTransform: "none", fontWeight: 800, ...(variant === "contained" ? { bgcolor: "#12372a", "&:hover": { bgcolor: "#1b503b" } } : { color: "#12372a", borderColor: "#8eaf96" }) }}
+      sx={{ borderRadius: 999, px: 2.25, py: 1.1, textTransform: "none", fontWeight: 800, ...(variant === "contained" ? { bgcolor: "var(--color-primary)", "&:hover": { bgcolor: "var(--color-primary-dark)" } } : { color: "var(--color-primary)", borderColor: "var(--color-primary)" }) }}
     >
       {children}
     </Button>
@@ -121,15 +121,15 @@ export default function HelpCenterSection({ initialContent = null, onEdit = {}, 
   };
 
   return (
-    <Box component="main" sx={{ bgcolor: "#f6f9f5", color: "#12372a", minHeight: "100vh", fontFamily: "'Space Grotesk','Segoe UI',sans-serif" }}>
+    <Box component="main" sx={{ bgcolor: "var(--color-background)", color: "var(--color-text-primary)", minHeight: "100vh", fontFamily: "var(--site-font-family, 'Space Grotesk','Segoe UI',sans-serif)" }}>
       <Container maxWidth="lg" sx={{ px: { xs: 2, md: 4 }, py: { xs: 2, md: 4 } }}>
-        <Box component="header" sx={{ position: "relative", bgcolor: "#0e2b20", color: "white", borderRadius: { xs: 3, md: 5 }, overflow: "hidden", p: { xs: 3, md: 7 }, mb: { xs: 6, md: 9 } }}>
-          <Box sx={{ position: "absolute", width: 420, height: 420, borderRadius: "50%", bgcolor: "rgba(168,216,184,0.15)", top: -230, right: -100 }} />
+        <Box component="header" sx={{ position: "relative", bgcolor: "#ffffff", color: "var(--color-text-primary)", border: "1px solid var(--color-border)", borderRadius: { xs: 3, md: 5 }, overflow: "hidden", p: { xs: 3, md: 7 }, mb: { xs: 6, md: 9 } }}>
+          <Box sx={{ position: "absolute", width: 420, height: 420, borderRadius: "50%", bgcolor: "rgba(242,140,40,0.12)", top: -230, right: -100 }} />
           <Box sx={{ position: "relative", zIndex: 1, maxWidth: 850 }}>
             <EditButton onClick={onEdit.hero} editable={editable} />
             <Label light>{hero.eyebrow}</Label>
             <Typography component="h1" sx={{ fontWeight: 850, letterSpacing: "-0.055em", fontSize: { xs: "2.75rem", sm: "3.7rem", md: "5.2rem" }, lineHeight: 0.98, maxWidth: 720 }}>{hero.title}</Typography>
-            <Typography sx={{ color: "rgba(255,255,255,0.78)", lineHeight: 1.8, maxWidth: 660, mt: 3, fontSize: { xs: "1rem", md: "1.1rem" } }}>{hero.copy}</Typography>
+            <Typography sx={{ color: "var(--color-text-secondary)", lineHeight: 1.8, maxWidth: 660, mt: 3, fontSize: { xs: "1rem", md: "1.1rem" } }}>{hero.copy}</Typography>
             <TextField
               fullWidth
               value={query}
@@ -137,9 +137,9 @@ export default function HelpCenterSection({ initialContent = null, onEdit = {}, 
               placeholder={hero.searchPlaceholder}
               aria-label="Search help"
               sx={{ mt: 4, maxWidth: 760, bgcolor: "white", borderRadius: 2, "& .MuiOutlinedInput-root": { borderRadius: 2 }, "& .MuiInputBase-input": { py: 1.8 } }}
-              InputProps={{ startAdornment: <InputAdornment position="start"><SearchIcon sx={{ color: "#3e785e" }} /></InputAdornment> }}
+              InputProps={{ startAdornment: <InputAdornment position="start"><SearchIcon sx={{ color: "var(--color-primary)" }} /></InputAdornment> }}
             />
-            {normalizedQuery && <Typography sx={{ color: "#cbe8d2", fontSize: 13, mt: 1.5 }}>{visibleCategories.reduce((count, category) => count + category.articles.length, 0) + visibleFaq.length} results for “{query}”</Typography>}
+            {normalizedQuery && <Typography sx={{ color: "var(--color-accent)", fontSize: 13, mt: 1.5 }}>{visibleCategories.reduce((count, category) => count + category.articles.length, 0) + visibleFaq.length} results for “{query}”</Typography>}
           </Box>
         </Box>
 
@@ -151,11 +151,11 @@ export default function HelpCenterSection({ initialContent = null, onEdit = {}, 
               const Icon = quickActionIcons[index % quickActionIcons.length];
               return (
                 <Grid item xs={12} sm={6} md={index === 4 ? 12 : 3} key={`${card.title}-${index}`}>
-                  <Card sx={{ height: "100%", borderRadius: 3, border: "1px solid #dbe7dc", bgcolor: index % 2 ? "#e4efe6" : "white", boxShadow: "none", transition: "transform 180ms ease, box-shadow 180ms ease", "&:hover": { transform: "translateY(-4px)", boxShadow: "0 14px 30px rgba(18,55,42,0.1)" } }}>
+                  <Card sx={{ height: "100%", borderRadius: 3, border: "1px solid var(--color-border)", bgcolor: index % 2 ? "var(--color-accent-soft)" : "#ffffff", boxShadow: "none", transition: "transform 180ms ease, box-shadow 180ms ease", "&:hover": { transform: "translateY(-4px)", boxShadow: "0 14px 30px rgba(43,43,43,0.08)" } }}>
                     <CardContent sx={{ p: 3, height: "100%", display: "flex", flexDirection: "column" }}>
-                      <Icon sx={{ color: "#3e785e", fontSize: 30, mb: 3 }} />
+                      <Icon sx={{ color: "var(--color-accent)", fontSize: 30, mb: 3 }} />
                       <Typography component="h3" sx={{ fontWeight: 800, mb: 1 }}>{card.title}</Typography>
-                      <Typography sx={{ color: "#607267", lineHeight: 1.65, fontSize: 14, mb: 3 }}>{card.description}</Typography>
+                      <Typography sx={{ color: "var(--color-text-secondary)", lineHeight: 1.65, fontSize: 14, mb: 3 }}>{card.description}</Typography>
                       <Box sx={{ mt: "auto" }}><ActionButton href={card.href} variant="outlined">{card.button}</ActionButton></Box>
                     </CardContent>
                   </Card>
@@ -170,11 +170,11 @@ export default function HelpCenterSection({ initialContent = null, onEdit = {}, 
           <Box sx={{ maxWidth: 760, mb: 4 }}>
             <Label>{categoryContent.eyebrow}</Label>
             <Typography id="help-categories-title" component="h2" sx={{ fontWeight: 820, letterSpacing: "-0.045em", fontSize: { xs: "2.25rem", md: "3.6rem" }, lineHeight: 1.02, mb: 1.5 }}>{categoryContent.title}</Typography>
-            <Typography sx={{ color: "#52645a", lineHeight: 1.8 }}>{categoryContent.copy}</Typography>
+            <Typography sx={{ color: "var(--color-text-secondary)", lineHeight: 1.8 }}>{categoryContent.copy}</Typography>
           </Box>
           <Box>
             {visibleCategories.map((category, index) => (
-              <Accordion key={`${category.title}-${index}`} expanded={expandedCategory === index} onChange={() => setExpandedCategory(expandedCategory === index ? -1 : index)} disableGutters elevation={0} sx={{ bgcolor: "transparent", borderTop: "1px solid #d7e3d8", "&:last-child": { borderBottom: "1px solid #d7e3d8" }, "&::before": { display: "none" } }}>
+              <Accordion key={`${category.title}-${index}`} expanded={expandedCategory === index} onChange={() => setExpandedCategory(expandedCategory === index ? -1 : index)} disableGutters elevation={0} sx={{ bgcolor: "transparent", borderTop: "1px solid var(--color-border)", "&:last-child": { borderBottom: "1px solid var(--color-border)" }, "&::before": { display: "none" } }}>
                 <AccordionSummary expandIcon={<ChevronRightIcon />} aria-controls={`category-panel-${index}`} id={`category-header-${index}`} sx={{ px: 0, py: 1.2, minHeight: 68 }}>
                   <Typography component="h3" sx={{ fontWeight: 800, textTransform: "uppercase", letterSpacing: "0.04em" }}>{category.title}</Typography>
                 </AccordionSummary>
@@ -183,17 +183,17 @@ export default function HelpCenterSection({ initialContent = null, onEdit = {}, 
                     <Grid container spacing={1.25}>
                       {category.articles.map((article, articleIndex) => (
                         <Grid item xs={12} sm={6} key={`${article}-${articleIndex}`}>
-                          <Box component="a" href={faqItems.some((item) => String(item.question || "").trim().toLowerCase() === String(article || "").trim().toLowerCase()) ? `#${faqAnchorId(article)}` : "#help-faq-title"} onClick={(event) => openFaqAnswer(event, article)} sx={{ display: "block", width: "100%", textAlign: "left", border: "1px solid #dbe7dc", bgcolor: "white", color: "#365345", borderRadius: 2, p: 1.75, cursor: "pointer", font: "inherit", textDecoration: "none", transition: "border-color 160ms ease, color 160ms ease", "&:hover": { borderColor: "#6f9a7b", color: "#12372a" } }}>
+                          <Box component="a" href={faqItems.some((item) => String(item.question || "").trim().toLowerCase() === String(article || "").trim().toLowerCase()) ? `#${faqAnchorId(article)}` : "#help-faq-title"} onClick={(event) => openFaqAnswer(event, article)} sx={{ display: "block", width: "100%", textAlign: "left", border: "1px solid var(--color-border)", bgcolor: "#ffffff", color: "var(--color-text-primary)", borderRadius: 2, p: 1.75, cursor: "pointer", font: "inherit", textDecoration: "none", transition: "border-color 160ms ease, color 160ms ease", "&:hover": { borderColor: "var(--color-primary)", color: "var(--color-primary)" } }}>
                             {article}
                           </Box>
                         </Grid>
                       ))}
                     </Grid>
-                  ) : <Typography sx={{ color: "#607267" }}>No matching articles in this category.</Typography>}
+                  ) : <Typography sx={{ color: "var(--color-text-secondary)" }}>No matching articles in this category.</Typography>}
                 </AccordionDetails>
               </Accordion>
             ))}
-            {normalizedQuery && visibleCategories.length === 0 && <Typography sx={{ color: "#607267", py: 3 }}>No matching help articles were found. Try another search or use the AI Concierge.</Typography>}
+            {normalizedQuery && visibleCategories.length === 0 && <Typography sx={{ color: "var(--color-text-secondary)", py: 3 }}>No matching help articles were found. Try another search or use the AI Concierge.</Typography>}
           </Box>
         </Box>
 
@@ -202,12 +202,12 @@ export default function HelpCenterSection({ initialContent = null, onEdit = {}, 
           <Label>{faq.eyebrow}</Label>
           <Typography id="help-faq-title" component="h2" sx={{ fontWeight: 820, letterSpacing: "-0.045em", fontSize: { xs: "2.25rem", md: "3.6rem" }, lineHeight: 1.02, mb: 4 }}>{faq.title}</Typography>
           {(normalizedQuery ? visibleFaq : faqItems).map((item, index) => (
-            <Accordion key={`${item.question}-${index}`} id={faqAnchorId(item.question)} expanded={expandedFaq === index} onChange={() => setExpandedFaq(expandedFaq === index ? -1 : index)} disableGutters elevation={0} sx={{ bgcolor: "transparent", borderTop: "1px solid #d7e3d8", scrollMarginTop: 24, "&:last-child": { borderBottom: "1px solid #d7e3d8" }, "&::before": { display: "none" } }}>
+            <Accordion key={`${item.question}-${index}`} id={faqAnchorId(item.question)} expanded={expandedFaq === index} onChange={() => setExpandedFaq(expandedFaq === index ? -1 : index)} disableGutters elevation={0} sx={{ bgcolor: "transparent", borderTop: "1px solid var(--color-border)", scrollMarginTop: 24, "&:last-child": { borderBottom: "1px solid var(--color-border)" }, "&::before": { display: "none" } }}>
               <AccordionSummary expandIcon={<ChevronRightIcon />} aria-controls={`help-faq-panel-${index}`} id={`help-faq-header-${index}`} sx={{ px: 0, py: 1.2, minHeight: 68 }}><Typography component="h3" sx={{ fontWeight: 750 }}>{item.question}</Typography></AccordionSummary>
-              <AccordionDetails id={`help-faq-panel-${index}`} sx={{ px: 0, pt: 0, pb: 2.5 }}><Typography sx={{ color: "#52645a", lineHeight: 1.8, maxWidth: 780 }}>{item.answer}</Typography></AccordionDetails>
+              <AccordionDetails id={`help-faq-panel-${index}`} sx={{ px: 0, pt: 0, pb: 2.5 }}><Typography sx={{ color: "var(--color-text-secondary)", lineHeight: 1.8, maxWidth: 780 }}>{item.answer}</Typography></AccordionDetails>
             </Accordion>
           ))}
-          {normalizedQuery && visibleFaq.length === 0 && <Typography sx={{ color: "#607267", py: 3 }}>No matching FAQ answers were found.</Typography>}
+          {normalizedQuery && visibleFaq.length === 0 && <Typography sx={{ color: "var(--color-text-secondary)", py: 3 }}>No matching FAQ answers were found.</Typography>}
         </Box>
       </Container>
     </Box>

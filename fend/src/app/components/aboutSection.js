@@ -27,7 +27,7 @@ export default function AboutSection({ initialContent = null, onEdit = {} }) {
       <IconButton
         size="small"
         onClick={onEdit[key]}
-        sx={{ position: "absolute", top: 0, right: 0, bgcolor: "rgba(0,0,0,0.4)", color: "white" }}
+        sx={{ position: "absolute", top: 0, right: 0, bgcolor: "var(--color-accent-soft)", color: "var(--color-primary)" }}
       >
         <EditIcon fontSize="small" />
       </IconButton>
@@ -54,21 +54,21 @@ export default function AboutSection({ initialContent = null, onEdit = {} }) {
   const footerSubtitle = cta.copy || "Smart Living. Better Choices.";
 
   return (
-    <Box sx={{ fontFamily: "'Space Grotesk','Segoe UI',sans-serif", bgcolor: "#050815", color: "white", minHeight: "100vh" }}>
+    <Box sx={{ fontFamily: "var(--site-font-family, 'Space Grotesk','Segoe UI',sans-serif)", bgcolor: "var(--color-background)", color: "var(--color-text-primary)", minHeight: "100vh" }}>
       <Container maxWidth="md" sx={{ py: { xs: 6, md: 10 } }}>
         {/* Header / Hero */}
         <Box sx={{ textAlign: "center", mb: 6, position: "relative" }}>
           {renderEdit("hero")}
           <Typography
             variant="overline"
-            sx={{ color: "#60a5fa", letterSpacing: 2, fontSize: "0.8rem", mb: 1, display: "block" }}
+            sx={{ color: "var(--color-accent)", letterSpacing: 2, fontSize: "0.8rem", mb: 1, display: "block" }}
           >
             About Us
           </Typography>
           <Typography variant="h3" fontWeight={800} gutterBottom>
             {heroTitle}
           </Typography>
-          <Typography variant="h5" fontWeight={600} sx={{ color: "#93c5fd" }}>
+          <Typography variant="h5" fontWeight={600} sx={{ color: "var(--color-primary)" }}>
             {heroSubtitle}
           </Typography>
         </Box>
@@ -78,7 +78,7 @@ export default function AboutSection({ initialContent = null, onEdit = {} }) {
           <Box sx={{ mb: 5, position: "relative" }}>
             {renderEdit("mission")}
             {missionText.split("\n\n").map((paragraph, i) => (
-              <Typography key={i} variant="body1" sx={{ color: "rgba(255,255,255,0.85)", lineHeight: 1.8, mb: 2 }}>
+              <Typography key={i} variant="body1" sx={{ color: "var(--color-text-secondary)", lineHeight: 1.8, mb: 2 }}>
                 {paragraph}
               </Typography>
             ))}
@@ -93,18 +93,18 @@ export default function AboutSection({ initialContent = null, onEdit = {} }) {
               Our Philosophy
             </Typography>
             {valuesText.split("\n\n").map((paragraph, i) => (
-              <Typography key={i} variant="body1" sx={{ color: "rgba(255,255,255,0.85)", lineHeight: 1.8, mb: 2 }}>
+              <Typography key={i} variant="body1" sx={{ color: "var(--color-text-secondary)", lineHeight: 1.8, mb: 2 }}>
                 {paragraph}
               </Typography>
             ))}
             <Box sx={{ pl: 3, mt: 1 }}>
-              <Typography variant="body1" sx={{ color: "#93c5fd", lineHeight: 2 }}>
+              <Typography variant="body1" sx={{ color: "var(--color-primary)", lineHeight: 2 }}>
                 {"\u2022"} Quality over quantity.
               </Typography>
-              <Typography variant="body1" sx={{ color: "#93c5fd", lineHeight: 2 }}>
+              <Typography variant="body1" sx={{ color: "var(--color-primary)", lineHeight: 2 }}>
                 {"\u2022"} Function over gimmicks.
               </Typography>
-              <Typography variant="body1" sx={{ color: "#93c5fd", lineHeight: 2 }}>
+              <Typography variant="body1" sx={{ color: "var(--color-primary)", lineHeight: 2 }}>
                 {"\u2022"} Customer experience above everything else.
               </Typography>
             </Box>
@@ -119,7 +119,7 @@ export default function AboutSection({ initialContent = null, onEdit = {} }) {
               Our Commitment
             </Typography>
             {approachText.split("\n\n").map((paragraph, i) => (
-              <Typography key={i} variant="body1" sx={{ color: "rgba(255,255,255,0.85)", lineHeight: 1.8, mb: 2 }}>
+              <Typography key={i} variant="body1" sx={{ color: "var(--color-text-secondary)", lineHeight: 1.8, mb: 2 }}>
                 {paragraph}
               </Typography>
             ))}
@@ -134,30 +134,30 @@ export default function AboutSection({ initialContent = null, onEdit = {} }) {
               Why Customers Choose Weluxo
             </Typography>
             {teamText.split("\n\n").map((paragraph, i) => (
-              <Typography key={i} variant="body1" sx={{ color: "rgba(255,255,255,0.85)", lineHeight: 1.8, mb: 2 }}>
+              <Typography key={i} variant="body1" sx={{ color: "var(--color-text-secondary)", lineHeight: 1.8, mb: 2 }}>
                 {paragraph}
               </Typography>
             ))}
             <Box sx={{ pl: 3, mt: 1 }}>
-              <Typography variant="body1" sx={{ color: "rgba(255,255,255,0.85)", lineHeight: 2 }}>
+              <Typography variant="body1" sx={{ color: "var(--color-text-secondary)", lineHeight: 2 }}>
                 {"\u2022"} Carefully curated product collections
               </Typography>
-              <Typography variant="body1" sx={{ color: "rgba(255,255,255,0.85)", lineHeight: 2 }}>
+              <Typography variant="body1" sx={{ color: "var(--color-text-secondary)", lineHeight: 2 }}>
                 {"\u2022"} Modern and practical everyday solutions
               </Typography>
-              <Typography variant="body1" sx={{ color: "rgba(255,255,255,0.85)", lineHeight: 2 }}>
+              <Typography variant="body1" sx={{ color: "var(--color-text-secondary)", lineHeight: 2 }}>
                 {"\u2022"} Secure checkout and protected payments
               </Typography>
-              <Typography variant="body1" sx={{ color: "rgba(255,255,255,0.85)", lineHeight: 2 }}>
+              <Typography variant="body1" sx={{ color: "var(--color-text-secondary)", lineHeight: 2 }}>
                 {"\u2022"} Worldwide shipping
               </Typography>
-              <Typography variant="body1" sx={{ color: "rgba(255,255,255,0.85)", lineHeight: 2 }}>
+              <Typography variant="body1" sx={{ color: "var(--color-text-secondary)", lineHeight: 2 }}>
                 {"\u2022"} Responsive customer support
               </Typography>
-              <Typography variant="body1" sx={{ color: "rgba(255,255,255,0.85)", lineHeight: 2 }}>
+              <Typography variant="body1" sx={{ color: "var(--color-text-secondary)", lineHeight: 2 }}>
                 {"\u2022"} Continuous quality improvement
               </Typography>
-              <Typography variant="body1" sx={{ color: "rgba(255,255,255,0.85)", lineHeight: 2 }}>
+              <Typography variant="body1" sx={{ color: "var(--color-text-secondary)", lineHeight: 2 }}>
                 {"\u2022"} A customer-first approach
               </Typography>
             </Box>
@@ -172,7 +172,7 @@ export default function AboutSection({ initialContent = null, onEdit = {} }) {
               Looking Ahead
             </Typography>
             {storyText.split("\n\n").map((paragraph, i) => (
-              <Typography key={i} variant="body1" sx={{ color: "rgba(255,255,255,0.85)", lineHeight: 1.8, mb: 2 }}>
+              <Typography key={i} variant="body1" sx={{ color: "var(--color-text-secondary)", lineHeight: 1.8, mb: 2 }}>
                 {paragraph}
               </Typography>
             ))}
@@ -182,10 +182,10 @@ export default function AboutSection({ initialContent = null, onEdit = {} }) {
         {/* Footer Signature (contactCta) */}
         <Box sx={{ textAlign: "center", mt: 6, position: "relative" }}>
           {renderEdit("contactCta")}
-          <Typography variant="h5" fontWeight={700} sx={{ color: "#93c5fd" }}>
+          <Typography variant="h5" fontWeight={700} sx={{ color: "var(--color-primary)" }}>
             {footerTitle}
           </Typography>
-          <Typography variant="body1" sx={{ color: "rgba(255,255,255,0.6)", mt: 1 }}>
+          <Typography variant="body1" sx={{ color: "var(--color-text-secondary)", mt: 1 }}>
             {footerSubtitle}
           </Typography>
         </Box>

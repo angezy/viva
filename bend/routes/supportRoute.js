@@ -7,6 +7,7 @@ const sql = require("mssql");
 const jwt = require("jsonwebtoken");
 const { getPool } = require("../utils/dbConnection");
 const { sendSupportTicketEmail } = require("../utils/sendpulse");
+const { ADMIN_AUTH_COOKIE_NAME, CUSTOMER_AUTH_COOKIE_NAME } = require("../utils/cookieOptions");
 
 const router = express.Router();
 const statuses = ["New", "Open", "In Progress", "Waiting for Customer", "Resolved", "Closed"];
@@ -20,14 +21,15 @@ function normalizeResult(result) {
   return Array.isArray(result.recordset) ? result.recordset : [];
 }
 
-function getToken(req) {
+function getToken(req, sessionType = "customer") {
   const authorization = req.headers?.authorization || "";
   if (authorization.toLowerCase().startsWith("bearer ")) return authorization.slice(7).trim();
-  return req.cookies?.viva_token || null;
+  const cookieName = sessionType === "admin" ? ADMIN_AUTH_COOKIE_NAME : CUSTOMER_AUTH_COOKIE_NAME;
+  return req.cookies?.[cookieName] || null;
 }
 
-function attachUser(req) {
-  const token = getToken(req);
+function attachUser(req, sessionType = "customer") {
+  const token = getToken(req, sessionType);
   if (!token || !process.env.JWT_SECRET) return null;
   try {
     const decoded = jwt.verify(token, process.env.JWT_SECRET);
@@ -39,17 +41,18 @@ function attachUser(req) {
 }
 
 function optionalAuth(req, _res, next) {
-  attachUser(req);
+  attachUser(req, "customer");
   next();
 }
 
 function requireAuth(req, res, next) {
-  if (!attachUser(req)) return res.status(401).json({ error: "Authentication required" });
+  if (!attachUser(req, "customer")) return res.status(401).json({ error: "Customer sign-in required" });
+  if (String(req.user.role).toLowerCase() === "admin") return res.status(403).json({ error: "Customer sign-in required" });
   next();
 }
 
 function requireAdmin(req, res, next) {
-  if (!attachUser(req)) return res.status(401).json({ error: "Authentication required" });
+  if (!attachUser(req, "admin")) return res.status(401).json({ error: "Authentication required" });
   if (String(req.user.role).toLowerCase() !== "admin") return res.status(403).json({ error: "Administrator access required" });
   next();
 }
@@ -242,6 +245,36 @@ function cleanString(value, max) {
   return String(value || "").trim().slice(0, max);
 }
 
+function normalizeEmail(value) {
+  const email = String(value || "").trim().toLowerCase();
+  return /^\S+@\S+\.\S+$/.test(email) ? email : null;
+}
+
+async function getAdminEmailRecipients(pool) {
+  const recipients = new Set();
+  const configuredRecipients = [process.env.SUPPORT_ADMIN_EMAIL, ...(String(process.env.SUPPORT_ADMIN_EMAILS || "").split(","))]
+    .map(normalizeEmail)
+    .filter(Boolean);
+  try {
+    const result = await pool.request().query(`
+      SELECT TOP 1 Email
+      FROM User_tbl
+      WHERE LOWER(ISNULL(Role, N'user')) = N'admin'
+        AND NULLIF(LTRIM(RTRIM(Email)), N'') IS NOT NULL
+        AND LastLogin IS NOT NULL
+      ORDER BY LastLogin DESC, UserID DESC
+    `);
+    const lastOnlineAdminEmail = normalizeResult(result)
+      .map((row) => normalizeEmail(row.Email ?? row.email))
+      .find(Boolean);
+    if (lastOnlineAdminEmail) return [lastOnlineAdminEmail];
+  } catch (error) {
+    console.warn("Unable to find the last online admin email", error.message);
+  }
+  configuredRecipients.forEach((email) => recipients.add(email));
+  return Array.from(recipients);
+}
+
 function validateTicketBody(body) {
   const category = categories.includes(body.category) ? body.category : "Order";
   const priority = priorities.includes(body.priority) ? body.priority : "Normal";
@@ -313,12 +346,34 @@ async function notifyTicketEvent(pool, ticket, eventType) {
   } catch (error) {
     console.warn("Support notification persistence failed", error.message);
   }
-  if (eventType === "created") {
-    try {
-      await sendSupportTicketEmail(ticket);
-    } catch (error) {
-      // Email delivery must not undo a successfully stored ticket.
-      console.warn("SendPulse support ticket email failed", error.message);
+  const latestMessage = Array.isArray(ticket?.messages) ? ticket.messages[ticket.messages.length - 1] : null;
+  const publicMessage = latestMessage && latestMessage.visibility !== "internal";
+  const emailRecipient = eventType === "created"
+    ? "both"
+    : (eventType === "message_added" && publicMessage
+      ? (latestMessage.senderType === "customer" ? "admin" : "customer")
+      : null);
+  const emailTargets = emailRecipient === "both"
+    ? ["admin", "customer"]
+    : emailRecipient
+      ? [emailRecipient]
+      : [];
+  const adminEmailRecipients = emailTargets.includes("admin") ? await getAdminEmailRecipients(pool) : [];
+  for (const recipient of emailTargets) {
+    const recipientEmails = recipient === "admin" && adminEmailRecipients.length
+      ? adminEmailRecipients
+      : [null];
+    for (const recipientEmail of recipientEmails) {
+      try {
+        await sendSupportTicketEmail(ticket, {
+          recipient,
+          recipientEmail,
+          eventType: eventType === "created" ? "created" : "reply",
+        });
+      } catch (error) {
+        // Email delivery must not undo a successfully stored ticket.
+        console.warn(`SendPulse support ${recipient} email failed`, error.message);
+      }
     }
   }
   if (process.env.SUPPORT_NOTIFICATION_WEBHOOK_URL) {
@@ -426,6 +481,7 @@ router.post("/api/support/tickets/:ticketId/messages", requireAuth, handleUpload
       .query("INSERT INTO [dbo].[ticket_messages] (ticket_id, sender_id, sender_type, visibility, content_html, content_text, attachments) VALUES (@TicketId, @SenderId, @SenderType, @Visibility, @ContentHtml, @ContentText, @Attachments); UPDATE [dbo].[tickets] SET updated_at = SYSUTCDATETIME() WHERE id = @TicketId");
     await addEvent(pool.request(), ticketId, req.user.id, visibility === "internal" ? "internal_note_added" : "message_added", null, senderType);
     const ticket = await loadTicket(pool, ticketId, isAdmin);
+    await notifyTicketEvent(pool, ticket, visibility === "internal" ? "internal_note_added" : "message_added");
     res.status(201).json({ ticket });
   } catch (error) {
     console.error("POST /api/support/tickets/:ticketId/messages", error);

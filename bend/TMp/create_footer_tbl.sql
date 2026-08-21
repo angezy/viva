@@ -9,6 +9,6 @@ CREATE TABLE [dbo].[footer_tbl] (
 -- Insert a sample footer row
 INSERT INTO [dbo].[footer_tbl] ([Text], [Year])
 VALUES (
-    '© Viva',
+    '© Weluxo',
     2025
 );

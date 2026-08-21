@@ -64,7 +64,7 @@ export default function ResumeShoppingSection({ products = [] }) {
           Continue exploring products you viewed recently.
         </Typography>
         <Typography sx={{ mt: 0.4, color: "#526074", fontSize: 14 }}>
-          <Link href="/signin" style={{ color: "#2563eb" }}>Sign in</Link> to see more personalized suggestions for you.
+          <Link href="/signin" style={{ color: "var(--color-primary)" }}>Sign in</Link> to see more personalized suggestions for you.
         </Typography>
       </Box>
 

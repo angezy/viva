@@ -41,7 +41,7 @@ export default function CookieConsentBanner() {
           }}
           variant="outlined"
           size="small"
-          sx={{ bgcolor: "#0b1220", color: "#bfdbfe", borderColor: "rgba(148,163,184,0.45)", textTransform: "none", boxShadow: "0 8px 24px rgba(0,0,0,0.25)" }}
+          sx={{ bgcolor: "#ffffff", color: "var(--color-primary)", borderColor: "var(--color-primary)", textTransform: "none", boxShadow: "0 8px 24px rgba(43,43,43,0.12)" }}
         >
           Privacy choices
         </Button>
@@ -63,14 +63,15 @@ export default function CookieConsentBanner() {
         maxWidth: 760,
         p: { xs: 2, md: 3 },
         borderRadius: 3,
-        color: "#f8fafc",
-        bgcolor: "#0b1220",
-        border: "1px solid rgba(148,163,184,0.28)",
-        boxShadow: "0 18px 55px rgba(0,0,0,0.35)",
+        color: "var(--color-text-primary)",
+        bgcolor: "#ffffff",
+        border: "1px solid var(--color-border)",
+        boxShadow: "0 18px 55px rgba(43,43,43,0.14)",
+        "& .MuiFormControlLabel-label": { color: "var(--color-text-primary)" },
       }}
     >
       <Typography variant="h6" sx={{ fontWeight: 800, mb: 0.75 }}>Your cookie choices</Typography>
-      <Typography variant="body2" sx={{ color: "rgba(226,232,240,0.82)", lineHeight: 1.55 }}>
+      <Typography variant="body2" sx={{ color: "var(--color-text-secondary)", lineHeight: 1.55 }}>
         Weluxo uses necessary cookies for sign-in, cart continuity, checkout, security, and remembering this choice. Optional cookies are currently not used by the store.
       </Typography>
 
@@ -84,19 +85,19 @@ export default function CookieConsentBanner() {
             <Box key={option.key}>
               <FormControlLabel
                 control={<Checkbox checked={Boolean(choices[option.key])} onChange={(event) => setChoices((current) => ({ ...current, [option.key]: event.target.checked }))} sx={{ color: "rgba(226,232,240,0.7)", "&.Mui-checked": { color: "#60a5fa" } }} />}
-                label={<Typography sx={{ color: "#f8fafc", fontWeight: 700 }}>{option.label}</Typography>}
+                label={<Typography sx={{ color: "var(--color-text-primary)", fontWeight: 700 }}>{option.label}</Typography>}
               />
-              <Typography variant="caption" sx={{ display: "block", ml: 5.5, color: "rgba(226,232,240,0.68)" }}>{option.description}</Typography>
+              <Typography variant="caption" sx={{ display: "block", ml: 5.5, color: "var(--color-text-secondary)" }}>{option.description}</Typography>
             </Box>
           ))}
         </Stack>
       )}
 
       <Stack direction={{ xs: "column", sm: "row" }} spacing={1} justifyContent="flex-end" sx={{ mt: 2 }}>
-        <Button onClick={() => setSettingsOpen((value) => !value)} sx={{ color: "#bfdbfe", textTransform: "none" }}>
+        <Button onClick={() => setSettingsOpen((value) => !value)} sx={{ color: "var(--color-primary)", textTransform: "none" }}>
           {settingsOpen ? "Hide settings" : "Cookie settings"}
         </Button>
-        <Button onClick={() => save({ necessary: true, preferences: false, analytics: false, marketing: false })} variant="outlined" sx={{ color: "#f8fafc", borderColor: "rgba(226,232,240,0.4)", textTransform: "none" }}>
+        <Button onClick={() => save({ necessary: true, preferences: false, analytics: false, marketing: false })} variant="outlined" sx={{ color: "var(--color-primary)", borderColor: "var(--color-primary)", textTransform: "none" }}>
           Reject optional
         </Button>
         {settingsOpen ? (

@@ -16,28 +16,29 @@ function money(value) {
   return `$${Number(value || 0).toFixed(2)}`;
 }
 
-export default function CheckoutLayout({ currentStep, children, items = [], subtotal = 0, shippingMethod = "standard" }) {
+export default function CheckoutLayout({ currentStep, children, items = [], subtotal = 0, discount = null, couponCode = "", shippingMethod = "standard" }) {
   const shipping = shippingCost(shippingMethod);
   const tax = 0;
-  const discount = 0;
-  const total = subtotal + shipping + tax - discount;
   const checkoutState = readCheckoutState();
+  const appliedDiscount = discount == null ? Number(checkoutState.coupon?.discount) || 0 : Math.max(0, Number(discount) || 0);
+  const appliedCouponCode = couponCode || checkoutState.coupon?.code || "";
+  const total = Math.max(0, subtotal + shipping + tax - appliedDiscount);
 
   return (
-    <Box sx={{ minHeight: "100vh", background: "#050714", color: "white", py: 3 }}>
+    <Box sx={{ minHeight: "100vh", background: "var(--color-background)", color: "var(--color-text-primary)", py: 3 }}>
       <Container maxWidth="lg">
         <Stack direction={{ xs: "column", sm: "row" }} justifyContent="space-between" alignItems={{ sm: "center" }} spacing={2} sx={{ mb: 3 }}>
-          <Link href="/checkout" style={{ color: "white", textDecoration: "none" }}>
+          <Link href="/checkout" style={{ color: "var(--color-text-primary)", textDecoration: "none" }}>
             <Typography variant="h5" sx={{ fontWeight: 900, letterSpacing: "-0.04em" }}>
               Weluxo
             </Typography>
           </Link>
-          <Button component={Link} href="/checkout/cancelled/current" variant="text" sx={{ color: "rgba(255,255,255,0.7)" }}>
+          <Button component={Link} href="/checkout/cancelled/current" variant="text" sx={{ color: "var(--color-text-secondary)" }}>
             Cancel checkout
           </Button>
         </Stack>
 
-        <Card sx={{ mb: 4, bgcolor: "rgba(15,23,42,0.9)", color: "white", border: "1px solid rgba(255,255,255,0.09)" }}>
+        <Card sx={{ mb: 4, bgcolor: "#ffffff", color: "var(--color-text-primary)", border: "1px solid var(--color-border)" }}>
           <CardContent sx={{ py: 2 }}>
             <Stack direction={{ xs: "column", sm: "row" }} spacing={{ xs: 1.5, sm: 0 }} justifyContent="space-between">
               {CHECKOUT_STEPS.map((step, index) => {
@@ -53,8 +54,8 @@ export default function CheckoutLayout({ currentStep, children, items = [], subt
                         display: "grid",
                         placeItems: "center",
                         borderRadius: "50%",
-                        bgcolor: active || complete ? "primary.main" : "rgba(255,255,255,0.1)",
-                        color: active || complete ? "white" : "rgba(255,255,255,0.6)",
+                        bgcolor: active || complete ? "primary.main" : "#f1ece4",
+                        color: active || complete ? "#ffffff" : "var(--color-text-secondary)",
                         fontWeight: 800,
                         fontSize: 13,
                       }}
@@ -68,7 +69,7 @@ export default function CheckoutLayout({ currentStep, children, items = [], subt
                         if (!accessible) event.preventDefault();
                       }}
                       sx={{
-                        color: active ? "white" : accessible ? "rgba(255,255,255,0.65)" : "rgba(255,255,255,0.3)",
+                        color: active ? "var(--color-text-primary)" : accessible ? "var(--color-text-secondary)" : "#a0a2a5",
                         fontWeight: active ? 800 : 600,
                         textDecoration: "none",
                         cursor: accessible ? "pointer" : "not-allowed",
@@ -90,7 +91,7 @@ export default function CheckoutLayout({ currentStep, children, items = [], subt
             {children}
           </Grid>
           <Grid item xs={12} md={5} sx={{ minWidth: 0, width: "100%" }}>
-            <Card sx={{ width: "100%", minWidth: 0, bgcolor: "#0f172a", color: "white", border: "1px solid rgba(255,255,255,0.08)", position: { md: "sticky" }, top: { md: 24 } }}>
+            <Card sx={{ width: "100%", minWidth: 0, bgcolor: "#ffffff", color: "var(--color-text-primary)", border: "1px solid var(--color-border)", position: { md: "sticky" }, top: { md: 24 } }}>
               <CardContent>
                 <Typography variant="h6" sx={{ fontWeight: 800, mb: 2 }}>
                   Order summary
@@ -101,26 +102,26 @@ export default function CheckoutLayout({ currentStep, children, items = [], subt
                       <CardMedia component="img" image={item.image || "https://placehold.co/72x72?text=Item"} alt={item.title || "Product"} sx={{ width: 60, height: 60, borderRadius: 2, objectFit: "cover" }} />
                       <Box sx={{ flex: 1, minWidth: 0 }}>
                         <Typography noWrap sx={{ fontWeight: 700 }}>{item.title || "Product"}</Typography>
-                        <Typography variant="body2" sx={{ color: "rgba(255,255,255,0.62)" }}>Qty {item.quantity}</Typography>
+                        <Typography variant="body2" sx={{ color: "var(--color-text-secondary)" }}>Qty {item.quantity}</Typography>
                       </Box>
                       <Typography>{money(Number(item.price) * Number(item.quantity))}</Typography>
                     </Stack>
-                  )) : <Typography color="rgba(255,255,255,0.62)">Your cart is empty.</Typography>}
+                  )) : <Typography color="var(--color-text-secondary)">Your cart is empty.</Typography>}
                 </Stack>
-                <Divider sx={{ borderColor: "rgba(255,255,255,0.1)", my: 2 }} />
-                <Stack direction="row" justifyContent="space-between" sx={{ mb: 1 }}><Typography color="rgba(255,255,255,0.68)">Subtotal</Typography><Typography>{money(subtotal)}</Typography></Stack>
-                <Stack direction="row" justifyContent="space-between" sx={{ mb: 1 }}><Typography color="rgba(255,255,255,0.68)">{shippingLabel(shippingMethod)}</Typography><Typography>{shipping ? money(shipping) : "Free"}</Typography></Stack>
-                <Stack direction="row" justifyContent="space-between" sx={{ mb: 1 }}><Typography color="rgba(255,255,255,0.68)">Tax</Typography><Typography>{tax ? money(tax) : "Calculated later"}</Typography></Stack>
-                <Stack direction="row" justifyContent="space-between" sx={{ mb: 2 }}><Typography color="rgba(255,255,255,0.68)">Discount</Typography><Typography>{discount ? `-${money(discount)}` : "—"}</Typography></Stack>
-                <Divider sx={{ borderColor: "rgba(255,255,255,0.1)", mb: 2 }} />
+                <Divider sx={{ borderColor: "var(--color-border)", my: 2 }} />
+                <Stack direction="row" justifyContent="space-between" sx={{ mb: 1 }}><Typography color="var(--color-text-secondary)">Subtotal</Typography><Typography>{money(subtotal)}</Typography></Stack>
+                <Stack direction="row" justifyContent="space-between" sx={{ mb: 1 }}><Typography color="var(--color-text-secondary)">{shippingLabel(shippingMethod)}</Typography><Typography>{shipping ? money(shipping) : "Free"}</Typography></Stack>
+                <Stack direction="row" justifyContent="space-between" sx={{ mb: 1 }}><Typography color="var(--color-text-secondary)">Tax</Typography><Typography>{tax ? money(tax) : "Calculated later"}</Typography></Stack>
+                <Stack direction="row" justifyContent="space-between" sx={{ mb: 2 }}><Typography color="var(--color-text-secondary)">Discount {appliedCouponCode && `(${appliedCouponCode})`}</Typography><Typography>{appliedDiscount ? `-${money(appliedDiscount)}` : "—"}</Typography></Stack>
+                <Divider sx={{ borderColor: "var(--color-border)", mb: 2 }} />
                 <Stack direction="row" justifyContent="space-between"><Typography sx={{ fontWeight: 900 }}>Total</Typography><Typography variant="h6" sx={{ fontWeight: 900 }}>{money(total)}</Typography></Stack>
-                <Button component={Link} href="/cart" fullWidth sx={{ mt: 2, color: "rgba(255,255,255,0.72)" }}>Return to cart</Button>
+                <Button component={Link} href="/cart" fullWidth sx={{ mt: 2, color: "var(--color-primary)" }}>Return to cart</Button>
               </CardContent>
             </Card>
           </Grid>
         </Grid>
 
-        <Stack direction="row" spacing={2} flexWrap="wrap" useFlexGap sx={{ mt: 4, color: "rgba(255,255,255,0.6)" }}>
+        <Stack direction="row" spacing={2} flexWrap="wrap" useFlexGap sx={{ mt: 4, color: "var(--color-text-secondary)" }}>
           <Typography variant="body2">Need help? <Link href="/contact" style={{ color: "inherit" }}>Contact support</Link></Typography>
           <Link href="/shipping-policy" style={{ color: "inherit", fontSize: 14 }}>Shipping policy</Link>
           <Link href="/return-refund-policy" style={{ color: "inherit", fontSize: 14 }}>Returns</Link>
@@ -132,16 +133,16 @@ export default function CheckoutLayout({ currentStep, children, items = [], subt
 }
 
 export function CheckoutLoading() {
-  return <Container sx={{ py: 8, color: "white" }}><Typography>Loading checkout...</Typography></Container>;
+  return <Container sx={{ py: 8, color: "var(--color-text-primary)" }}><Typography>Loading checkout...</Typography></Container>;
 }
 
 export function CheckoutAuthPrompt() {
   return (
-    <Card sx={{ bgcolor: "#0f172a", color: "white", borderRadius: 3 }}>
+    <Card sx={{ bgcolor: "#ffffff", color: "var(--color-text-primary)", border: "1px solid var(--color-border)", borderRadius: 3 }}>
       <CardContent>
         <Typography variant="h5" sx={{ fontWeight: 900, mb: 1 }}>Sign in to continue</Typography>
-        <Typography sx={{ color: "rgba(255,255,255,0.72)", mb: 2 }}>Your cart and order need to be linked to a secure customer session.</Typography>
-        <Stack direction="row" spacing={1.5}><Button component={Link} href="/signin" variant="contained" sx={{ borderRadius: 999 }}>Sign in</Button><Button component={Link} href="/cart" variant="outlined" sx={{ color: "white", borderColor: "rgba(255,255,255,0.3)", borderRadius: 999 }}>Return to cart</Button></Stack>
+        <Typography sx={{ color: "var(--color-text-secondary)", mb: 2 }}>Your cart and order need to be linked to a secure customer session.</Typography>
+        <Stack direction="row" spacing={1.5}><Button component={Link} href="/signin" variant="contained" sx={{ borderRadius: 999 }}>Sign in</Button><Button component={Link} href="/cart" variant="outlined" sx={{ color: "var(--color-primary)", borderColor: "var(--color-primary)", borderRadius: 999 }}>Return to cart</Button></Stack>
       </CardContent>
     </Card>
   );

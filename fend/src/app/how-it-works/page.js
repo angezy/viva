@@ -1,41 +1,47 @@
 import defaultContent from "../../../data/how-it-works.json";
 import HowItWorksSection from "../components/HowItWorksSection";
+import { getSiteSettingsServer, siteUrlFor } from "../lib/siteSettingsServer";
 
-const siteUrl = "https://weluxo.com";
+export async function generateMetadata() {
+  const site = await getSiteSettingsServer();
+  const replaceBrand = (value) => String(value || "").replaceAll("Weluxo", site.siteName);
+  const url = siteUrlFor(site, "/how-it-works");
+  return {
+    title: replaceBrand(defaultContent.seo.title),
+    description: replaceBrand(defaultContent.seo.description),
+    alternates: { canonical: url },
+    openGraph: {
+      title: replaceBrand(defaultContent.seo.ogTitle),
+      description: replaceBrand(defaultContent.seo.ogDescription),
+      url,
+      siteName: site.siteName,
+      type: "website",
+    },
+    twitter: {
+      card: "summary_large_image",
+      title: replaceBrand(defaultContent.seo.ogTitle),
+      description: replaceBrand(defaultContent.seo.ogDescription),
+    },
+  };
+}
 
-export const metadata = {
-  title: defaultContent.seo.title,
-  description: defaultContent.seo.description,
-  alternates: { canonical: `${siteUrl}/how-it-works` },
-  openGraph: {
-    title: defaultContent.seo.ogTitle,
-    description: defaultContent.seo.ogDescription,
-    url: `${siteUrl}/how-it-works`,
-    siteName: "Weluxo",
-    type: "website",
-  },
-  twitter: {
-    card: "summary_large_image",
-    title: defaultContent.seo.ogTitle,
-    description: defaultContent.seo.ogDescription,
-  },
-};
-
-function StructuredData() {
+async function StructuredData() {
+  const site = await getSiteSettingsServer();
+  const siteUrl = siteUrlFor(site);
   const jsonLd = {
     "@context": "https://schema.org",
     "@graph": [
       {
         "@type": "Organization",
         "@id": `${siteUrl}/#organization`,
-        name: "Weluxo",
+        name: site.siteName,
         url: siteUrl,
       },
       {
         "@type": "WebSite",
         "@id": `${siteUrl}/#website`,
         url: siteUrl,
-        name: "Weluxo",
+        name: site.siteName,
         publisher: { "@id": `${siteUrl}/#organization` },
       },
       {

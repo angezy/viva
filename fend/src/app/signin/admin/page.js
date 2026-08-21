@@ -29,8 +29,8 @@ export default function AdminSigninPage() {
   }
 
   return (
-    <div style={{ padding: 28, minHeight: "100vh", background: "#0b1220", color: "white", display: "flex", alignItems: "center", justifyContent: "center" }}>
-      <div style={{ padding: 28, background: "rgba(15,23,42,0.8)", borderRadius: 16, width: "100%", maxWidth: 420, border: "1px solid rgba(255,255,255,0.08)" }}>
+    <div style={{ padding: 28, minHeight: "100vh", background: "var(--color-background)", color: "var(--color-text-primary)", display: "flex", alignItems: "center", justifyContent: "center" }}>
+      <div style={{ padding: 28, background: "#ffffff", borderRadius: 16, width: "100%", maxWidth: 420, border: "1px solid var(--color-border)", boxShadow: "0 20px 60px rgba(43,43,43,0.08)" }}>
         <h1 style={{ margin: 0, fontSize: 28, fontWeight: 700 }}>Admin Sign in</h1>
         <p style={{ marginTop: 8, marginBottom: 20, color: '#cbd5f5' }}>Dashboard access is restricted to admins.</p>
 
@@ -44,7 +44,7 @@ export default function AdminSigninPage() {
                 onChange={(e) => setEmail(e.target.value)}
                 required
                 autoComplete="username"
-                style={{ padding: '10px 12px', borderRadius: 8, border: '1px solid #334155', width: '100%', background: '#0f172a', color: 'white' }}
+                style={{ padding: '10px 12px', borderRadius: 8, border: '1px solid var(--color-border)', width: '100%', background: 'var(--color-surface-muted)', color: 'var(--color-text-primary)' }}
                 disabled={loading}
               />
             </label>
@@ -57,7 +57,7 @@ export default function AdminSigninPage() {
                 onChange={(e) => setPassword(e.target.value)}
                 required
                 autoComplete="current-password"
-                style={{ padding: '10px 12px', borderRadius: 8, border: '1px solid #334155', width: '100%', background: '#0f172a', color: 'white' }}
+                style={{ padding: '10px 12px', borderRadius: 8, border: '1px solid var(--color-border)', width: '100%', background: 'var(--color-surface-muted)', color: 'var(--color-text-primary)' }}
                 disabled={loading}
               />
             </label>
@@ -73,7 +73,7 @@ export default function AdminSigninPage() {
                 type="submit"
                 disabled={loading}
                 style={{
-                  background: '#22c55e',
+                  background: 'var(--color-primary)',
                   color: 'white',
                   padding: '10px 16px',
                   borderRadius: 8,
@@ -88,9 +88,6 @@ export default function AdminSigninPage() {
               <div style={{ display: 'flex', gap: 8 }}>
                 <button type="button" onClick={() => { setEmail(''); setPassword(''); setError('') }} style={{ background: 'transparent', border: 'none', color: '#94a3b8', cursor: 'pointer' }}>
                   Clear
-                </button>
-                <button type="button" onClick={() => router.push('/signup/admin')} style={{ background: 'transparent', border: 'none', color: '#22c55e', cursor: 'pointer' }}>
-                  Create admin
                 </button>
               </div>
             </div>

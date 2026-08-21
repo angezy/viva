@@ -70,9 +70,9 @@ export default function CheckoutReturnPage() {
   const isFailed = status === "failed";
 
   return (
-    <Box sx={{ backgroundColor: "#050714", minHeight: "100vh", color: "white", py: 8 }}>
+    <Box sx={{ backgroundColor: "var(--color-background)", minHeight: "100vh", color: "var(--color-text-primary)", py: 8 }}>
       <Container maxWidth="sm">
-        <Card sx={{ borderRadius: 4, bgcolor: "#0f172a", color: "white" }}>
+        <Card sx={{ borderRadius: 4, bgcolor: "#ffffff", color: "var(--color-text-primary)", border: "1px solid var(--color-border)" }}>
           <CardContent sx={{ p: { xs: 3, md: 5 } }}>
             <Typography variant="overline" sx={{ color: isCanceled ? "warning.light" : isFailed ? "error.light" : isProcessing ? "primary.light" : "success.light", letterSpacing: 3 }}>
               Payment return
@@ -80,7 +80,7 @@ export default function CheckoutReturnPage() {
             <Typography variant="h3" sx={{ fontWeight: 900, mb: 1 }}>
               {isCanceled ? "Payment canceled" : isProcessing ? "Verifying your payment" : isFailed ? "We could not complete your order" : "Payment returned successfully"}
             </Typography>
-            <Typography sx={{ color: "rgba(255,255,255,0.72)", mb: 3 }}>
+            <Typography sx={{ color: "var(--color-text-secondary)", mb: 3 }}>
               {isCanceled
                 ? "No order was placed. Your cart and checkout details are still available."
                 : isProcessing
@@ -90,13 +90,13 @@ export default function CheckoutReturnPage() {
                 : "Review your checkout status before continuing."}
             </Typography>
             {error && <Alert severity="error" sx={{ mb: 3 }}>{error}</Alert>}
-            {reference && <Typography variant="body2" sx={{ mb: 3, color: "rgba(255,255,255,0.55)", wordBreak: "break-all" }}>Reference: {reference}</Typography>}
+            {reference && <Typography variant="body2" sx={{ mb: 3, color: "var(--color-text-secondary)", wordBreak: "break-all" }}>Reference: {reference}</Typography>}
             {!isProcessing && (
               <Stack direction={{ xs: "column", sm: "row" }} spacing={1.5}>
                 <Button component={Link} href={isCanceled || isFailed ? "/checkout/payment" : "/checkout"} variant="contained" sx={{ borderRadius: 999 }}>
                   {isCanceled ? "Return to checkout" : isFailed ? "Try payment again" : "Continue"}
                 </Button>
-                <Button component={Link} href="/cart" variant="outlined" sx={{ color: "white", borderColor: "rgba(255,255,255,0.3)", borderRadius: 999 }}>
+                <Button component={Link} href="/cart" variant="outlined" sx={{ color: "var(--color-primary)", borderColor: "var(--color-primary)", borderRadius: 999 }}>
                   View cart
                 </Button>
               </Stack>

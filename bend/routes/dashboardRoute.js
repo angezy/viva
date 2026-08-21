@@ -1,21 +1,53 @@
 const express = require('express');
 const router = express.Router();
+const fs = require('fs');
+const multer = require('multer');
+const path = require('path');
 const sql = require('mssql');
 const jwt = require('jsonwebtoken');
 const { getPool } = require('../utils/dbConnection');
+const {
+  ensureCouponsTable,
+  isValidCouponCode,
+  mapCouponRow,
+  normalizeCouponCode,
+} = require('../utils/coupons');
+const { ADMIN_AUTH_COOKIE_NAME } = require('../utils/cookieOptions');
+
+const FONT_UPLOAD_FORMATS = new Set(['woff2', 'woff', 'ttf', 'otf']);
+const fontUploadsDir = path.join(__dirname, '..', 'public', 'uploads', 'fonts');
+fs.mkdirSync(fontUploadsDir, { recursive: true });
+const fontUpload = multer({
+  storage: multer.diskStorage({
+    destination: (_req, _file, callback) => callback(null, fontUploadsDir),
+    filename: (_req, file, callback) => {
+      const extension = path.extname(file.originalname).toLowerCase();
+      callback(null, `font-${Date.now()}-${Math.round(Math.random() * 1e9)}${extension}`);
+    },
+  }),
+  limits: { fileSize: 8 * 1024 * 1024 },
+  fileFilter: (_req, file, callback) => {
+    const extension = path.extname(file.originalname).toLowerCase().slice(1);
+    if (!FONT_UPLOAD_FORMATS.has(extension)) {
+      return callback(new Error('Only WOFF2, WOFF, TTF, and OTF font files are supported'));
+    }
+    callback(null, true);
+  },
+});
 
 // Helper to normalize mssql result/result.recordset
 function normalizeResult(result) {
   if (!result) return [];
   if (Array.isArray(result)) return result;
   if (result.recordset) return result.recordset;
+  if (result.recordsets?.[0]) return result.recordsets[0];
   return [];
 }
 
 function requireDashboardAdmin(req, res, next) {
   const authorization = req.headers?.authorization || '';
   const bearer = authorization.toLowerCase().startsWith('bearer ') ? authorization.slice(7).trim() : null;
-  const token = bearer || req.cookies?.viva_token;
+  const token = bearer || req.cookies?.[ADMIN_AUTH_COOKIE_NAME];
   const secret = process.env.JWT_SECRET;
   if (!token || !secret) return res.status(401).json({ error: 'Authentication required' });
 
@@ -29,6 +61,180 @@ function requireDashboardAdmin(req, res, next) {
   } catch (_err) {
     return res.status(401).json({ error: 'Invalid or expired session' });
   }
+}
+
+// Coupon management -------------------------------------------------------
+router.get('/api/dashboard/coupons', requireDashboardAdmin, async (_req, res) => {
+  try {
+    const pool = await getPool();
+    if (!(await ensureCouponsTable(pool))) {
+      return res.status(500).json({ error: 'Coupon storage is unavailable' });
+    }
+    const result = await pool.request().query('SELECT * FROM dbo.Coupons ORDER BY CreatedAt DESC, CouponId DESC');
+    res.json(normalizeResult(result).map(mapCouponRow));
+  } catch (error) {
+    console.error('/api/dashboard/coupons GET error:', error);
+    res.status(500).json({ error: error.message || 'Unable to load coupons' });
+  }
+});
+
+router.post('/api/dashboard/coupons', requireDashboardAdmin, async (req, res) => {
+  const code = normalizeCouponCode(req.body?.code);
+  const discountPercent = Number(req.body?.discountPercent);
+  const expiresAt = new Date(req.body?.expiresAt || 0);
+
+  if (!isValidCouponCode(code)) {
+    return res.status(400).json({ error: 'Use 3-64 letters, numbers, hyphens, or underscores for the coupon code' });
+  }
+  if (!Number.isFinite(discountPercent) || discountPercent <= 0 || discountPercent > 100) {
+    return res.status(400).json({ error: 'Discount percentage must be greater than 0 and no more than 100' });
+  }
+  if (Number.isNaN(expiresAt.getTime()) || expiresAt.getTime() <= Date.now()) {
+    return res.status(400).json({ error: 'Expiration must be a future date and time' });
+  }
+
+  try {
+    const pool = await getPool();
+    if (!(await ensureCouponsTable(pool))) {
+      return res.status(500).json({ error: 'Coupon storage is unavailable' });
+    }
+    const result = await pool
+      .request()
+      .input('Code', sql.NVarChar(64), code)
+      .input('DiscountPercent', sql.Decimal(5, 2), discountPercent)
+      .input('ExpiresAt', sql.DateTime2(3), expiresAt)
+      .query(`
+        INSERT INTO dbo.Coupons (Code, DiscountPercent, ExpiresAt, IsActive)
+        OUTPUT INSERTED.*
+        VALUES (@Code, @DiscountPercent, @ExpiresAt, 1)
+      `);
+    res.status(201).json(mapCouponRow(normalizeResult(result)[0] || {}));
+  } catch (error) {
+    console.error('/api/dashboard/coupons POST error:', error);
+    if (error?.number === 2601 || error?.number === 2627 || /UNIQUE\s+KEY/i.test(error?.message || '')) {
+      return res.status(409).json({ error: 'That coupon code already exists' });
+    }
+    res.status(500).json({ error: error.message || 'Unable to create coupon' });
+  }
+});
+
+router.patch('/api/dashboard/coupons/:couponId', requireDashboardAdmin, async (req, res) => {
+  const couponId = Number(req.params.couponId);
+  if (!Number.isInteger(couponId) || couponId < 1) {
+    return res.status(400).json({ error: 'Invalid coupon id' });
+  }
+  if (typeof req.body?.isActive !== 'boolean') {
+    return res.status(400).json({ error: 'isActive must be a boolean' });
+  }
+
+  try {
+    const pool = await getPool();
+    if (!(await ensureCouponsTable(pool))) {
+      return res.status(500).json({ error: 'Coupon storage is unavailable' });
+    }
+    const result = await pool
+      .request()
+      .input('CouponId', sql.Int, couponId)
+      .input('IsActive', sql.Bit, req.body.isActive)
+      .query(`
+        UPDATE dbo.Coupons
+        SET IsActive = @IsActive, UpdatedAt = SYSUTCDATETIME()
+        OUTPUT INSERTED.*
+        WHERE CouponId = @CouponId
+      `);
+    const rows = normalizeResult(result);
+    if (!rows.length) return res.status(404).json({ error: 'Coupon not found' });
+    res.json(mapCouponRow(rows[0]));
+  } catch (error) {
+    console.error('/api/dashboard/coupons PATCH error:', error);
+    res.status(500).json({ error: error.message || 'Unable to update coupon' });
+  }
+});
+
+const SITE_SETTING_DEFAULTS = {
+  siteName: 'Weluxo',
+  siteDescription: 'Weluxo Shop - Your partner in performance.',
+  siteTagline: 'Move with intent',
+  siteUrl: process.env.SITE_URL || 'https://weluxo.com',
+  siteKeywords: 'online shop, lifestyle products, performance gear',
+  siteLogoUrl: '',
+  siteFaviconUrl: '',
+  siteOgImageUrl: '',
+  fontFamily: 'system',
+  customFontName: '',
+  customFontUrl: '',
+  customFontFormat: 'woff2',
+  primaryColor: '#2563eb',
+  primaryDarkColor: '#1746b2',
+  linkHoverColor: '#1746b2',
+  primaryLightColor: '#5b8def',
+  primarySoftColor: '#eef4ff',
+  accentColor: '#f28c28',
+  accentDarkColor: '#c96a0e',
+  accentLightColor: '#ffb15a',
+  accentSoftColor: '#fff4e5',
+  backgroundColor: '#fbf4e8',
+  surfaceColor: '#ffffff',
+  surfaceMutedColor: '#fffaf2',
+  borderColor: '#e7dfd3',
+  textPrimaryColor: '#2b2b2b',
+  textSecondaryColor: '#62656b',
+  successColor: '#2e8b57',
+  warningColor: '#f28c28',
+  errorColor: '#c94a4a',
+  supportEmail: 'support@weluxo.com',
+  supportPhone: '',
+  supportHours: 'Support available within 24-48 hours',
+};
+const SITE_SETTING_KEYS = Object.keys(SITE_SETTING_DEFAULTS);
+const COLOR_SETTING_KEYS = [
+  'primaryColor', 'primaryDarkColor', 'linkHoverColor', 'primaryLightColor', 'primarySoftColor',
+  'accentColor', 'accentDarkColor', 'accentLightColor', 'accentSoftColor',
+  'backgroundColor', 'surfaceColor', 'surfaceMutedColor', 'borderColor',
+  'textPrimaryColor', 'textSecondaryColor', 'successColor', 'warningColor', 'errorColor',
+];
+const SITE_FONT_FAMILY_VALUES = new Set([
+  'system', 'arial', 'verdana', 'trebuchet', 'georgia', 'times', 'courier', 'custom',
+]);
+
+function isHexColor(value) {
+  return /^#[0-9a-f]{3}(?:[0-9a-f]{3})?$/i.test(String(value || '').trim());
+}
+
+function isSiteFontFamily(value) {
+  return SITE_FONT_FAMILY_VALUES.has(String(value || '').trim());
+}
+
+function isCustomFontName(value) {
+  return /^[A-Za-z][A-Za-z0-9 _-]{0,63}$/.test(String(value || '').trim());
+}
+
+function isCustomFontUrl(value) {
+  return /^(?:https?:\/\/|\/uploads\/fonts\/)[^\s"'<>]+$/i.test(String(value || '').trim());
+}
+
+function isCustomFontFormat(value) {
+  return FONT_UPLOAD_FORMATS.has(String(value || '').trim().toLowerCase());
+}
+
+function readSiteSettings(rows = []) {
+  const settings = { ...SITE_SETTING_DEFAULTS };
+  rows.forEach((row) => {
+    const key = String(row.SettingKey ?? row.key ?? '');
+    if (SITE_SETTING_KEYS.includes(key) && row.SettingValue != null) {
+      const value = String(row.SettingValue).trim();
+      if (key === 'fontFamily') {
+        if (isSiteFontFamily(value)) settings[key] = value;
+      } else if (key === 'customFontName') {
+        if (isCustomFontName(value)) settings[key] = value;
+      } else if (key === 'customFontUrl') {
+        if (isCustomFontUrl(value)) settings[key] = value;
+      } else if (key === 'customFontFormat') {
+        if (isCustomFontFormat(value)) settings[key] = value.toLowerCase();
+      } else if (!COLOR_SETTING_KEYS.includes(key) || isHexColor(value)) settings[key] = value;
+    }
+  });
+  return settings;
 }
 
 // Cache User_tbl columns so we can safely project optional fields
@@ -110,7 +316,7 @@ function banUpdateClause(cols, banned) {
 }
 
 // GET /api/dashboard/profile
-router.get('/api/dashboard/profile', async (req, res) => {
+router.get('/api/dashboard/profile', requireDashboardAdmin, async (req, res) => {
   try {
     const pool = await getPool();
     const result = await pool.request().query(`SELECT TOP 1 UserID, Username, Email, FullName, AvatarUrl, Bio FROM User_tbl ORDER BY UserID`);
@@ -135,7 +341,7 @@ router.get('/api/dashboard/profile', async (req, res) => {
 });
 
 // GET /api/dashboard/orders
-router.get('/api/dashboard/orders', async (req, res) => {
+router.get('/api/dashboard/orders', requireDashboardAdmin, async (req, res) => {
   try {
     const pool = await getPool();
     const result = await pool.request().query(`
@@ -162,7 +368,7 @@ router.get('/api/dashboard/orders', async (req, res) => {
 });
 
 // GET /api/dashboard/notifications
-router.get('/api/dashboard/notifications', async (req, res) => {
+router.get('/api/dashboard/notifications', requireDashboardAdmin, async (req, res) => {
   try {
     const pool = await getPool();
     const result = await pool.request().query(`
@@ -256,8 +462,23 @@ router.patch('/api/dashboard/notifications/:notificationId', requireDashboardAdm
   }
 });
 
+// Upload a custom site font for use by the typography settings.
+router.post('/api/dashboard/settings/font-upload', requireDashboardAdmin, (req, res) => {
+  fontUpload.single('font')(req, res, (error) => {
+    if (error) return res.status(400).json({ error: error.message || 'Unable to upload font' });
+    if (!req.file) return res.status(400).json({ error: 'Choose a WOFF2, WOFF, TTF, or OTF font file' });
+
+    const format = path.extname(req.file.originalname).toLowerCase().slice(1);
+    res.json({
+      url: `/uploads/fonts/${req.file.filename}`,
+      format,
+      name: req.file.originalname,
+    });
+  });
+});
+
 // GET /api/dashboard/settings
-router.get('/api/dashboard/settings', async (req, res) => {
+router.get('/api/dashboard/settings', requireDashboardAdmin, async (req, res) => {
   try {
     const pool = await getPool();
     const result = await pool.request().query(`SELECT SettingKey, SettingValue FROM DashboardSettings`);
@@ -273,10 +494,23 @@ router.get('/api/dashboard/settings', async (req, res) => {
       }
     });
 
-    res.json({ emailNotifications: true, darkMode: false, ...settings });
+    res.json({ emailNotifications: true, darkMode: false, ...settings, site: readSiteSettings(rows) });
   } catch (err) {
     console.error('/api/dashboard/settings error:', err);
     res.status(500).json({ error: err.message });
+  }
+});
+
+// Public storefront identity and SEO defaults. The dashboard writes these values
+// into the same settings table, while this endpoint exposes only site settings.
+router.get('/api/site-settings', async (_req, res) => {
+  try {
+    const pool = await getPool();
+    const result = await pool.request().query(`SELECT SettingKey, SettingValue FROM DashboardSettings`);
+    res.json(readSiteSettings(normalizeResult(result)));
+  } catch (err) {
+    console.error('/api/site-settings error:', err);
+    res.json({ ...SITE_SETTING_DEFAULTS });
   }
 });
 
@@ -284,31 +518,52 @@ router.get('/api/dashboard/settings', async (req, res) => {
 router.put('/api/dashboard/settings', requireDashboardAdmin, async (req, res) => {
   const body = req.body || {};
   const supportedKeys = ['emailNotifications', 'darkMode'];
-  const entries = supportedKeys.filter((key) => typeof body[key] === 'boolean');
+  const siteBody = body.site && typeof body.site === 'object' ? body.site : {};
+  const booleanEntries = supportedKeys.filter((key) => typeof body[key] === 'boolean');
+  const siteEntries = SITE_SETTING_KEYS.filter((key) => typeof siteBody[key] === 'string');
+  const invalidColor = COLOR_SETTING_KEYS.find((key) => typeof siteBody[key] === 'string' && !isHexColor(siteBody[key]));
+  if (invalidColor) {
+    return res.status(400).json({ error: `${invalidColor} must be a 3- or 6-digit hex color such as #2563eb` });
+  }
+  if (typeof siteBody.fontFamily === 'string' && !isSiteFontFamily(siteBody.fontFamily)) {
+    return res.status(400).json({ error: 'fontFamily is not a supported site font' });
+  }
+  if (typeof siteBody.customFontName === 'string' && siteBody.customFontName.trim() && !isCustomFontName(siteBody.customFontName)) {
+    return res.status(400).json({ error: 'customFontName contains unsupported characters' });
+  }
+  if (typeof siteBody.customFontUrl === 'string' && siteBody.customFontUrl.trim() && !isCustomFontUrl(siteBody.customFontUrl)) {
+    return res.status(400).json({ error: 'customFontUrl must be an HTTPS URL or an uploaded /uploads/fonts/ path' });
+  }
+  if (typeof siteBody.customFontFormat === 'string' && !isCustomFontFormat(siteBody.customFontFormat)) {
+    return res.status(400).json({ error: 'customFontFormat must be woff2, woff, ttf, or otf' });
+  }
+  if (siteBody.fontFamily === 'custom' && (!isCustomFontName(siteBody.customFontName) || !isCustomFontUrl(siteBody.customFontUrl))) {
+    return res.status(400).json({ error: 'Custom font requires a valid name and font file URL' });
+  }
+  const entries = [...booleanEntries, ...siteEntries];
   if (!entries.length) {
-    return res.status(400).json({ error: 'Provide emailNotifications or darkMode as a boolean' });
+    return res.status(400).json({ error: 'Provide a supported setting to save' });
   }
 
   try {
     const pool = await getPool();
     for (const key of entries) {
-      const value = body[key] ? 'true' : 'false';
-      const update = await pool
+      const value = booleanEntries.includes(key) ? (body[key] ? 'true' : 'false') : siteBody[key].trim();
+      await pool
         .request()
         .input('SettingKey', sql.NVarChar(100), key)
         .input('SettingValue', sql.NVarChar(sql.MAX), value)
-        .query(`UPDATE DashboardSettings SET SettingValue = @SettingValue WHERE SettingKey = @SettingKey`);
-      if (!update.rowsAffected?.[0]) {
-        await pool
-          .request()
-          .input('SettingKey', sql.NVarChar(100), key)
-          .input('SettingValue', sql.NVarChar(sql.MAX), value)
-          .query(`INSERT INTO DashboardSettings (SettingKey, SettingValue) VALUES (@SettingKey, @SettingValue)`);
-      }
+        .query(`
+          IF EXISTS (SELECT 1 FROM DashboardSettings WHERE SettingKey = @SettingKey)
+            UPDATE DashboardSettings SET SettingValue = @SettingValue WHERE SettingKey = @SettingKey;
+          ELSE
+            INSERT INTO DashboardSettings (SettingKey, SettingValue) VALUES (@SettingKey, @SettingValue);
+        `);
     }
     res.json({
       emailNotifications: typeof body.emailNotifications === 'boolean' ? body.emailNotifications : undefined,
       darkMode: typeof body.darkMode === 'boolean' ? body.darkMode : undefined,
+      site: readSiteSettings(entries.filter((key) => SITE_SETTING_KEYS.includes(key)).map((key) => ({ SettingKey: key, SettingValue: siteBody[key].trim() }))),
     });
   } catch (err) {
     console.error('/api/dashboard/settings PUT error:', err);
@@ -317,7 +572,7 @@ router.put('/api/dashboard/settings', requireDashboardAdmin, async (req, res) =>
 });
 
 // GET /api/dashboard/users
-router.get('/api/dashboard/users', async (_req, res) => {
+router.get('/api/dashboard/users', requireDashboardAdmin, async (_req, res) => {
   try {
     const pool = await getPool();
     const cols = await loadUserColumns(pool);
@@ -376,7 +631,7 @@ router.get('/api/dashboard/users', async (_req, res) => {
 });
 
 // PATCH /api/dashboard/users/:userId - update role/address/ban
-router.patch('/api/dashboard/users/:userId', async (req, res) => {
+router.patch('/api/dashboard/users/:userId', requireDashboardAdmin, async (req, res) => {
   const userId = Number(req.params.userId);
   if (!Number.isFinite(userId)) return res.status(400).json({ error: "Invalid user id" });
 
@@ -452,7 +707,7 @@ router.patch('/api/dashboard/users/:userId', async (req, res) => {
 });
 
 // DELETE /api/dashboard/users/:userId
-router.delete('/api/dashboard/users/:userId', async (req, res) => {
+router.delete('/api/dashboard/users/:userId', requireDashboardAdmin, async (req, res) => {
   const userId = Number(req.params.userId);
   if (!Number.isFinite(userId)) return res.status(400).json({ error: "Invalid user id" });
 
@@ -494,7 +749,7 @@ router.delete('/api/dashboard/users/:userId', async (req, res) => {
 });
 
 // GET /api/dashboard/stats
-router.get('/api/dashboard/stats', async (req, res) => {
+router.get('/api/dashboard/stats', requireDashboardAdmin, async (req, res) => {
   try {
     const pool = await getPool();
 

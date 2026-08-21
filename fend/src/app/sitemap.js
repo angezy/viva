@@ -1,6 +1,5 @@
 import blogContent from "../../data/blog.json";
-
-const siteUrl = (process.env.SITE_URL || process.env.NEXT_PUBLIC_SITE_URL || "https://weluxo.com").replace(/\/$/, "");
+import { getSiteSettingsServer, siteUrlFor } from "./lib/siteSettingsServer";
 
 function slugify(value) {
   return String(value || "")
@@ -38,6 +37,8 @@ async function loadCatalog() {
 
 export default async function sitemap() {
   const now = new Date();
+  const site = await getSiteSettingsServer();
+  const siteUrl = siteUrlFor(site);
   const catalog = await loadCatalog();
   const products = catalog
     .map((product) => productSlug(product))

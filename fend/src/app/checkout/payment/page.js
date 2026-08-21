@@ -17,7 +17,7 @@ const paymentOptions = [
 
 export default function CheckoutPaymentPage() {
   const router = useRouter();
-  const { user, items, subtotal, loading, error: cartError } = useCheckoutData();
+  const { user, items, subtotal, discount, couponCode, loading, error: cartError } = useCheckoutData();
   const [checkout, setCheckout] = useState(readCheckoutState());
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState("");
@@ -56,8 +56,8 @@ export default function CheckoutPaymentPage() {
     }
     setSubmitting(true);
     try {
-      const total = subtotal + shippingCost(checkout.shipping.method);
-      const payment = await createPayment({ amount: total, currency: "USD", method: "card", customerEmail: checkout.information.email, shippingMethod: checkout.shipping.method });
+      const total = Math.max(0, subtotal + shippingCost(checkout.shipping.method) - discount);
+      const payment = await createPayment({ amount: total, currency: "USD", method: "card", customerEmail: checkout.information.email, shippingMethod: checkout.shipping.method, couponCode });
       const checkoutUrl = payment.payment?.checkoutUrl || payment.checkoutUrl;
       if (!checkoutUrl) throw new Error("Secure payment checkout is unavailable");
       window.location.assign(checkoutUrl);
@@ -76,24 +76,24 @@ export default function CheckoutPaymentPage() {
 
   if (loading) return <CheckoutLoading />;
   if (!user) {
-    return <CheckoutLayout currentStep="payment" items={items} subtotal={subtotal} shippingMethod={checkout.shipping.method}><CheckoutAuthPrompt /></CheckoutLayout>;
+    return <CheckoutLayout currentStep="payment" items={items} subtotal={subtotal} discount={discount} couponCode={couponCode} shippingMethod={checkout.shipping.method}><CheckoutAuthPrompt /></CheckoutLayout>;
   }
 
   return (
-    <CheckoutLayout currentStep="payment" items={items} subtotal={subtotal} shippingMethod={checkout.shipping.method}>
+    <CheckoutLayout currentStep="payment" items={items} subtotal={subtotal} discount={discount} couponCode={couponCode} shippingMethod={checkout.shipping.method}>
       {(cartError || error) && <Alert severity="error" sx={{ mb: 3 }}>{error || cartError}</Alert>}
       <Stack spacing={2.5}>
-        <Card sx={{ bgcolor: "#0f172a", color: "white", border: "1px solid rgba(255,255,255,0.08)" }}>
+        <Card sx={{ bgcolor: "#ffffff", color: "var(--color-text-primary)", border: "1px solid var(--color-border)" }}>
           <CardContent sx={{ p: { xs: 3, md: 4 } }}>
             <Typography variant="h5" sx={{ fontWeight: 900, mb: 1 }}>Payment method</Typography>
-            <Typography sx={{ color: "rgba(255,255,255,0.68)", mb: 3 }}>You will complete payment on Stripe&apos;s secure hosted checkout page. Raw card numbers are never sent to Weluxo.</Typography>
+            <Typography sx={{ color: "var(--color-text-secondary)", mb: 3 }}>You will complete payment on Stripe&apos;s secure hosted checkout page. Raw card numbers are never sent to Weluxo.</Typography>
             <Stack spacing={1.5}>
               {paymentOptions.map((option) => {
                 const selected = checkout.payment.method === option.value;
                 return (
-                  <Card key={option.value} onClick={() => selectPayment(option.value)} sx={{ cursor: "pointer", bgcolor: selected ? "rgba(59,130,246,0.18)" : "rgba(255,255,255,0.04)", color: "white", border: selected ? "1px solid #60a5fa" : "1px solid rgba(255,255,255,0.1)" }}>
+                  <Card key={option.value} onClick={() => selectPayment(option.value)} sx={{ cursor: "pointer", bgcolor: selected ? "var(--color-primary-soft)" : "var(--color-surface-muted)", color: "var(--color-text-primary)", border: selected ? "1px solid var(--color-primary)" : "1px solid var(--color-border)" }}>
                     <CardContent sx={{ py: 1.5, "&:last-child": { pb: 1.5 } }}>
-                      <FormControlLabel control={<Radio checked={selected} onChange={() => selectPayment(option.value)} />} label={<Box><Typography sx={{ fontWeight: 800 }}>{option.label}</Typography><Typography variant="body2" color="rgba(255,255,255,0.62)">{option.detail}</Typography></Box>} />
+                      <FormControlLabel control={<Radio checked={selected} onChange={() => selectPayment(option.value)} />} label={<Box><Typography sx={{ fontWeight: 800 }}>{option.label}</Typography><Typography variant="body2" color="var(--color-text-secondary)">{option.detail}</Typography></Box>} />
                     </CardContent>
                   </Card>
                 );
@@ -103,17 +103,17 @@ export default function CheckoutPaymentPage() {
           </CardContent>
         </Card>
 
-        <Card sx={{ bgcolor: "#0f172a", color: "white", border: "1px solid rgba(255,255,255,0.08)" }}>
+        <Card sx={{ bgcolor: "#ffffff", color: "var(--color-text-primary)", border: "1px solid var(--color-border)" }}>
           <CardContent>
             <Typography variant="h6" sx={{ fontWeight: 800, mb: 1 }}>Billing address</Typography>
-            <Typography color="rgba(255,255,255,0.68)">✓ Same as shipping address</Typography>
-            <Typography variant="body2" sx={{ color: "rgba(255,255,255,0.58)", mt: 1 }}>{checkout.shipping.fullName}, {checkout.shipping.addressLine1}, {checkout.shipping.city}, {regionName}, {countryName}</Typography>
+            <Typography color="var(--color-text-secondary)">✓ Same as shipping address</Typography>
+            <Typography variant="body2" sx={{ color: "var(--color-text-secondary)", mt: 1 }}>{checkout.shipping.fullName}, {checkout.shipping.addressLine1}, {checkout.shipping.city}, {regionName}, {countryName}</Typography>
           </CardContent>
         </Card>
 
         <Stack direction={{ xs: "column", sm: "row" }} spacing={1.5}>
           <Button onClick={handlePlaceOrder} variant="contained" size="large" disabled={submitting} sx={{ borderRadius: 999, py: 1.3, fontWeight: 900 }}>{submitting ? "Processing payment..." : "Place order"}</Button>
-          <Button component={Link} href="/checkout/shipping" variant="outlined" sx={{ color: "white", borderColor: "rgba(255,255,255,0.3)", borderRadius: 999 }}>Back to shipping</Button>
+          <Button component={Link} href="/checkout/shipping" variant="outlined" sx={{ color: "var(--color-primary)", borderColor: "var(--color-primary)", borderRadius: 999 }}>Back to shipping</Button>
         </Stack>
         <Alert severity="info">Payment cannot be completed until the server has a configured Stripe secret key and production callback URL.</Alert>
       </Stack>

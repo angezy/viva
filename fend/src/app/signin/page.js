@@ -6,6 +6,14 @@ import Link from 'next/link';
 import { loginRequest, fetchSession } from "../lib/apiClient";
 import { toast } from "../lib/notifications";
 
+const googleSignInMessages = {
+  google_cancelled: "Google sign-in was cancelled.",
+  google_invalid_state: "Google sign-in expired. Please try again.",
+  google_admin_not_allowed: "Administrator accounts must use the admin sign-in page.",
+  google_unavailable: "Google sign-in is currently unavailable.",
+  google_signin_failed: "We could not sign you in with Google. Please try again.",
+};
+
 export default function SignInPage() {
   const [email, setEmail] = useState('user@example.com');
   const [password, setPassword] = useState('');
@@ -18,7 +26,19 @@ export default function SignInPage() {
       const s = localStorage.getItem('signinEmail')
       if (s) setEmail(s)
     } catch (e) {}
+
+    const googleError = new URLSearchParams(window.location.search).get("error");
+    if (googleError) {
+      setError(googleSignInMessages[googleError] || googleSignInMessages.google_signin_failed);
+      window.history.replaceState({}, document.title, window.location.pathname);
+    }
   }, [])
+
+  function handleGoogleSignIn() {
+    setError('');
+    setLoading(true);
+    window.location.assign('/api/auth/google');
+  }
 
   async function handleSubmit(e) {
     e.preventDefault();
@@ -42,7 +62,36 @@ export default function SignInPage() {
     <div style={{ padding: 28 }}>
       <div style={{ padding: 28 }}>
         <h1 style={{ margin: 0, fontSize: 28, fontWeight: 700 }}>Welcome back</h1>
-        <p style={{ marginTop: 8, marginBottom: 20, color: '#475569' }}>Sign in to access your dashboard</p>
+        <p style={{ marginTop: 8, marginBottom: 20, color: '#475569' }}>Sign in to access your customer account</p>
+
+        <button
+          type="button"
+          onClick={handleGoogleSignIn}
+          disabled={loading}
+          style={{
+            width: '100%',
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+            gap: 10,
+            padding: '10px 16px',
+            borderRadius: 8,
+            border: '1px solid #cbd5e1',
+            background: '#ffffff',
+            color: '#1e293b',
+            fontWeight: 700,
+            cursor: loading ? 'default' : 'pointer',
+          }}
+        >
+          <span aria-hidden="true" style={{ color: '#4285F4', fontSize: 18, fontWeight: 800 }}>G</span>
+          Continue with Google
+        </button>
+
+        <div style={{ display: 'flex', alignItems: 'center', gap: 10, margin: '18px 0', color: '#94a3b8', fontSize: 12 }}>
+          <span style={{ height: 1, flex: 1, background: '#e2e8f0' }} />
+          or sign in with email
+          <span style={{ height: 1, flex: 1, background: '#e2e8f0' }} />
+        </div>
 
         <form onSubmit={handleSubmit} aria-describedby={error ? 'signin-error' : undefined}>
           <div style={{ display: 'grid', gap: 12 }}>

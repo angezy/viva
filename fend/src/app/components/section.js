@@ -205,10 +205,10 @@ export default function HeroSection({ initialContent = null, onEdit = {} }) {
   return (
     <Box
       sx={{
-        bgcolor: "#03050b",
-        color: "#f6f8ff",
+        bgcolor: "var(--color-background)",
+        color: "var(--color-text-primary)",
         minHeight: "100vh",
-        fontFamily: "'Space Grotesk','Segoe UI',sans-serif",
+        fontFamily: "var(--site-font-family, 'Space Grotesk','Segoe UI',sans-serif)",
       }}
     >
       <Box
@@ -218,7 +218,7 @@ export default function HeroSection({ initialContent = null, onEdit = {} }) {
           px: { xs: 2, md: 4 },
           pt: 6,
           mb: 3,
-          bgcolor: "#2563eb",
+          bgcolor: "var(--color-primary)",
           color: "white",
           borderRadius: 2,
           py: 1.5,
@@ -241,16 +241,18 @@ export default function HeroSection({ initialContent = null, onEdit = {} }) {
           px: { xs: 2, md: 4 },
           mb: 3,
           textAlign: "center",
-          flexWrap: "nowrap",
+          justifyContent: "center",
+          alignItems: "stretch",
+          flexWrap: "wrap",
         }}
       >
-          <Grid item xs={12} md={6}>
+          <Grid item xs={12} md={6} sx={{ display: "flex", justifyContent: "center" }}>
             <Card
               sx={{
                 height: "100%",
                 borderRadius: 3,
-                bgcolor: "#0a0f1c",
-                border: "1px solid rgba(255,255,255,0.08)",
+                bgcolor: "#ffffff",
+                border: "1px solid var(--color-border)",
                 overflow: "hidden",
                 position: "relative",
               }}
@@ -274,13 +276,13 @@ export default function HeroSection({ initialContent = null, onEdit = {} }) {
             </Card>
           </Grid>
 
-          <Grid item xs={12} md={6}>
+          <Grid item xs={12} md={6} sx={{ display: "flex", justifyContent: "center" }}>
             <Card
               sx={{
                 height: "100%",
                 borderRadius: 3,
-                bgcolor: "#0f1628",
-                border: "1px solid rgba(255,255,255,0.08)",
+                bgcolor: "var(--color-surface-muted)",
+                border: "1px solid var(--color-border)",
                 p: 3,
                 display: "flex",
                 flexDirection: "column",
@@ -297,7 +299,7 @@ export default function HeroSection({ initialContent = null, onEdit = {} }) {
               <Typography variant="h4" sx={{ fontWeight: 800 }}>
                 {secondCard.title}
               </Typography>
-              <Typography color="rgba(255,255,255,0.7)">
+              <Typography color="var(--color-text-secondary)">
                 {secondCard.subtitle}
               </Typography>
               <Stack spacing={1}>
@@ -305,7 +307,7 @@ export default function HeroSection({ initialContent = null, onEdit = {} }) {
                   <Typography
                     key={line}
                     variant="body2"
-                    sx={{ color: "rgba(255,255,255,0.75)" }}
+                    sx={{ color: "var(--color-text-secondary)" }}
                   >
                     • {line}
                   </Typography>
@@ -316,7 +318,7 @@ export default function HeroSection({ initialContent = null, onEdit = {} }) {
                 size="large"
                 sx={{
                   mt: "auto",
-                  bgcolor: "#2563eb",
+                  bgcolor: "var(--color-primary)",
                   fontWeight: 700,
                   textTransform: "none",
                   borderRadius: 2,
@@ -339,8 +341,8 @@ export default function HeroSection({ initialContent = null, onEdit = {} }) {
               overflow: "hidden",
               display: "grid",
               gridTemplateColumns: { xs: "1fr", md: "1fr 1fr" },
-              border: "1px solid rgba(255,255,255,0.08)",
-              bgcolor: "#0a0f1c",
+              border: "1px solid var(--color-border)",
+              bgcolor: "#ffffff",
               position: "relative",
             }}
           >
@@ -354,11 +356,11 @@ export default function HeroSection({ initialContent = null, onEdit = {} }) {
             <CardContent sx={{ p: { xs: 3, md: 4 } }}>
               <Typography
                 variant="h5"
-                sx={{ fontWeight: 900, mb: 1, color: "#60a5fa" }}
+                sx={{ fontWeight: 900, mb: 1, color: "var(--color-primary)" }}
               >
                 {trainingBlock.title}
               </Typography>
-              <Typography sx={{ color: "rgba(255,255,255,0.78)" }}>
+              <Typography sx={{ color: "var(--color-text-secondary)" }}>
                 {trainingBlock.copy}
               </Typography>
               <Button
@@ -366,7 +368,7 @@ export default function HeroSection({ initialContent = null, onEdit = {} }) {
                 size="large"
                 sx={{
                   mt: 3,
-                  bgcolor: "#2563eb",
+                  bgcolor: "var(--color-primary)",
                   borderRadius: 2,
                   textTransform: "none",
                   ":hover": { bgcolor: "#1d4ed8" },
@@ -380,18 +382,18 @@ export default function HeroSection({ initialContent = null, onEdit = {} }) {
 
         <Box
           sx={{
-            bgcolor: "#0f1628",
+            bgcolor: "var(--color-accent-soft)",
             borderRadius: 3,
             px: 3,
             py: 2,
-            border: "1px solid rgba(255,255,255,0.08)",
+            border: "1px solid var(--color-border)",
             textAlign: "center",
             mb: 3,
             position: "relative",
           }}
         >
           {renderEditButton("products")}
-          <Typography variant="body2" color="rgba(255,255,255,0.75)">
+          <Typography variant="body2" color="var(--color-text-secondary)">
             {productsSection.announcement}
           </Typography>
         </Box>
@@ -401,17 +403,17 @@ export default function HeroSection({ initialContent = null, onEdit = {} }) {
           <Typography variant="h6" sx={{ fontWeight: 800, mb: 2 }}>
             {productsSection.title}
           </Typography>
-          <Grid container spacing={2}>
+          <Grid container spacing={2} justifyContent="center">
             {products.length === 0 && (
               <Grid item xs={12}>
                 <Box
                   sx={{
                     borderRadius: 2,
                     p: 3,
-                    bgcolor: "rgba(255,255,255,0.04)",
-                    border: "1px dashed rgba(255,255,255,0.1)",
+                    bgcolor: "#ffffff",
+                    border: "1px dashed var(--color-border)",
                     textAlign: "center",
-                    color: "rgba(255,255,255,0.7)",
+                    color: "var(--color-text-secondary)",
                   }}
                 >
                   No products found. Add products in the dashboard to see them here.
@@ -438,17 +440,17 @@ export default function HeroSection({ initialContent = null, onEdit = {} }) {
                   : "";
               const alt = item.alt || item.name || title;
               return (
-                <Grid item xs={12} sm={6} md={3} key={title}>
+                <Grid item xs={12} sm={6} md={3} key={title} sx={{ display: "flex", justifyContent: "center" }}>
                   <Card
                     sx={{
-                      width: { xs: "100%", sm: 300 },
-                      minWidth: 300,
+                      width: "100%",
+                      minWidth: 0,
                       maxWidth: 300,
                       height: 500,
                       borderRadius: 2.5,
                       overflow: "hidden",
-                      bgcolor: "#0a0f1c",
-                      border: "1px solid rgba(255,255,255,0.08)",
+                      bgcolor: "#ffffff",
+                      border: "1px solid var(--color-border)",
                       position: "relative",
                       display: "flex",
                       flexDirection: "column",
@@ -465,7 +467,7 @@ export default function HeroSection({ initialContent = null, onEdit = {} }) {
                       <Typography
                         sx={{
                           fontWeight: 700,
-                          color: "#f8fafc",
+                          color: "var(--color-text-primary)",
                           fontSize: "0.85rem",
                           lineHeight: 1.25,
                           display: "-webkit-box",
@@ -479,7 +481,7 @@ export default function HeroSection({ initialContent = null, onEdit = {} }) {
                       >
                         {title}
                       </Typography>
-                      <Typography sx={{ color: "#e2e8f0", fontSize: "0.85rem", mb: 1 }}>
+                      <Typography sx={{ color: "var(--color-text-secondary)", fontSize: "0.85rem", mb: 1 }}>
                         {price}
                       </Typography>
                       <Box sx={{ mt: "auto" }}>
@@ -513,7 +515,7 @@ export default function HeroSection({ initialContent = null, onEdit = {} }) {
                                 height: 56,
                                 objectFit: "cover",
                                 borderRadius: 1,
-                                border: "1px solid rgba(255,255,255,0.1)",
+                                border: "1px solid var(--color-border)",
                               }}
                             />
                           ))}
@@ -534,21 +536,22 @@ export default function HeroSection({ initialContent = null, onEdit = {} }) {
           >
             See Action...
           </Typography>
-          <Grid container spacing={2}>
+          <Grid container spacing={2} justifyContent="center">
             {actionShots.map((shot, idx) => {
               const isVideo = !!shot.video || (shot.src && (shot.src.endsWith(".mp4") || shot.src.endsWith(".webm")));
               return (
-                <Grid item xs={12} sm={6} md={3} key={`${shot.video || shot.src || "action"}-${idx}`}>
+                <Grid item xs={12} sm={6} md={3} key={`${shot.video || shot.src || "action"}-${idx}`} sx={{ display: "flex", justifyContent: "center" }}>
                   <Box
                     sx={{
-                      height: "300px",
-                      width: "250px",
+                      height: 220,
+                      width: "100%",
+                      maxWidth: 250,
+                      mx: "auto",
                       position: "relative",
                       borderRadius: 2,
                       overflow: "hidden",
-                      border: "1px solid rgba(255,255,255,0.08)",
-                      bgcolor: "#0a0f1c",
-                      height: 220,
+                      border: "1px solid var(--color-border)",
+                      bgcolor: "#ffffff",
                     }}
                   >
                     {idx === 0 && renderEditButton("actionShots")}
@@ -605,13 +608,13 @@ export default function HeroSection({ initialContent = null, onEdit = {} }) {
           </Grid>
         </Box>
 
-        <Grid container spacing={3} alignItems="stretch" sx={{ mb: 4 }}>
-          <Grid item xs={12} md={12}>
+        <Grid container spacing={3} alignItems="stretch" justifyContent="center" sx={{ mb: 4 }}>
+          <Grid item xs={12} md={12} sx={{ display: "flex", justifyContent: "center" }}>
             <Card
               sx={{
                 height: "100%",
                 borderRadius: 3,
-                border: "1px solid rgba(255,255,255,0.08)",
+                border: "1px solid var(--color-border)",
                 overflow: "hidden",
                 display: "grid",
                 gridTemplateColumns: { xs: "1fr", sm: "1fr 1fr" },
@@ -627,23 +630,23 @@ export default function HeroSection({ initialContent = null, onEdit = {} }) {
                   sx={{ height: "100%", objectFit: "cover" }}
                 />
               </Box>
-              <CardContent sx={{ p: 3, bgcolor: "#2563eb" }}>
+              <CardContent sx={{ p: 3, bgcolor: "var(--color-primary)" }}>
                 <Typography variant="h6" sx={{ fontWeight: 800, mb: 1 }}>
                   {welcome.headline || "Welcome to"}
                 </Typography>
                 <Typography variant="h5" sx={{ fontWeight: 900, mb: 2 }}>
                   {welcome.title}
                 </Typography>
-                <Typography sx={{ color: "rgba(255,255,255,0.9)", mb: 2 }}>
+                <Typography sx={{ color: "#ffffff", mb: 2 }}>
                   {welcome.copy}
                 </Typography>
                 <Button
                   variant="contained"
                   sx={{
-                    bgcolor: "#0f172a",
+                    bgcolor: "var(--color-accent)",
                     borderRadius: 2,
                     textTransform: "none",
-                    ":hover": { bgcolor: "#0b1220" },
+                    ":hover": { bgcolor: "var(--color-accent-dark)" },
                   }}
                 >
                   {welcome.cta || "Join Now"}
@@ -655,7 +658,7 @@ export default function HeroSection({ initialContent = null, onEdit = {} }) {
 
         <Box
           sx={{
-            bgcolor: "#2563eb",
+            bgcolor: "var(--color-primary)",
             borderRadius: 3,
             p: 3,
             mb: 5,
@@ -670,9 +673,9 @@ export default function HeroSection({ initialContent = null, onEdit = {} }) {
           >
             Train Better. Shop Smarter.
           </Typography>
-          <Grid container spacing={2}>
+          <Grid container spacing={2} justifyContent="center">
             {features.map((item) => (
-              <Grid item xs={12} sm={6} md={3} key={item.title}>
+              <Grid item xs={12} sm={6} md={3} key={item.title} sx={{ display: "flex", justifyContent: "center" }}>
                 <Card
                   sx={{
                     borderRadius: 2,

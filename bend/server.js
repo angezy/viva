@@ -47,6 +47,7 @@ app.use((req, res, next) => {
 // Startup diagnostic logs
 console.log('Backend startup: NODE_ENV=', process.env.NODE_ENV);
 console.log('Backend startup: JWT_SECRET present=', !!process.env.JWT_SECRET);
+console.log('Backend startup: Telegram support configured=', Boolean(process.env.TELEGRAM_BOT_TOKEN && (process.env.TELEGRAM_ADMIN_CHAT_ID || process.env.TELEGRAM_CHAT_ID)));
 
 async function startApolloServer() {
 	const server = new ApolloServer({ typeDefs, resolvers });

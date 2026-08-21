@@ -34,7 +34,9 @@ function clearCookieOptions() {
 }
 
 module.exports = {
-  AUTH_COOKIE_NAME: "viva_token",
+  ADMIN_AUTH_COOKIE_NAME: "viva_admin_token",
+  CUSTOMER_AUTH_COOKIE_NAME: "viva_customer_token",
+  LEGACY_AUTH_COOKIE_NAME: "viva_token",
   GUEST_COOKIE_NAME: "viva_guest_id",
   authCookieOptions,
   guestCookieOptions,

@@ -1,5 +1,6 @@
 import { promises as fs } from "fs";
 import path from "path";
+import { getSiteSettingsServer, siteUrlFor } from "./siteSettingsServer";
 
 const LEGAL_FILES = {
   "privacy-policy": "privacy-policy.json",
@@ -18,19 +19,21 @@ export async function getLegalContent(slug, fallback) {
   }
 }
 
-export function getLegalMetadata(content, slug) {
+export async function getLegalMetadata(content, slug) {
+  const site = await getSiteSettingsServer();
   const seo = content?.seo || {};
-  const title = seo.title || content?.hero?.title || "Weluxo Policy";
-  const description = seo.description || content?.hero?.intro || "Weluxo customer information.";
+  const title = seo.title || content?.hero?.title || `${site.siteName} Policy`;
+  const description = seo.description || content?.hero?.intro || `${site.siteName} customer information.`;
+  const url = siteUrlFor(site, `/${slug}`);
   return {
     title,
     description,
-    alternates: { canonical: `https://weluxo.com/${slug}` },
+    alternates: { canonical: url },
     openGraph: {
       title,
       description,
-      url: `https://weluxo.com/${slug}`,
-      siteName: "Weluxo",
+      url,
+      siteName: site.siteName,
       type: "website",
     },
     twitter: { card: "summary", title, description },

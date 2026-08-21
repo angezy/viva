@@ -36,7 +36,7 @@ export default function AdminTicketList() {
       <Container maxWidth="xl">
         <Stack direction={{ xs: "column", md: "row" }} justifyContent="space-between" gap={2} sx={{ mb: 3 }}>
           <Box>
-            <Typography variant="overline" sx={{ color: "#2563eb", fontWeight: 800, letterSpacing: "0.14em" }}>ADMIN OPERATIONS</Typography>
+            <Typography variant="overline" sx={{ color: "var(--color-primary)", fontWeight: 800, letterSpacing: "0.14em" }}>ADMIN OPERATIONS</Typography>
             <Typography component="h1" sx={{ fontWeight: 850, fontSize: { xs: "2.5rem", md: "4rem" }, letterSpacing: "-0.05em", lineHeight: 1 }}>Support tickets</Typography>
             <Typography sx={{ color: "#64748b", mt: 1 }}>Search, assign, prioritize, and resolve customer conversations.</Typography>
           </Box>
@@ -78,7 +78,7 @@ export default function AdminTicketList() {
             >
               <Stack direction={{ xs: "column", md: "row" }} justifyContent="space-between" gap={2}>
                 <Box>
-                  <Typography sx={{ color: "#2563eb", fontSize: 12, fontWeight: 800 }}>{ticket.ticketNumber}</Typography>
+                  <Typography sx={{ color: "var(--color-primary)", fontSize: 12, fontWeight: 800 }}>{ticket.ticketNumber}</Typography>
                   <Typography sx={{ fontWeight: 800 }}>{ticket.subject}</Typography>
                   <Typography sx={{ color: "#64748b", fontSize: 13 }}>{ticket.customerName} · {ticket.customerEmail} · {ticket.category}</Typography>
                 </Box>

@@ -1,13 +1,17 @@
-export default function LegalStructuredData({ content, slug }) {
-  const title = content?.hero?.title || "Weluxo Policy";
-  const description = content?.seo?.description || content?.hero?.intro || "Weluxo customer information.";
+import { getSiteSettingsServer, siteUrlFor } from "../lib/siteSettingsServer";
+
+export default async function LegalStructuredData({ content, slug }) {
+  const site = await getSiteSettingsServer();
+  const siteUrl = siteUrlFor(site);
+  const title = content?.hero?.title || `${site.siteName} Policy`;
+  const description = content?.seo?.description || content?.hero?.intro || `${site.siteName} customer information.`;
   const faqItems = Array.isArray(content?.faq?.items) ? content.faq.items : [];
   const pageUrl = `https://weluxo.com/${slug}`;
   const graph = [
     {
       "@type": "Organization",
       "@id": "https://weluxo.com/#organization",
-      name: "Weluxo",
+      name: site.siteName,
       url: "https://weluxo.com",
     },
     {
@@ -36,7 +40,7 @@ export default function LegalStructuredData({ content, slug }) {
     "@type": "WebSite",
     "@id": "https://weluxo.com/#website",
     url: "https://weluxo.com",
-    name: "Weluxo",
+    name: site.siteName,
     publisher: { "@id": "https://weluxo.com/#organization" },
   });
 

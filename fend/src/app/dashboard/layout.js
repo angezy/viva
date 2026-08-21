@@ -1,13 +1,13 @@
 import React from 'react'
 import { cookies } from 'next/headers'
 import { redirect } from 'next/navigation'
-import { COOKIE_NAME, verifyToken } from '../../lib/auth'
+import { ADMIN_COOKIE_NAME, verifyToken } from '../../lib/auth'
 import ClientDashboardLayout from './ClientDashboardLayout'
 
 export default async function DashboardLayout({ children }) {
   // server-side check for auth cookie (await cookies() per Next.js requirement)
   const cookieStore = await cookies()
-  const tokenCookie = cookieStore.get(COOKIE_NAME)
+  const tokenCookie = cookieStore.get(ADMIN_COOKIE_NAME)
   const token = tokenCookie?.value
   // quick debug logging to help trace why token verification may fail
   try {
@@ -23,7 +23,7 @@ export default async function DashboardLayout({ children }) {
 
   console.log('[dashboard/layout] verifyToken returned:', user ? { sub: user.sub, email: user.email, role: user.role } : null)
 
-  if (!user || (user.role && user.role !== 'admin')) {
+  if (!user || String(user.role || '').toLowerCase() !== 'admin') {
     // not authenticated or not an admin - redirect to admin sign in
     redirect('/signin/admin')
   }

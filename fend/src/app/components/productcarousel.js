@@ -48,8 +48,8 @@ export default function ProductCarousel() {
         <Card
           sx={{
             borderRadius: 4,
-            background: "rgba(255,255,255,0.08)",
-            border: "1px solid rgba(255,255,255,0.15)",
+            background: "#ffffff",
+            border: "1px solid var(--color-border)",
             backdropFilter: "blur(16px)",
           }}
         >
@@ -69,7 +69,7 @@ export default function ProductCarousel() {
         mx: "auto",
         py: 8,
         px: 2,
-        background: "linear-gradient(135deg, rgba(47,73,255,0.15), rgba(255,255,255,0.05))",
+        background: "linear-gradient(135deg, var(--color-primary-soft), var(--color-accent-soft))",
         borderRadius: 6,
       }}
     >
@@ -99,16 +99,16 @@ export default function ProductCarousel() {
                   <Card
                     sx={{
                       borderRadius: 4,
-                      background: "rgba(6,11,40,0.65)",
-                      border: "1px solid rgba(255,255,255,0.08)",
-                      color: "white",
+                      background: "#ffffff",
+                      border: "1px solid var(--color-border)",
+                      color: "var(--color-text-primary)",
                       height: "100%",
                       display: "flex",
                       flexDirection: "column",
                       overflow: "hidden",
-                      boxShadow: "0 20px 40px rgba(15,23,42,0.35)",
+                      boxShadow: "0 20px 40px rgba(43,43,43,0.08)",
                       transition: "transform 0.35s ease, box-shadow 0.35s ease",
-                      "&:hover": { transform: "translateY(-6px)", boxShadow: "0 30px 60px rgba(15,23,42,0.45)" },
+                      "&:hover": { transform: "translateY(-6px)", boxShadow: "0 30px 60px rgba(43,43,43,0.12)" },
                     }}
                   >
                     {image ? (
@@ -117,7 +117,7 @@ export default function ProductCarousel() {
                         height="220"
                         image={image}
                         alt={title}
-                        sx={{ objectFit: "cover", filter: "saturate(1.1)", borderBottom: "1px solid rgba(255,255,255,0.08)" }}
+                        sx={{ objectFit: "cover", filter: "saturate(1.1)", borderBottom: "1px solid var(--color-border)" }}
                       />
                     ) : (
                       <Skeleton variant="rectangular" height={220} />
@@ -133,7 +133,7 @@ export default function ProductCarousel() {
                       <Typography
                         variant="body2"
                         sx={{
-                          color: "rgba(255,255,255,0.7)",
+                          color: "var(--color-text-secondary)",
                           mb: 2,
                           overflow: "hidden",
                           textOverflow: "ellipsis",

@@ -24,19 +24,19 @@ import { toast } from "../lib/notifications";
 
 const API_BASE = "";
 
-const labelSx = { color: "rgba(255,255,255,0.85)" };
+const labelSx = { color: "var(--color-text-secondary)" };
 const inputSx = {
-  color: "white",
-  backgroundColor: "rgba(255,255,255,0.04)",
+  color: "var(--color-text-primary)",
+  backgroundColor: "#ffffff",
   borderRadius: 1.5,
-  "& .MuiOutlinedInput-notchedOutline": { borderColor: "rgba(255,255,255,0.2)" },
-  "&:hover .MuiOutlinedInput-notchedOutline": { borderColor: "rgba(255,255,255,0.35)" },
-  "&.Mui-focused .MuiOutlinedInput-notchedOutline": { borderColor: "#e1c98c" },
+  "& .MuiOutlinedInput-notchedOutline": { borderColor: "var(--color-border)" },
+  "&:hover .MuiOutlinedInput-notchedOutline": { borderColor: "var(--color-primary)" },
+  "&.Mui-focused .MuiOutlinedInput-notchedOutline": { borderColor: "var(--color-primary)" },
 };
-const helperSx = { color: "rgba(255,255,255,0.8)" };
+const helperSx = { color: "var(--color-text-secondary)" };
 const checkboxSx = {
-  color: "rgba(255,255,255,0.55)",
-  "&.Mui-checked": { color: "#e1c98c" },
+  color: "#a0a2a5",
+  "&.Mui-checked": { color: "var(--color-accent)" },
 };
 
 const months = [
@@ -124,12 +124,12 @@ export default function SignupPage() {
   };
 
   return (
-    <Box sx={{ minHeight: "100vh", display: "flex", alignItems: "center", bgcolor: "#0b1220", color: "white", py: { xs: 3, sm: 6 } }}>
+    <Box sx={{ minHeight: "100vh", display: "flex", alignItems: "center", bgcolor: "var(--color-background)", color: "var(--color-text-primary)", py: { xs: 3, sm: 6 } }}>
       <Container maxWidth="sm">
-        <Card sx={{ borderRadius: 3, border: "1px solid rgba(255,255,255,0.12)", background: "linear-gradient(180deg, rgba(26,35,58,0.95), rgba(12,18,36,0.98))", boxShadow: "0 20px 60px rgba(0,0,0,0.35)" }}>
+        <Card sx={{ borderRadius: 3, border: "1px solid var(--color-border)", bgcolor: "#ffffff", boxShadow: "0 20px 60px rgba(43,43,43,0.08)" }}>
           <CardContent sx={{ p: { xs: 2.5, sm: 4 } }}>
             <Typography variant="h5" sx={{ fontWeight: 800, mb: 1 }}>Create your account</Typography>
-            <Typography sx={{ color: "rgba(255,255,255,0.7)", mb: 3 }}>Join Weluxo for a more personal shopping experience.</Typography>
+            <Typography sx={{ color: "var(--color-text-secondary)", mb: 3 }}>Join Weluxo for a more personal shopping experience.</Typography>
             {error && <Alert severity="error" sx={{ mb: 2 }}>{error}</Alert>}
 
             <Stack spacing={2} component="form" onSubmit={handleSubmit}>
@@ -143,21 +143,21 @@ export default function SignupPage() {
 
               <Stack direction={{ xs: "column", sm: "row" }} spacing={2} alignItems={{ sm: "center" }}>
                 <TextField label="Phone Number" type="tel" value={form.phone} onChange={handleChange("phone")} fullWidth autoComplete="tel" InputLabelProps={{ sx: labelSx }} InputProps={{ sx: inputSx }} />
-                <Typography sx={{ flex: 1, minWidth: 190, color: "rgba(255,255,255,0.88)", fontSize: 12, lineHeight: 1.35, fontWeight: 700 }}>Enter your phone number for easy lookup in stores.</Typography>
+                <Typography sx={{ flex: 1, minWidth: 190, color: "var(--color-text-secondary)", fontSize: 12, lineHeight: 1.35, fontWeight: 700 }}>Enter your phone number for easy lookup in stores.</Typography>
               </Stack>
 
               <FormControlLabel
                 control={<Checkbox checked={form.smsMarketing} onChange={(event) => setForm((current) => ({ ...current, smsMarketing: event.target.checked }))} sx={checkboxSx} />}
-                label={<Typography sx={{ color: "rgba(255,255,255,0.94)", fontSize: 14, fontWeight: 750 }}>Sign me up for Weluxo marketing text alerts.</Typography>}
+                label={<Typography sx={{ color: "var(--color-text-primary)", fontSize: 14, fontWeight: 750 }}>Sign me up for Weluxo marketing text alerts.</Typography>}
                 sx={{ m: 0, alignItems: "flex-start" }}
               />
-              <Typography sx={{ color: "rgba(255,255,255,0.64)", fontSize: 12, lineHeight: 1.55, mt: -1 }}>
-                By entering your phone number and selecting this checkbox, you consent to recurring automated marketing text messages from Weluxo. Consent is not a condition of purchase. Message and data rates may apply. See our <MuiLink href="/privacy-policy" underline="always" sx={{ color: "#e1c98c" }}>Privacy Policy</MuiLink> and <MuiLink href="/terms-conditions" underline="always" sx={{ color: "#e1c98c" }}>Terms of Use</MuiLink>. Reply STOP to cancel at any time.
+              <Typography sx={{ color: "var(--color-text-secondary)", fontSize: 12, lineHeight: 1.55, mt: -1 }}>
+                By entering your phone number and selecting this checkbox, you consent to recurring automated marketing text messages from Weluxo. Consent is not a condition of purchase. Message and data rates may apply. See our <MuiLink href="/privacy-policy" underline="always" sx={{ color: "var(--color-primary)" }}>Privacy Policy</MuiLink> and <MuiLink href="/terms-conditions" underline="always" sx={{ color: "var(--color-primary)" }}>Terms of Use</MuiLink>. Reply STOP to cancel at any time.
               </Typography>
 
               <Stack direction="row" spacing={1.25} alignItems="center" sx={{ pt: 0.5 }}>
-                <CakeOutlinedIcon sx={{ color: "#e1c98c" }} />
-                <Typography sx={{ color: "rgba(255,255,255,0.94)", fontSize: 14, fontWeight: 750 }}>Enter your birthday to receive a free gift every year.</Typography>
+                <CakeOutlinedIcon sx={{ color: "var(--color-accent)" }} />
+                <Typography sx={{ color: "var(--color-text-primary)", fontSize: 14, fontWeight: 750 }}>Enter your birthday to receive a free gift every year.</Typography>
               </Stack>
               <Stack direction={{ xs: "column", sm: "row" }} spacing={2}>
                 <TextField select label="Month" value={form.birthdayMonth} onChange={handleChange("birthdayMonth")} fullWidth InputLabelProps={{ sx: labelSx }} InputProps={{ sx: inputSx }}>
@@ -173,21 +173,21 @@ export default function SignupPage() {
               <Stack direction="row" spacing={0.25} alignItems="center" sx={{ ml: -1 }}>
                 <FormControlLabel
                   control={<Checkbox checked={form.keepSignedIn} onChange={(event) => setForm((current) => ({ ...current, keepSignedIn: event.target.checked }))} sx={checkboxSx} />}
-                  label={<Typography sx={{ color: "rgba(255,255,255,0.9)", fontSize: 14 }}>Keep me signed in</Typography>}
+                  label={<Typography sx={{ color: "var(--color-text-primary)", fontSize: 14 }}>Keep me signed in</Typography>}
                   sx={{ m: 0 }}
                 />
                 <Tooltip title="We only remember this preference. Your password is never stored in the browser.">
-                  <InfoOutlinedIcon sx={{ color: "rgba(255,255,255,0.6)", fontSize: 18, cursor: "help" }} />
+                  <InfoOutlinedIcon sx={{ color: "var(--color-text-secondary)", fontSize: 18, cursor: "help" }} />
                 </Tooltip>
               </Stack>
-              <Typography sx={{ color: "rgba(255,255,255,0.64)", fontSize: 12, lineHeight: 1.55 }}>
-                By clicking Join Now, you agree to our <MuiLink href="/terms-conditions" underline="always" sx={{ color: "#e1c98c" }}>Terms of Use</MuiLink> and acknowledge our <MuiLink href="/privacy-policy" underline="always" sx={{ color: "#e1c98c" }}>Privacy Policy</MuiLink>.
+              <Typography sx={{ color: "var(--color-text-secondary)", fontSize: 12, lineHeight: 1.55 }}>
+                By clicking Join Now, you agree to our <MuiLink href="/terms-conditions" underline="always" sx={{ color: "var(--color-primary)" }}>Terms of Use</MuiLink> and acknowledge our <MuiLink href="/privacy-policy" underline="always" sx={{ color: "var(--color-primary)" }}>Privacy Policy</MuiLink>.
               </Typography>
 
-              <Button type="submit" variant="contained" size="large" disabled={loading} sx={{ borderRadius: 999, py: 1.35, backgroundColor: "#050505", color: "white", fontWeight: 800, textTransform: "none", "&:hover": { backgroundColor: "#202020" } }}>
+              <Button type="submit" variant="contained" size="large" disabled={loading} sx={{ borderRadius: 999, py: 1.35, backgroundColor: "var(--color-primary)", color: "#ffffff", fontWeight: 800, textTransform: "none", "&:hover": { backgroundColor: "var(--color-primary-dark)" } }}>
                 {loading ? "Joining..." : "Join Now"}
               </Button>
-              <Button variant="text" onClick={() => router.push("/signin")} sx={{ color: "rgba(255,255,255,0.85)" }}>Already have an account? Sign in</Button>
+              <Button variant="text" onClick={() => router.push("/signin")} sx={{ color: "var(--color-primary)" }}>Already have an account? Sign in</Button>
             </Stack>
           </CardContent>
         </Card>

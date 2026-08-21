@@ -48,18 +48,18 @@ const initialForm = {
 const fieldSx = {
   "& .MuiOutlinedInput-root": {
     borderRadius: "14px",
-    backgroundColor: "rgba(255,255,255,0.86)",
-    color: "#17352a",
+    backgroundColor: "#ffffff",
+    color: "var(--color-text-primary)",
     transition: "box-shadow 180ms ease, border-color 180ms ease",
-    "& fieldset": { borderColor: "#d9e2da" },
-    "&:hover fieldset": { borderColor: "#8aa995" },
+    "& fieldset": { borderColor: "var(--color-border)" },
+    "&:hover fieldset": { borderColor: "var(--color-primary)" },
     "&.Mui-focused": {
-      boxShadow: "0 0 0 4px rgba(18,55,42,0.09)",
+      boxShadow: "0 0 0 4px rgba(37,99,235,0.1)",
     },
-    "&.Mui-focused fieldset": { borderColor: "#12372a" },
+    "&.Mui-focused fieldset": { borderColor: "var(--color-primary)" },
   },
-  "& .MuiInputLabel-root": { color: "#6b7d72" },
-  "& .MuiInputLabel-root.Mui-focused": { color: "#12372a" },
+  "& .MuiInputLabel-root": { color: "var(--color-text-secondary)" },
+  "& .MuiInputLabel-root.Mui-focused": { color: "var(--color-primary)" },
 };
 
 function ContactPage() {
@@ -128,7 +128,7 @@ function ContactPage() {
   }
 
   return (
-    <Box component="main" sx={{ bgcolor: "#f5f2eb", color: "#12372a", minHeight: "100vh", overflow: "hidden" }}>
+    <Box component="main" sx={{ bgcolor: "var(--color-background)", color: "var(--color-text-primary)", minHeight: "100vh", overflow: "hidden" }}>
       <Container maxWidth="lg" sx={{ py: { xs: 2, md: 4 } }}>
         <Box
           component="section"
@@ -144,9 +144,9 @@ function ContactPage() {
             py: { xs: 5, md: 8 },
             minHeight: { md: 500 },
             borderRadius: { xs: 4, md: 6 },
-            color: "#fff",
-            background: "linear-gradient(130deg, #0b2118 0%, #12372a 56%, #1e4b39 100%)",
-            boxShadow: "0 28px 80px rgba(18,55,42,0.18)",
+            color: "var(--color-text-primary)",
+            background: "linear-gradient(130deg, var(--color-primary-soft) 0%, #ffffff 56%, var(--color-accent-soft) 100%)",
+            boxShadow: "0 28px 80px rgba(43,43,43,0.1)",
             "&::before": {
               content: '""',
               position: "absolute",
@@ -155,8 +155,8 @@ function ContactPage() {
               right: -220,
               top: -270,
               borderRadius: "50%",
-              border: "1px solid rgba(218,190,121,0.28)",
-              boxShadow: "0 0 0 34px rgba(218,190,121,0.035), 0 0 0 70px rgba(218,190,121,0.025)",
+              border: "1px solid rgba(242,140,40,0.28)",
+              boxShadow: "0 0 0 34px rgba(242,140,40,0.035), 0 0 0 70px rgba(242,140,40,0.025)",
             },
             "&::after": {
               content: '""',
@@ -166,7 +166,7 @@ function ContactPage() {
               left: -110,
               bottom: -130,
               borderRadius: "50%",
-              background: "rgba(160,207,177,0.12)",
+              background: "rgba(37,99,235,0.1)",
               filter: "blur(4px)",
             },
           }}
@@ -177,9 +177,9 @@ function ContactPage() {
               size="small"
               sx={{
                 mb: 2.5,
-                color: "#e1c98c",
-                backgroundColor: "rgba(225,201,140,0.12)",
-                border: "1px solid rgba(225,201,140,0.3)",
+                color: "var(--color-accent-dark)",
+                backgroundColor: "var(--color-accent-soft)",
+                border: "1px solid rgba(242,140,40,0.3)",
                 fontSize: 11,
                 fontWeight: 800,
                 letterSpacing: "0.16em",
@@ -198,14 +198,14 @@ function ContactPage() {
             >
               A clear path to your next answer.
             </Typography>
-            <Typography sx={{ maxWidth: 550, mt: 3, color: "rgba(255,255,255,0.72)", lineHeight: 1.75, fontSize: { xs: 15, md: 17 } }}>
+            <Typography sx={{ maxWidth: 550, mt: 3, color: "var(--color-text-secondary)", lineHeight: 1.75, fontSize: { xs: 15, md: 17 } }}>
               Whether you are checking an order, choosing the right product, or planning what comes next, our team is here to make the experience feel effortless.
             </Typography>
             <Stack direction={{ xs: "column", sm: "row" }} spacing={1.5} sx={{ mt: 4 }}>
-              <Button component={Link} href="#contact-form" variant="contained" endIcon={<ArrowForwardRounded />} sx={{ alignSelf: "flex-start", borderRadius: 999, px: 2.5, py: 1.2, textTransform: "none", fontWeight: 800, color: "#12372a", bgcolor: "#e1c98c", "&:hover": { bgcolor: "#eddca9" } }}>
+              <Button component={Link} href="#contact-form" variant="contained" endIcon={<ArrowForwardRounded />} sx={{ alignSelf: "flex-start", borderRadius: 999, px: 2.5, py: 1.2, textTransform: "none", fontWeight: 800, color: "#ffffff", bgcolor: "var(--color-primary)", "&:hover": { bgcolor: "var(--color-primary-dark)" } }}>
                 Start a conversation
               </Button>
-              <Button component={Link} href="/help-center" variant="text" endIcon={<NorthEastRounded />} sx={{ alignSelf: "flex-start", color: "#d9ebdd", textTransform: "none", fontWeight: 750, py: 1.2 }}>
+              <Button component={Link} href="/help-center" variant="text" endIcon={<NorthEastRounded />} sx={{ alignSelf: "flex-start", color: "var(--color-primary)", textTransform: "none", fontWeight: 750, py: 1.2 }}>
                 Visit Help
               </Button>
             </Stack>
@@ -221,9 +221,9 @@ function ContactPage() {
               display: "flex",
               flexDirection: "column",
               justifyContent: "space-between",
-              color: "#17352a",
-              bgcolor: "rgba(249,247,240,0.96)",
-              border: "1px solid rgba(255,255,255,0.62)",
+              color: "var(--color-text-primary)",
+              bgcolor: "#ffffff",
+              border: "1px solid var(--color-border)",
               borderRadius: 3.5,
               boxShadow: "0 22px 55px rgba(3,20,13,0.2)",
             }}
@@ -238,11 +238,11 @@ function ContactPage() {
               <Divider sx={{ my: 3, borderColor: "#d9e2da" }} />
               <Stack spacing={2}>
                 <Stack direction="row" spacing={1.5} alignItems="center">
-                  <Box sx={{ display: "grid", placeItems: "center", width: 36, height: 36, borderRadius: "50%", bgcolor: "#e7efe8", color: "#3e785e" }}><AccessTimeOutlined fontSize="small" /></Box>
+                  <Box sx={{ display: "grid", placeItems: "center", width: 36, height: 36, borderRadius: "50%", bgcolor: "var(--color-primary-soft)", color: "var(--color-primary)" }}><AccessTimeOutlined fontSize="small" /></Box>
                   <Box><Typography sx={{ fontWeight: 800, fontSize: 14 }}>Usually within 24–48 hours</Typography><Typography sx={{ color: "#6b7d72", fontSize: 12 }}>A real person will read your message.</Typography></Box>
                 </Stack>
                 <Stack direction="row" spacing={1.5} alignItems="center">
-                  <Box sx={{ display: "grid", placeItems: "center", width: 36, height: 36, borderRadius: "50%", bgcolor: "#f1ead8", color: "#9a7737" }}><MailOutlineRounded fontSize="small" /></Box>
+                  <Box sx={{ display: "grid", placeItems: "center", width: 36, height: 36, borderRadius: "50%", bgcolor: "var(--color-accent-soft)", color: "var(--color-accent)" }}><MailOutlineRounded fontSize="small" /></Box>
                   <Box><Typography sx={{ fontWeight: 800, fontSize: 14 }}>support@weluxo.com</Typography><Typography sx={{ color: "#6b7d72", fontSize: 12 }}>For direct support by email.</Typography></Box>
                 </Stack>
               </Stack>
@@ -252,7 +252,7 @@ function ContactPage() {
 
         <Box sx={{ display: "grid", gridTemplateColumns: { xs: "1fr", md: "0.7fr 1.3fr" }, gap: { xs: 4, md: 8 }, alignItems: "start", mt: { xs: 6, md: 10 } }}>
           <Box component="aside" sx={{ position: { md: "sticky" }, top: { md: 24 } }}>
-            <Typography sx={{ color: "#3e785e", fontWeight: 850, fontSize: 11, letterSpacing: "0.16em" }}>HOW CAN WE HELP?</Typography>
+            <Typography sx={{ color: "var(--color-primary)", fontWeight: 850, fontSize: 11, letterSpacing: "0.16em" }}>HOW CAN WE HELP?</Typography>
             <Typography component="h2" sx={{ mt: 1.5, fontSize: { xs: "2.25rem", md: "3.2rem" }, lineHeight: 0.98, letterSpacing: "-0.055em", fontWeight: 850 }}>
               Send the details. We’ll take it from here.
             </Typography>
@@ -265,20 +265,20 @@ function ContactPage() {
                 [<CheckCircleOutlineRounded key="clear" />, "Clear next steps", "We will tell you exactly what happens next."],
               ].map(([icon, title, copy]) => (
                 <Stack key={title} direction="row" spacing={1.5} alignItems="flex-start" sx={{ p: 1.5, borderRadius: 2.5, bgcolor: "rgba(255,255,255,0.46)" }}>
-                  <Box sx={{ color: "#3e785e", mt: 0.2 }}>{icon}</Box>
+                  <Box sx={{ color: "var(--color-accent)", mt: 0.2 }}>{icon}</Box>
                   <Box><Typography sx={{ fontWeight: 820, fontSize: 14 }}>{title}</Typography><Typography sx={{ color: "#6b7d72", fontSize: 13, mt: 0.25 }}>{copy}</Typography></Box>
                 </Stack>
               ))}
             </Stack>
-            <Button component={Link} href="/tracking" endIcon={<NorthEastRounded />} sx={{ mt: 2, px: 0, color: "#12372a", textTransform: "none", fontWeight: 800 }}>
+            <Button component={Link} href="/tracking" endIcon={<NorthEastRounded />} sx={{ mt: 2, px: 0, color: "var(--color-primary)", textTransform: "none", fontWeight: 800 }}>
               Looking for an order update?
             </Button>
           </Box>
 
-          <Paper id="contact-form" component="form" onSubmit={submit} elevation={0} sx={{ p: { xs: 2.5, sm: 4, md: 5 }, borderRadius: { xs: 3, md: 4 }, bgcolor: "rgba(255,255,255,0.78)", border: "1px solid #dbe5dc", boxShadow: "0 18px 55px rgba(46,70,55,0.08)" }}>
+          <Paper id="contact-form" component="form" onSubmit={submit} elevation={0} sx={{ p: { xs: 2.5, sm: 4, md: 5 }, borderRadius: { xs: 3, md: 4 }, bgcolor: "#ffffff", border: "1px solid var(--color-border)", boxShadow: "0 18px 55px rgba(43,43,43,0.08)" }}>
             <Stack direction={{ xs: "column", sm: "row" }} justifyContent="space-between" gap={2} sx={{ mb: 3.5 }}>
               <Box>
-                <Typography sx={{ color: "#3e785e", fontWeight: 850, fontSize: 11, letterSpacing: "0.16em" }}>CONTACT US</Typography>
+                <Typography sx={{ color: "var(--color-primary)", fontWeight: 850, fontSize: 11, letterSpacing: "0.16em" }}>CONTACT US</Typography>
                 <Typography component="h2" sx={{ mt: 1, fontWeight: 850, fontSize: { xs: "2rem", md: "2.65rem" }, letterSpacing: "-0.05em", lineHeight: 1 }}>Tell us what you need.</Typography>
               </Box>
               <Typography sx={{ color: "#718078", fontSize: 13, maxWidth: 185, lineHeight: 1.55 }}>Fields marked with * are required.</Typography>
@@ -297,7 +297,7 @@ function ContactPage() {
             {success && <Alert severity="success" sx={{ mt: 2, borderRadius: 2 }}>{success}</Alert>}
             <Stack direction={{ xs: "column", sm: "row" }} justifyContent="space-between" alignItems={{ xs: "stretch", sm: "center" }} gap={2} sx={{ mt: 3 }}>
               <Typography sx={{ color: "#718078", fontSize: 12, lineHeight: 1.5 }}>By sending this form, you agree to let Weluxo use your details to respond to your request.</Typography>
-              <Button type="submit" disabled={saving} variant="contained" endIcon={<ArrowForwardRounded />} sx={{ flexShrink: 0, borderRadius: 999, px: 2.5, py: 1.2, bgcolor: "#12372a", textTransform: "none", fontWeight: 800, "&:hover": { bgcolor: "#1d503c" } }}>
+              <Button type="submit" disabled={saving} variant="contained" endIcon={<ArrowForwardRounded />} sx={{ flexShrink: 0, borderRadius: 999, px: 2.5, py: 1.2, bgcolor: "var(--color-primary)", color: "#ffffff", textTransform: "none", fontWeight: 800, "&:hover": { bgcolor: "var(--color-primary-dark)" } }}>
                 {saving ? "Sending…" : "Send message"}
               </Button>
             </Stack>
@@ -306,9 +306,9 @@ function ContactPage() {
 
         <ContactSupportPanel support={defaultHelpContent.contactSupport} />
 
-        <Box sx={{ mt: { xs: 6, md: 9 }, mb: { xs: 2, md: 4 }, p: { xs: 2.5, md: 3 }, display: "flex", flexDirection: { xs: "column", sm: "row" }, justifyContent: "space-between", alignItems: { xs: "flex-start", sm: "center" }, gap: 2, borderTop: "1px solid #d8e1d8" }}>
+        <Box sx={{ mt: { xs: 6, md: 9 }, mb: { xs: 2, md: 4 }, p: { xs: 2.5, md: 3 }, display: "flex", flexDirection: { xs: "column", sm: "row" }, justifyContent: "space-between", alignItems: { xs: "flex-start", sm: "center" }, gap: 2, borderTop: "1px solid var(--color-border)" }}>
           <Box><Typography sx={{ fontWeight: 820 }}>Prefer to find the answer yourself?</Typography><Typography sx={{ color: "#718078", fontSize: 13, mt: 0.5 }}>Browse shipping, returns, product, and account guidance.</Typography></Box>
-          <Button component={Link} href="/help-center" endIcon={<ArrowForwardRounded />} sx={{ color: "#12372a", textTransform: "none", fontWeight: 800, px: 0 }}>Open Help</Button>
+          <Button component={Link} href="/help-center" endIcon={<ArrowForwardRounded />} sx={{ color: "var(--color-primary)", textTransform: "none", fontWeight: 800, px: 0 }}>Open Help</Button>
         </Box>
       </Container>
     </Box>

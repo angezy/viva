@@ -66,9 +66,9 @@ export default function BlogSection({ initialContent = null, onEdit = {} }) {
           position: "absolute",
           top: 8,
           right: 8,
-          bgcolor: "rgba(0,0,0,0.5)",
-          color: "white",
-          "&:hover": { bgcolor: "rgba(0,0,0,0.7)" },
+          bgcolor: "var(--color-accent-soft)",
+          color: "var(--color-primary)",
+          "&:hover": { bgcolor: "var(--color-primary-soft)" },
           zIndex: 2,
         }}
       >
@@ -77,7 +77,7 @@ export default function BlogSection({ initialContent = null, onEdit = {} }) {
     ) : null;
 
   return (
-    <Box sx={{ bgcolor: "#03050b", color: "#f6f8ff", minHeight: "100vh", py: 6 }}>
+    <Box sx={{ bgcolor: "var(--color-background)", color: "var(--color-text-primary)", minHeight: "100vh", py: 6 }}>
       <Box
         sx={{
           maxWidth: 1200,
@@ -96,7 +96,7 @@ export default function BlogSection({ initialContent = null, onEdit = {} }) {
             minHeight: 320,
             display: "grid",
             gridTemplateColumns: { xs: "1fr", md: "1fr 1fr" },
-            border: "1px solid rgba(255,255,255,0.08)",
+            border: "1px solid var(--color-border)",
           }}
         >
           {renderEditButton("hero")}
@@ -106,15 +106,15 @@ export default function BlogSection({ initialContent = null, onEdit = {} }) {
             alt={hero.alt || hero.title}
             sx={{ width: "100%", height: "100%", objectFit: "cover" }}
           />
-          <Box sx={{ p: { xs: 3, md: 4 }, display: "flex", flexDirection: "column", gap: 2, bgcolor: "#0a0f1c" }}>
+          <Box sx={{ p: { xs: 3, md: 4 }, display: "flex", flexDirection: "column", gap: 2, bgcolor: "#ffffff" }}>
             <Typography variant="h4" sx={{ fontWeight: 900 }}>
               {hero.title}
             </Typography>
-            <Typography sx={{ color: "rgba(255,255,255,0.75)" }}>{hero.subtitle}</Typography>
+            <Typography sx={{ color: "var(--color-text-secondary)" }}>{hero.subtitle}</Typography>
             <Button
               href={hero.ctaUrl || "/blog"}
               variant="contained"
-              sx={{ alignSelf: "flex-start", borderRadius: 2, textTransform: "none", bgcolor: "#2563eb" }}
+              sx={{ alignSelf: "flex-start", borderRadius: 2, textTransform: "none", bgcolor: "var(--color-primary)" }}
             >
               {hero.ctaText || "Read more"}
             </Button>
@@ -128,7 +128,7 @@ export default function BlogSection({ initialContent = null, onEdit = {} }) {
             </Typography>
             {renderEditButton("posts")}
           </Box>
-          <Grid container spacing={3}>
+          <Grid container spacing={3} justifyContent="center">
             {posts.map((post) => {
               const slug = post.slug
                 ? post.slug.startsWith("/blog")
@@ -138,16 +138,16 @@ export default function BlogSection({ initialContent = null, onEdit = {} }) {
                 ? `/blog/${post.id}`
                 : "#";
               return (
-              <Grid item xs={12} sm={6} md={4} key={post.id || post.title}>
+              <Grid item xs={12} sm={6} md={4} key={post.id || post.title} sx={{ display: "flex", justifyContent: "center" }}>
                 <Card
                   sx={{
-                    width: 300,
-                    minWidth: 300,
+                    width: "100%",
+                    minWidth: 0,
                     maxWidth: 300,
                     height: 500,
                     borderRadius: 3,
-                    bgcolor: "#0f1628",
-                    border: "1px solid rgba(255,255,255,0.08)",
+                    bgcolor: "#ffffff",
+                    border: "1px solid var(--color-border)",
                     display: "flex",
                     flexDirection: "column",
                   }}
@@ -155,7 +155,7 @@ export default function BlogSection({ initialContent = null, onEdit = {} }) {
                   <CardActionArea
                     component={slug !== "#" ? LinkWrapper : "div"}
                     href={slug}
-                    sx={{ height: "100%", display: "flex", flexDirection: "column", alignItems: "stretch", color: "#f8fafc" }}
+                    sx={{ height: "100%", display: "flex", flexDirection: "column", alignItems: "stretch", color: "var(--color-text-primary)" }}
                   >
                     {post.image && (
                       <CardMedia component="img" height="180" image={post.image} alt={post.alt || post.title} sx={{ objectFit: "cover" }} />
@@ -165,15 +165,15 @@ export default function BlogSection({ initialContent = null, onEdit = {} }) {
                         {post.tags?.slice(0, 2).map((tag) => (
                           <Chip key={tag} label={tag} size="small" color="primary" />
                         ))}
-                        <Typography variant="caption" sx={{ color: "rgba(226,232,240,0.78)" }}>
+                        <Typography variant="caption" sx={{ color: "var(--color-text-secondary)" }}>
                           {post.date}
                         </Typography>
                       </Stack>
-                      <Typography variant="h6" sx={{ fontWeight: 800, color: "#f8fafc", lineHeight: 1.25 }}>
+                      <Typography variant="h6" sx={{ fontWeight: 800, color: "var(--color-text-primary)", lineHeight: 1.25 }}>
                         {post.title}
                       </Typography>
-                      <Typography sx={{ color: "rgba(226,232,240,0.86)", lineHeight: 1.55 }}>{post.excerpt}</Typography>
-                      <Typography variant="caption" sx={{ color: "rgba(191,219,254,0.8)", mt: "auto" }}>
+                      <Typography sx={{ color: "var(--color-text-secondary)", lineHeight: 1.55 }}>{post.excerpt}</Typography>
+                      <Typography variant="caption" sx={{ color: "var(--color-primary)", mt: "auto" }}>
                         By {post.author || "Team"}
                       </Typography>
                     </CardContent>
