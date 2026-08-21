@@ -9,9 +9,19 @@ out/
 build/
 
 # Environment files
-.env
-.env.local
-.env.*.local
+.env*
+!.env.example
+!**/.env.example
+
+# Certificates and credential files
+*.pem
+*.key
+*.p12
+*.pfx
+*credentials*.json
+*service-account*.json
+secrets/
+**/secrets/
 
 # Logs
 npm-debug.log*
