@@ -50,6 +50,13 @@ export const DEFAULT_SITE_SETTINGS = {
   supportEmail: "support@weluxo.com",
   supportPhone: "",
   supportHours: "Support available within 24-48 hours",
+  welcomePopupEnabled: true,
+  welcomePopupEyebrow: "NEW CUSTOMER WELCOME",
+  welcomePopupTitle: "Log in and get 10% off",
+  welcomePopupDescription: "Create your account or log in to unlock 10% off your first order.",
+  welcomePopupButtonLabel: "Log in & claim 10% off",
+  welcomePopupCouponCode: "WELCOME10",
+  welcomePopupFinePrint: "New customers only. One use per customer.",
 };
 
 export function isValidCustomFontName(value) {
@@ -101,7 +108,10 @@ export function normalizeSiteSettings(value) {
   const customFontFormat = SITE_FONT_FORMAT_OPTIONS.some((option) => option.value === source.customFontFormat)
     ? source.customFontFormat
     : DEFAULT_SITE_SETTINGS.customFontFormat;
-  return { ...DEFAULT_SITE_SETTINGS, ...source, fontFamily, customFontName, customFontUrl, customFontFormat, ...safeColors };
+  const welcomePopupEnabled = source.welcomePopupEnabled === undefined
+    ? DEFAULT_SITE_SETTINGS.welcomePopupEnabled
+    : source.welcomePopupEnabled === true || String(source.welcomePopupEnabled).toLowerCase() === "true";
+  return { ...DEFAULT_SITE_SETTINGS, ...source, fontFamily, customFontName, customFontUrl, customFontFormat, welcomePopupEnabled, ...safeColors };
 }
 
 export async function fetchSiteSettings() {

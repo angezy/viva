@@ -1,6 +1,7 @@
 const sql = require("mssql");
 
 let couponsTableEnsured = false;
+let couponRedemptionsTableEnsured = false;
 
 function normalizeCouponCode(value) {
   return String(value || "").trim().toUpperCase();
@@ -53,6 +54,44 @@ async function ensureCouponsTable(pool) {
   }
 }
 
+async function ensureCouponRedemptionsTable(pool) {
+  if (couponRedemptionsTableEnsured) return true;
+
+  try {
+    if (!(await ensureCouponsTable(pool))) return false;
+
+    await pool.request().query(`
+      IF OBJECT_ID(N'dbo.CouponRedemptions', N'U') IS NULL
+      BEGIN
+        CREATE TABLE dbo.CouponRedemptions (
+          RedemptionId BIGINT IDENTITY(1,1) NOT NULL CONSTRAINT PK_CouponRedemptions PRIMARY KEY,
+          CouponId INT NOT NULL,
+          CustomerKey NVARCHAR(255) NOT NULL,
+          CustomerEmail NVARCHAR(255) NULL,
+          OrderId NVARCHAR(64) NULL,
+          RedeemedAt DATETIME2(3) NOT NULL CONSTRAINT DF_CouponRedemptions_RedeemedAt DEFAULT SYSUTCDATETIME(),
+          CONSTRAINT FK_CouponRedemptions_Coupon FOREIGN KEY (CouponId) REFERENCES dbo.Coupons(CouponId),
+          CONSTRAINT UQ_CouponRedemptions_CouponCustomer UNIQUE (CouponId, CustomerKey)
+        );
+      END;
+
+      IF NOT EXISTS (
+        SELECT 1 FROM sys.indexes
+        WHERE name = N'UX_CouponRedemptions_CouponEmail'
+          AND object_id = OBJECT_ID(N'dbo.CouponRedemptions')
+      )
+        CREATE UNIQUE INDEX UX_CouponRedemptions_CouponEmail
+          ON dbo.CouponRedemptions(CouponId, CustomerEmail)
+          WHERE CustomerEmail IS NOT NULL;
+    `);
+    couponRedemptionsTableEnsured = true;
+    return true;
+  } catch (error) {
+    console.error("Unable to ensure CouponRedemptions table:", error);
+    return false;
+  }
+}
+
 function mapCouponRow(row = {}) {
   const expiresAt = rowValue(row, "ExpiresAt", "expiresAt", "expiresat") ?? null;
   const expiresAtDate = expiresAt ? new Date(expiresAt) : null;
@@ -84,6 +123,58 @@ function calculateCouponDiscount(subtotal, coupon) {
   return Number(Math.min(amount, amount * percent / 100).toFixed(2));
 }
 
+function normalizeCouponCustomerEmail(value) {
+  const email = String(value || "").trim().toLowerCase();
+  return email ? email.slice(0, 255) : null;
+}
+
+function getCouponCustomerIdentity(userId, customerEmail) {
+  const normalizedUserId = userId === null || userId === undefined ? "" : String(userId).trim();
+  const normalizedEmail = normalizeCouponCustomerEmail(customerEmail);
+  const isGuest = !normalizedUserId || normalizedUserId.toLowerCase().startsWith("guest-");
+
+  if (!isGuest) {
+    return {
+      customerKey: `user:${normalizedUserId}`.slice(0, 255),
+      customerEmail: normalizedEmail,
+    };
+  }
+  if (normalizedUserId) {
+    return {
+      customerKey: `guest:${normalizedUserId}`.slice(0, 255),
+      customerEmail: normalizedEmail,
+    };
+  }
+  if (!normalizedEmail) return null;
+  return {
+    customerKey: `email:${normalizedEmail}`.slice(0, 255),
+    customerEmail: normalizedEmail,
+  };
+}
+
+async function hasCouponBeenRedeemed(pool, coupon, { userId, customerEmail } = {}) {
+  if (!coupon?.id) return false;
+  const identity = getCouponCustomerIdentity(userId, customerEmail);
+  if (!identity) return false;
+  if (!(await ensureCouponRedemptionsTable(pool))) {
+    throw new Error("Coupon redemption storage is unavailable");
+  }
+
+  const result = await pool
+    .request()
+    .input("CouponId", sql.Int, Number(coupon.id))
+    .input("CustomerKey", sql.NVarChar(255), identity.customerKey)
+    .input("CustomerEmail", sql.NVarChar(255), identity.customerEmail)
+    .query(`
+      SELECT TOP 1 RedemptionId
+      FROM dbo.CouponRedemptions
+      WHERE CouponId = @CouponId
+        AND (CustomerKey = @CustomerKey OR (CustomerEmail IS NOT NULL AND CustomerEmail = @CustomerEmail));
+    `);
+
+  return Boolean(result?.recordset?.length || result?.recordsets?.[0]?.length);
+}
+
 async function findCouponByCode(pool, code) {
   const normalized = normalizeCouponCode(code);
   if (!normalized || !(await ensureCouponsTable(pool))) return null;
@@ -100,8 +191,12 @@ module.exports = {
   calculateCouponDiscount,
   couponIsUsable,
   ensureCouponsTable,
+  ensureCouponRedemptionsTable,
   findCouponByCode,
+  getCouponCustomerIdentity,
+  hasCouponBeenRedeemed,
   isValidCouponCode,
   mapCouponRow,
+  normalizeCouponCustomerEmail,
   normalizeCouponCode,
 };

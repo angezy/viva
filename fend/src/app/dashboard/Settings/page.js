@@ -11,6 +11,7 @@ import {
   Grid,
   MenuItem,
   Stack,
+  Switch,
   TextField,
   Typography,
 } from "@mui/material";
@@ -95,6 +96,19 @@ const FIELD_GROUPS = [
       { key: "supportEmail", label: "Support email", type: "email" },
       { key: "supportPhone", label: "Support phone" },
       { key: "supportHours", label: "Support hours" },
+    ],
+  },
+  {
+    title: "First-visit welcome offer",
+    description: "Edit the popup shown once to new visitors. The discount code is already available in checkout when WELCOME10 is selected.",
+    fields: [
+      { key: "welcomePopupEnabled", label: "Show welcome popup", type: "toggle", helperText: "Turn the first-visit offer on or off." },
+      { key: "welcomePopupEyebrow", label: "Eyebrow" },
+      { key: "welcomePopupTitle", label: "Offer title", fullWidth: true, required: true },
+      { key: "welcomePopupDescription", label: "Offer description", multiline: true, minRows: 2, fullWidth: true, required: true },
+      { key: "welcomePopupButtonLabel", label: "Button label" },
+      { key: "welcomePopupCouponCode", label: "Coupon code", helperText: "Use a code that exists in Dashboard → Coupons." },
+      { key: "welcomePopupFinePrint", label: "Fine print", fullWidth: true },
     ],
   },
 ];
@@ -286,6 +300,19 @@ export default function SiteSettingsPage() {
                               </MenuItem>
                             ))}
                           </TextField>
+                        ) : field.type === "toggle" ? (
+                          <Stack direction="row" spacing={1} alignItems="center" sx={{ minHeight: 40 }}>
+                            <Switch
+                              checked={Boolean(form[field.key])}
+                              onChange={(event) => updateField(field.key, event.target.checked)}
+                              disabled={hydrated && (loading || saving)}
+                              color="primary"
+                            />
+                            <Box>
+                              <Typography sx={{ color: "#0f172a", fontWeight: 750, fontSize: 14 }}>{field.label}</Typography>
+                              {field.helperText && <Typography sx={{ color: "#64748b", fontSize: 12 }}>{field.helperText}</Typography>}
+                            </Box>
+                          </Stack>
                         ) : (
                           <TextField
                             fullWidth

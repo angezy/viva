@@ -26,6 +26,8 @@ const {
   calculateCouponDiscount,
   couponIsUsable,
   findCouponByCode,
+  getCouponCustomerIdentity,
+  hasCouponBeenRedeemed,
   normalizeCouponCode,
 } = require("../utils/coupons");
 
@@ -1054,6 +1056,7 @@ async function ensureOrdersTable(pool) {
           ShippingAddress NVARCHAR(MAX) NULL,
           PaymentMethod NVARCHAR(30) NULL,
           PaymentStatus NVARCHAR(30) NULL,
+          CouponCode NVARCHAR(64) NULL,
           Carrier NVARCHAR(80) NULL,
           TrackingNumber NVARCHAR(120) NULL,
           EstimatedDelivery DATE NULL,
@@ -1070,6 +1073,8 @@ async function ensureOrdersTable(pool) {
         ALTER TABLE [dbo].[Orders_tbl] ADD PaymentMethod NVARCHAR(30) NULL;
       IF COL_LENGTH('dbo.Orders_tbl', 'PaymentStatus') IS NULL
         ALTER TABLE [dbo].[Orders_tbl] ADD PaymentStatus NVARCHAR(30) NULL;
+      IF COL_LENGTH('dbo.Orders_tbl', 'CouponCode') IS NULL
+        ALTER TABLE [dbo].[Orders_tbl] ADD CouponCode NVARCHAR(64) NULL;
       IF COL_LENGTH('dbo.Orders_tbl', 'Carrier') IS NULL
         ALTER TABLE [dbo].[Orders_tbl] ADD Carrier NVARCHAR(80) NULL;
       IF COL_LENGTH('dbo.Orders_tbl', 'TrackingNumber') IS NULL
@@ -1330,6 +1335,7 @@ function mapOrderRow(row = {}) {
     shippingAddress,
     paymentMethod: row.PaymentMethod ?? row.paymentMethod ?? null,
     paymentStatus: row.PaymentStatus ?? row.paymentStatus ?? "pending",
+    couponCode: row.CouponCode ?? row.couponCode ?? null,
     carrier: row.Carrier ?? row.carrier ?? null,
     trackingNumber: row.TrackingNumber ?? row.trackingNumber ?? null,
     estimatedDelivery: row.EstimatedDelivery ?? row.estimatedDelivery ?? null,
@@ -1546,21 +1552,39 @@ async function loadOrderById(pool, userId, orderId) {
   }
 }
 
-async function saveOrder(pool, userId, order) {
+async function saveOrder(pool, userId, order, couponRedemption = null) {
   const ensured = await ensureOrdersTable(pool);
   if (!ensured) return false;
+  const transaction = new sql.Transaction(pool);
   try {
+    await transaction.begin();
+
+    if (couponRedemption?.couponId) {
+      const identity = getCouponCustomerIdentity(userId, couponRedemption.customerEmail);
+      if (!identity) throw new Error("A customer email is required to redeem a coupon");
+
+      await new sql.Request(transaction)
+        .input("CouponId", sql.Int, Number(couponRedemption.couponId))
+        .input("CustomerKey", sql.NVarChar(255), identity.customerKey)
+        .input("CustomerEmail", sql.NVarChar(255), identity.customerEmail)
+        .input("OrderId", sql.NVarChar(64), String(order.id))
+        .query(`
+          INSERT INTO dbo.CouponRedemptions (CouponId, CustomerKey, CustomerEmail, OrderId)
+          VALUES (@CouponId, @CustomerKey, @CustomerEmail, @OrderId);
+        `);
+    }
+
     const itemsJson = JSON.stringify(order.items || []);
-    await pool
-      .request()
-      .input("OrderId", sql.NVarChar, String(order.id))
-      .input("UserId", sql.NVarChar, String(userId))
-      .input("Status", sql.NVarChar, order.status || "Processing")
+    await new sql.Request(transaction)
+      .input("OrderId", sql.NVarChar(64), String(order.id))
+      .input("UserId", sql.NVarChar(64), String(userId))
+      .input("Status", sql.NVarChar(50), order.status || "Processing")
       .input("Total", sql.Decimal(18, 2), Number(order.total) || 0)
-      .input("Items", sql.NVarChar, itemsJson)
-      .input("ShippingAddress", sql.NVarChar, JSON.stringify(order.shippingAddress || {}))
-      .input("PaymentMethod", sql.NVarChar, order.paymentMethod || null)
-      .input("PaymentStatus", sql.NVarChar, order.paymentStatus || "pending")
+      .input("Items", sql.NVarChar(sql.MAX), itemsJson)
+      .input("ShippingAddress", sql.NVarChar(sql.MAX), JSON.stringify(order.shippingAddress || {}))
+      .input("PaymentMethod", sql.NVarChar(30), order.paymentMethod || null)
+      .input("PaymentStatus", sql.NVarChar(30), order.paymentStatus || "pending")
+      .input("CouponCode", sql.NVarChar(64), order.couponCode || null)
       .input("Carrier", sql.NVarChar(80), order.carrier || null)
       .input("TrackingNumber", sql.NVarChar(120), order.trackingNumber || null)
       .input("EstimatedDelivery", sql.DateTime, order.estimatedDelivery ? new Date(order.estimatedDelivery) : null)
@@ -1573,15 +1597,22 @@ async function saveOrder(pool, userId, order) {
         USING (SELECT @OrderId AS OrderId, @UserId AS UserId) AS source
         ON target.OrderId = source.OrderId AND target.UserId = source.UserId
         WHEN MATCHED THEN
-          UPDATE SET Status = @Status, Total = @Total, Items = @Items, ShippingAddress = @ShippingAddress, PaymentMethod = @PaymentMethod, PaymentStatus = @PaymentStatus, Carrier = @Carrier, TrackingNumber = @TrackingNumber, EstimatedDelivery = @EstimatedDelivery, CurrentLocation = @CurrentLocation, ShippedAt = @ShippedAt, DeliveredAt = @DeliveredAt, PlacedAt = @PlacedAt
+          UPDATE SET Status = @Status, Total = @Total, Items = @Items, ShippingAddress = @ShippingAddress, PaymentMethod = @PaymentMethod, PaymentStatus = @PaymentStatus, CouponCode = @CouponCode, Carrier = @Carrier, TrackingNumber = @TrackingNumber, EstimatedDelivery = @EstimatedDelivery, CurrentLocation = @CurrentLocation, ShippedAt = @ShippedAt, DeliveredAt = @DeliveredAt, PlacedAt = @PlacedAt
         WHEN NOT MATCHED THEN
-          INSERT (OrderId, UserId, Status, Total, Items, ShippingAddress, PaymentMethod, PaymentStatus, Carrier, TrackingNumber, EstimatedDelivery, CurrentLocation, ShippedAt, DeliveredAt, PlacedAt)
-          VALUES (@OrderId, @UserId, @Status, @Total, @Items, @ShippingAddress, @PaymentMethod, @PaymentStatus, @Carrier, @TrackingNumber, @EstimatedDelivery, @CurrentLocation, @ShippedAt, @DeliveredAt, @PlacedAt);
+          INSERT (OrderId, UserId, Status, Total, Items, ShippingAddress, PaymentMethod, PaymentStatus, CouponCode, Carrier, TrackingNumber, EstimatedDelivery, CurrentLocation, ShippedAt, DeliveredAt, PlacedAt)
+          VALUES (@OrderId, @UserId, @Status, @Total, @Items, @ShippingAddress, @PaymentMethod, @PaymentStatus, @CouponCode, @Carrier, @TrackingNumber, @EstimatedDelivery, @CurrentLocation, @ShippedAt, @DeliveredAt, @PlacedAt);
       `);
-    return true;
+    await transaction.commit();
+    return { saved: true };
   } catch (err) {
+    try { await transaction.rollback(); } catch (_rollbackError) {}
+    const errorNumber = Number(err?.number ?? err?.originalError?.info?.number);
+    const errorMessage = String(err?.message || "");
+    if ([2601, 2627].includes(errorNumber) && /CouponRedemptions|UQ_CouponRedemptions/i.test(errorMessage)) {
+      return { saved: false, couponAlreadyUsed: true };
+    }
     console.error("saveOrder failed", err);
-    return false;
+    return { saved: false };
   }
 }
 
@@ -3319,6 +3350,10 @@ router.post("/api/payment/create", requireCheckoutIdentity, async (req, res) => 
         sessionCartCoupons.delete(userId);
         return res.status(400).json({ error: coupon.status === "Expired" ? "That promo code has expired" : "That promo code is inactive" });
       }
+      if (await hasCouponBeenRedeemed(pool, coupon, { userId, customerEmail })) {
+        sessionCartCoupons.delete(userId);
+        return res.status(400).json({ error: "That promo code has already been used by this customer" });
+      }
       sessionCartCoupons.set(userId, {
         code: coupon.code,
         discountPercent: coupon.discountPercent,
@@ -3505,9 +3540,29 @@ router.post("/api/orders/create", requireCheckoutIdentity, async (req, res) => {
 
   try {
     const pool = await getPool();
-    const saved = await saveOrder(pool, userId, order);
-    if (!saved) {
+    let coupon = null;
+    const couponCustomerEmail = shippingAddress.email || payment.customerEmail;
+    if (payment.couponCode) {
+      coupon = await findCouponByCode(pool, payment.couponCode);
+      if (!coupon) {
+        await recordCheckoutAttempt({ attemptId: payment.id, paymentId: payment.id, userId, cartId: userId, customerEmail: couponCustomerEmail, status: "order_failed", paymentError: "Unable to verify coupon redemption" });
+        return res.status(409).json({ error: "Unable to verify coupon redemption" });
+      }
+      if (await hasCouponBeenRedeemed(pool, coupon, { userId, customerEmail: couponCustomerEmail })) {
+        await recordCheckoutAttempt({ attemptId: payment.id, paymentId: payment.id, userId, cartId: userId, customerEmail: couponCustomerEmail, status: "order_failed", paymentError: "Coupon has already been used by this customer" });
+        return res.status(409).json({ error: "That promo code has already been used by this customer" });
+      }
+    }
+
+    const saved = await saveOrder(pool, userId, order, coupon ? {
+      couponId: coupon.id,
+      customerEmail: couponCustomerEmail,
+    } : null);
+    if (!saved || saved.saved === false) {
       await recordCheckoutAttempt({ attemptId: payment.id, paymentId: payment.id, userId, cartId: userId, customerEmail: shippingAddress.email || payment.customerEmail, status: "order_failed", paymentError: "Unable to save order" });
+      if (saved?.couponAlreadyUsed) {
+        return res.status(409).json({ error: "That promo code has already been used by this customer" });
+      }
       return res.status(500).json({ error: "Unable to save order" });
     }
     await saveCanonicalOrderSnapshot(pool, userId, order);
@@ -3844,6 +3899,10 @@ router.post(["/api/cart/apply-coupon", "/api/cart/coupon"], requireCheckoutIdent
     if (!couponIsUsable(coupon)) {
       sessionCartCoupons.delete(req.checkoutUserId);
       return res.status(400).json({ error: coupon.status === "Expired" ? "That promo code has expired" : "That promo code is inactive" });
+    }
+    if (await hasCouponBeenRedeemed(pool, coupon, { userId: req.checkoutUserId, customerEmail: req.user?.email })) {
+      sessionCartCoupons.delete(req.checkoutUserId);
+      return res.status(400).json({ error: "That promo code has already been used by this customer" });
     }
     sessionCartCoupons.set(req.checkoutUserId, {
       code: coupon.code,

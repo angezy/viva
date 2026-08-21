@@ -6,6 +6,7 @@ import Header from './Header'
 import Footer from './footer'
 import HelpChatWidget from './HelpChatWidget'
 import CookieConsentBanner from './CookieConsentBanner'
+import WelcomeOfferPopup from './WelcomeOfferPopup'
 
 export default function ConditionalShell({ children }) {
   const pathname = usePathname()
@@ -17,6 +18,7 @@ export default function ConditionalShell({ children }) {
       {children}
       {!hideShell && <Footer />}
       {!hideShell && <CookieConsentBanner />}
+      {!hideShell && <WelcomeOfferPopup />}
       <HelpChatWidget />
     </>
   )

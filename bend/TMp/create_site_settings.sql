@@ -45,7 +45,14 @@ INSERT INTO @Defaults (SettingKey, SettingValue) VALUES
     (N'errorColor', N'#c94a4a'),
     (N'supportEmail', N'support@weluxo.com'),
     (N'supportPhone', N''),
-    (N'supportHours', N'Support available within 24-48 hours');
+    (N'supportHours', N'Support available within 24-48 hours'),
+    (N'welcomePopupEnabled', N'true'),
+    (N'welcomePopupEyebrow', N'NEW CUSTOMER WELCOME'),
+    (N'welcomePopupTitle', N'Log in and get 10% off'),
+    (N'welcomePopupDescription', N'Create your account or log in to unlock 10% off your first order.'),
+    (N'welcomePopupButtonLabel', N'Log in & claim 10% off'),
+    (N'welcomePopupCouponCode', N'WELCOME10'),
+    (N'welcomePopupFinePrint', N'New customers only. One use per customer.');
 
 INSERT INTO dbo.DashboardSettings (SettingKey, SettingValue)
 SELECT d.SettingKey, d.SettingValue

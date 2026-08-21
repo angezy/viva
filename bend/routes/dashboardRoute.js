@@ -185,8 +185,16 @@ const SITE_SETTING_DEFAULTS = {
   supportEmail: 'support@weluxo.com',
   supportPhone: '',
   supportHours: 'Support available within 24-48 hours',
+  welcomePopupEnabled: true,
+  welcomePopupEyebrow: 'NEW CUSTOMER WELCOME',
+  welcomePopupTitle: 'Log in and get 10% off',
+  welcomePopupDescription: 'Create your account or log in to unlock 10% off your first order.',
+  welcomePopupButtonLabel: 'Log in & claim 10% off',
+  welcomePopupCouponCode: 'WELCOME10',
+  welcomePopupFinePrint: 'New customers only. One use per customer.',
 };
 const SITE_SETTING_KEYS = Object.keys(SITE_SETTING_DEFAULTS);
+const BOOLEAN_SETTING_KEYS = ['welcomePopupEnabled'];
 const COLOR_SETTING_KEYS = [
   'primaryColor', 'primaryDarkColor', 'linkHoverColor', 'primaryLightColor', 'primarySoftColor',
   'accentColor', 'accentDarkColor', 'accentLightColor', 'accentSoftColor',
@@ -223,7 +231,9 @@ function readSiteSettings(rows = []) {
     const key = String(row.SettingKey ?? row.key ?? '');
     if (SITE_SETTING_KEYS.includes(key) && row.SettingValue != null) {
       const value = String(row.SettingValue).trim();
-      if (key === 'fontFamily') {
+      if (BOOLEAN_SETTING_KEYS.includes(key)) {
+        settings[key] = value.toLowerCase() === 'true';
+      } else if (key === 'fontFamily') {
         if (isSiteFontFamily(value)) settings[key] = value;
       } else if (key === 'customFontName') {
         if (isCustomFontName(value)) settings[key] = value;
@@ -520,7 +530,7 @@ router.put('/api/dashboard/settings', requireDashboardAdmin, async (req, res) =>
   const supportedKeys = ['emailNotifications', 'darkMode'];
   const siteBody = body.site && typeof body.site === 'object' ? body.site : {};
   const booleanEntries = supportedKeys.filter((key) => typeof body[key] === 'boolean');
-  const siteEntries = SITE_SETTING_KEYS.filter((key) => typeof siteBody[key] === 'string');
+  const siteEntries = SITE_SETTING_KEYS.filter((key) => typeof siteBody[key] === 'string' || (BOOLEAN_SETTING_KEYS.includes(key) && typeof siteBody[key] === 'boolean'));
   const invalidColor = COLOR_SETTING_KEYS.find((key) => typeof siteBody[key] === 'string' && !isHexColor(siteBody[key]));
   if (invalidColor) {
     return res.status(400).json({ error: `${invalidColor} must be a 3- or 6-digit hex color such as #2563eb` });
@@ -548,7 +558,9 @@ router.put('/api/dashboard/settings', requireDashboardAdmin, async (req, res) =>
   try {
     const pool = await getPool();
     for (const key of entries) {
-      const value = booleanEntries.includes(key) ? (body[key] ? 'true' : 'false') : siteBody[key].trim();
+      const value = booleanEntries.includes(key) || BOOLEAN_SETTING_KEYS.includes(key)
+        ? (booleanEntries.includes(key) ? body[key] : siteBody[key]) ? 'true' : 'false'
+        : siteBody[key].trim();
       await pool
         .request()
         .input('SettingKey', sql.NVarChar(100), key)
@@ -563,7 +575,7 @@ router.put('/api/dashboard/settings', requireDashboardAdmin, async (req, res) =>
     res.json({
       emailNotifications: typeof body.emailNotifications === 'boolean' ? body.emailNotifications : undefined,
       darkMode: typeof body.darkMode === 'boolean' ? body.darkMode : undefined,
-      site: readSiteSettings(entries.filter((key) => SITE_SETTING_KEYS.includes(key)).map((key) => ({ SettingKey: key, SettingValue: siteBody[key].trim() }))),
+      site: readSiteSettings(entries.filter((key) => SITE_SETTING_KEYS.includes(key)).map((key) => ({ SettingKey: key, SettingValue: String(siteBody[key]).trim() }))),
     });
   } catch (err) {
     console.error('/api/dashboard/settings PUT error:', err);
