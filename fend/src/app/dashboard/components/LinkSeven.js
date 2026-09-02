@@ -1,7 +1,7 @@
-import React from 'react'
-import styles from './link.module.css'
-import Link from 'next/link'
+import React from 'react';
+import Link from 'next/link';
+import styles from './link.module.css';
 
-export default function LinkSeven(){
-  return <Link className={styles.link} href="/dashboard/item7">Integrations</Link>
+export default function LinkSeven() {
+  return <Link className={styles.link} href="/dashboard/integrations">Integrations</Link>;
 }

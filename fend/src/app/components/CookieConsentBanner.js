@@ -18,10 +18,10 @@ export default function CookieConsentBanner() {
   useEffect(() => {
     const existing = getConsent();
     if (existing) {
-      setChoices(existing);
+      queueMicrotask(() => setChoices(existing));
       return;
     }
-    setOpen(true);
+    queueMicrotask(() => setOpen(true));
   }, []);
 
   function save(nextChoices) {
@@ -31,22 +31,7 @@ export default function CookieConsentBanner() {
   }
 
   if (!open) {
-    return (
-      <Box sx={{ position: "fixed", zIndex: 1399, left: 16, bottom: 16 }}>
-        <Button
-          onClick={() => {
-            setChoices(getConsent() || DEFAULT_CONSENT);
-            setSettingsOpen(true);
-            setOpen(true);
-          }}
-          variant="outlined"
-          size="small"
-          sx={{ bgcolor: "#ffffff", color: "var(--color-primary)", borderColor: "var(--color-primary)", textTransform: "none", boxShadow: "0 8px 24px rgba(43,43,43,0.12)" }}
-        >
-          Privacy choices
-        </Button>
-      </Box>
-    );
+    return null;
   }
 
   return (
@@ -79,7 +64,7 @@ export default function CookieConsentBanner() {
         <Stack spacing={0.25} sx={{ mt: 2 }}>
           <FormControlLabel
             control={<Checkbox checked disabled sx={{ color: "#93c5fd", "&.Mui-disabled": { color: "#93c5fd" } }} />}
-            label={<Typography sx={{ color: "#f8fafc", fontWeight: 700 }}>Necessary — always on</Typography>}
+            label={<Typography sx={{ color: "var(--color-text-primary)", fontWeight: 700 }}>Necessary — always on</Typography>}
           />
           {OPTIONS.map((option) => (
             <Box key={option.key}>

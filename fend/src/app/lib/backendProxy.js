@@ -3,8 +3,11 @@ const FORWARDED_REQUEST_HEADERS = [
   "authorization",
   "content-type",
   "cookie",
+  "x-chat-session-token",
+  "origin",
+  "sec-fetch-site",
+  "stripe-signature",
   "user-agent",
-  "x-forwarded-for",
   "x-telegram-bot-api-secret-token",
 ];
 

@@ -13,7 +13,7 @@ export default function AboutSection({ initialContent = null, onEdit = {} }) {
 
   useEffect(() => {
     if (initialContent) {
-      setContent(initialContent);
+      queueMicrotask(() => setContent(initialContent));
       return;
     }
     fetch("/api/dashboard/about")

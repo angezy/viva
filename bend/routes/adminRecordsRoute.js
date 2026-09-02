@@ -1,24 +1,12 @@
 const express = require('express');
-const jwt = require('jsonwebtoken');
 const sql = require('mssql');
 const { getPool } = require('../utils/dbConnection');
-const { ADMIN_AUTH_COOKIE_NAME } = require('../utils/cookieOptions');
+const { requireRecordPermission, requirePermission, hasPermission } = require('../utils/rbac');
 
 const router = express.Router();
 
-function requireAdmin(req, res, next) {
-  const authorization = req.headers?.authorization || '';
-  const bearer = authorization.toLowerCase().startsWith('bearer ') ? authorization.slice(7).trim() : null;
-  const token = bearer || req.cookies?.[ADMIN_AUTH_COOKIE_NAME];
-  if (!token || !process.env.JWT_SECRET) return res.status(401).json({ error: 'Authentication required' });
-  try {
-    const user = jwt.verify(token, process.env.JWT_SECRET);
-    if (String(user.role || '').toLowerCase() !== 'admin') return res.status(403).json({ error: 'Administrator access required' });
-    next();
-  } catch (_error) {
-    return res.status(401).json({ error: 'Invalid or expired session' });
-  }
-}
+const requireAdmin = requireRecordPermission('adminUser');
+const requireOrdersRead = requirePermission('orders.read', 'adminUser');
 
 function dateRange(query) {
   const now = new Date();
@@ -40,12 +28,25 @@ function dateRange(query) {
 const definitions = {
   orders: {
     title: 'Orders',
-    requiredObjects: ['Commerce.Orders'],
-    columns: ['Order number', 'Order status', 'Payment', 'Fulfillment', 'Total', 'Refunded', 'Currency', 'Created'],
-    query: `SELECT TOP (@Limit) o.[Id], o.[OrderNumber], o.[OrderStatus], o.[PaymentStatus], o.[FulfillmentStatus], o.[TotalAmount], o.[RefundedAmount], o.[Currency], o.[CreatedAt]
-      FROM [Commerce].[Orders] o WHERE o.[CreatedAt] >= @StartAt AND o.[CreatedAt] < @EndAt
-      AND (@Currency IS NULL OR o.[Currency] = @Currency) AND (@Status IS NULL OR o.[OrderStatus] = @Status)
-      AND (@PaymentStatus IS NULL OR o.[PaymentStatus] = @PaymentStatus) AND (@FulfillmentStatus IS NULL OR o.[FulfillmentStatus] = @FulfillmentStatus)
+    requiredObjects: ['Commerce.Orders', 'Commerce.StorefrontOrders'],
+    columns: ['Order number', 'Customer', 'Order status', 'Payment', 'Fulfillment', 'Total', 'Refunded', 'Currency', 'Created'],
+    query: `SELECT TOP (@Limit) o.[Id], o.[OrderNumber], o.[CustomerEmail],
+        COALESCE(NULLIF(storefront.[Status], N''), o.[OrderStatus]) AS [OrderStatus],
+        o.[PaymentStatus],
+        COALESCE(NULLIF(storefront.[Status], N''), o.[FulfillmentStatus]) AS [FulfillmentStatus],
+        o.[TotalAmount], o.[RefundedAmount], o.[Currency], o.[CreatedAt]
+      FROM [Commerce].[Orders] o
+      OUTER APPLY (
+        SELECT TOP (1) so.[Status]
+        FROM [Commerce].[StorefrontOrders] so
+        WHERE so.[OrderId] = COALESCE(o.[LegacyOrderId], CONVERT(NVARCHAR(64), o.[Id]))
+        ORDER BY so.[PlacedAt] DESC
+      ) storefront
+      WHERE o.[CreatedAt] >= @StartAt AND o.[CreatedAt] < @EndAt
+      AND (@Currency IS NULL OR o.[Currency] = @Currency)
+      AND (@Status IS NULL OR COALESCE(NULLIF(storefront.[Status], N''), o.[OrderStatus]) = @Status)
+      AND (@PaymentStatus IS NULL OR o.[PaymentStatus] = @PaymentStatus)
+      AND (@FulfillmentStatus IS NULL OR COALESCE(NULLIF(storefront.[Status], N''), o.[FulfillmentStatus]) = @FulfillmentStatus)
       ORDER BY o.[CreatedAt] DESC`
   },
   finance: {
@@ -134,6 +135,154 @@ router.get('/api/admin/records/:area', requireAdmin, async (req, res) => {
       });
     }
     res.status(500).json({ error: 'Unable to load admin records' });
+  }
+});
+
+const ORDER_DETAIL_OBJECTS = [
+  'Commerce.Orders',
+  'Commerce.StorefrontOrders',
+  'Commerce.OrderItems',
+  'Commerce.OrderAddresses',
+  'Commerce.OrderStatusHistory',
+  'Commerce.Shipments',
+  'Commerce.ShipmentItems',
+  'Commerce.TrackingEvents',
+  'Commerce.SupplierOrders',
+  'Commerce.Suppliers',
+  'ERP.Payments',
+  'ERP.Refunds',
+  'ERP.Invoices',
+  'CRM.Customers'
+];
+
+const UUID_PATTERN = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+
+// Order details are intentionally loaded on demand so the list stays fast and
+// sensitive customer/payment information is only returned after an admin opens
+// a specific order.
+router.get('/api/admin/orders/:orderId', requireOrdersRead, async (req, res) => {
+  const orderId = String(req.params.orderId || '').trim();
+  if (!UUID_PATTERN.test(orderId)) return res.status(400).json({ error: 'Invalid order id' });
+
+  try {
+    const pool = await getPool();
+    const missing = await missingObjects(pool, ORDER_DETAIL_OBJECTS);
+    if (missing.length) {
+      return res.status(503).json({
+        code: 'CANONICAL_SCHEMA_NOT_READY',
+        error: 'Weluxo canonical database migration has not been applied',
+        missingObjects: missing
+      });
+    }
+
+    const result = await pool.request()
+      .input('OrderId', sql.UniqueIdentifier, orderId)
+      .query(`
+        SELECT o.[Id], o.[LegacyOrderId], o.[OrderNumber], o.[CustomerId], o.[Currency],
+          COALESCE(NULLIF(storefront.[Status], N''), o.[OrderStatus]) AS [OrderStatus],
+          o.[PaymentStatus],
+          COALESCE(NULLIF(storefront.[Status], N''), o.[FulfillmentStatus]) AS [FulfillmentStatus],
+          o.[DiscountAmount], o.[ShippingAmount], o.[TaxAmount], o.[RefundedAmount],
+          o.[TotalAmount], o.[CustomerEmail], o.[CustomerPhone], o.[SalesChannel], o.[Source],
+          o.[PlacedAt], o.[PaidAt], o.[CompletedAt], o.[CancelledAt], o.[CreatedAt], o.[UpdatedAt],
+          c.[CustomerNumber], c.[FullName], c.[FirstName], c.[LastName]
+        FROM [Commerce].[Orders] o
+        LEFT JOIN [CRM].[Customers] c ON c.[Id] = o.[CustomerId]
+        OUTER APPLY (
+          SELECT TOP (1) so.[Status]
+          FROM [Commerce].[StorefrontOrders] so
+          WHERE so.[OrderId] = COALESCE(o.[LegacyOrderId], CONVERT(NVARCHAR(64), o.[Id]))
+          ORDER BY so.[PlacedAt] DESC
+        ) storefront
+        WHERE o.[Id] = @OrderId;
+
+        SELECT [Id], [SKU], [ProductName], [VariantName], [Quantity], [UnitPrice],
+          [DiscountAmount], [TaxAmount], [TotalAmount], [UnitCost]
+        FROM [Commerce].[OrderItems]
+        WHERE [OrderId] = @OrderId
+        ORDER BY [CreatedAt], [Id];
+
+        SELECT [Id], [AddressType], [FirstName], [LastName], [Company], [Phone],
+          [AddressLine1], [AddressLine2], [City], [StateProvince], [PostalCode], [CountryCode]
+        FROM [Commerce].[OrderAddresses]
+        WHERE [OrderId] = @OrderId
+        ORDER BY CASE WHEN [AddressType] = N'Shipping' THEN 0 ELSE 1 END;
+
+        SELECT [Id], [PreviousStatus], [NewStatus], [Reason], [ChangedByUserId], [CreatedAt]
+        FROM [Commerce].[OrderStatusHistory]
+        WHERE [OrderId] = @OrderId
+        ORDER BY [CreatedAt] DESC;
+
+        SELECT [Id], [Direction], [PaymentProvider], [PaymentMethod], [ExternalTransactionId],
+          [Amount], [Currency], [Status], [ProcessedAt], [CreatedAt]
+        FROM [ERP].[Payments]
+        WHERE [OrderId] = @OrderId
+        ORDER BY [CreatedAt] DESC;
+
+        SELECT sh.[Id], sh.[ShipmentNumber], sh.[Carrier], sh.[Service], sh.[TrackingNumber],
+          sh.[TrackingUrl], sh.[Status], sh.[ShippedAt], sh.[DeliveredAt], sh.[ShippingCost],
+          sh.[Currency], s.[Name] AS [Supplier]
+        FROM [Commerce].[Shipments] sh
+        LEFT JOIN [Commerce].[Suppliers] s ON s.[Id] = sh.[SupplierId]
+        WHERE sh.[OrderId] = @OrderId
+        ORDER BY sh.[CreatedAt] DESC;
+
+        SELECT te.[Id], te.[ShipmentId], te.[EventCode], te.[Status], te.[Description],
+          te.[Location], te.[EventAt]
+        FROM [Commerce].[TrackingEvents] te
+        INNER JOIN [Commerce].[Shipments] sh ON sh.[Id] = te.[ShipmentId]
+        WHERE sh.[OrderId] = @OrderId
+        ORDER BY te.[EventAt] DESC;
+
+        SELECT so.[Id], so.[PurchaseOrderNumber], so.[ExternalOrderId], so.[Status],
+          so.[ProductCost], so.[ShippingCost], so.[TotalCost], so.[Currency], so.[OrderedAt],
+          so.[ConfirmedAt], so.[ShippedAt], s.[Name] AS [Supplier]
+        FROM [Commerce].[SupplierOrders] so
+        LEFT JOIN [Commerce].[Suppliers] s ON s.[Id] = so.[SupplierId]
+        WHERE so.[OrderId] = @OrderId
+        ORDER BY so.[CreatedAt] DESC;
+
+        SELECT [Id], [InvoiceNumber], [IssueDate], [DueDate], [Status], [Currency],
+          [SubtotalAmount], [DiscountAmount], [TaxAmount], [TotalAmount], [PaidAmount], [BalanceAmount]
+        FROM [ERP].[Invoices]
+        WHERE [OrderId] = @OrderId
+        ORDER BY [CreatedAt] DESC;
+
+        SELECT r.[Id], r.[RefundNumber], r.[ExternalRefundId], r.[Amount], r.[Currency],
+          r.[Reason], r.[Status], r.[CreatedAt], r.[ProcessedAt]
+        FROM [ERP].[Refunds] r
+        WHERE r.[OrderId] = @OrderId
+        ORDER BY r.[CreatedAt] DESC;
+      `);
+
+    const recordsets = result.recordsets || [];
+    const order = recordsets[0]?.[0];
+    if (!order) return res.status(404).json({ error: 'Order not found' });
+
+    const isOperationalAdmin = !hasPermission(req.adminUser?.role, 'finance.read');
+    res.json({
+      order,
+      items: recordsets[1] || [],
+      addresses: recordsets[2] || [],
+      history: recordsets[3] || [],
+      // Employee sessions can process orders without seeing payment/refund
+      // configuration or transaction details.
+      payments: isOperationalAdmin ? [] : (recordsets[4] || []),
+      shipments: recordsets[5] || [],
+      trackingEvents: recordsets[6] || [],
+      supplierOrders: recordsets[7] || [],
+      invoices: isOperationalAdmin ? [] : (recordsets[8] || []),
+      refunds: isOperationalAdmin ? [] : (recordsets[9] || [])
+    });
+  } catch (error) {
+    console.error(`GET /api/admin/orders/${orderId} failed`, error);
+    if (error && error.number === 208) {
+      return res.status(503).json({
+        code: 'CANONICAL_SCHEMA_NOT_READY',
+        error: 'Required Weluxo database objects are not available'
+      });
+    }
+    res.status(500).json({ error: 'Unable to load order details' });
   }
 });
 

@@ -55,7 +55,7 @@ export function resetPassword(email, resetToken, password) {
 
 export async function logoutRequest() {
   await endLiveChatSession();
-  await fetch(`${API_BASE}/api/auth/signout?role=customer`, { credentials: "include" });
+  await fetch(`${API_BASE}/api/auth/signout?role=customer`, { method: "POST", credentials: "include" });
 }
 
 export async function fetchSession() {
@@ -85,6 +85,111 @@ export async function updateProfileName(username) {
     throw new Error(message);
   }
   return data;
+}
+
+export async function fetchAccountDetails() {
+  const res = await fetch(`${API_BASE}/api/account/details`, { credentials: "include", cache: "no-store" });
+  if (res.status === 401) return null;
+  const data = await parseJsonSafe(res);
+  if (!res.ok) throw new Error(data?.error || "Unable to load account details");
+  return data || { profile: null, preferences: {}, addresses: [] };
+}
+
+export async function updateAccountProfile(details) {
+  const res = await fetch(`${API_BASE}/api/account/profile`, {
+    method: "PUT",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify(details),
+    credentials: "include",
+  });
+  const data = await parseJsonSafe(res);
+  if (res.status === 401) throw new Error("unauthorized");
+  if (!res.ok) throw new Error(data?.error || "Unable to update profile");
+  return data;
+}
+
+export async function updateAccountPreferences(preferences) {
+  const res = await fetch(`${API_BASE}/api/account/preferences`, {
+    method: "PUT",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify(preferences),
+    credentials: "include",
+  });
+  const data = await parseJsonSafe(res);
+  if (res.status === 401) throw new Error("unauthorized");
+  if (!res.ok) throw new Error(data?.error || "Unable to update preferences");
+  return data;
+}
+
+export async function updateAccountPassword(details) {
+  const res = await fetch(`${API_BASE}/api/account/password`, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify(details),
+    credentials: "include",
+  });
+  const data = await parseJsonSafe(res);
+  if (res.status === 401) throw new Error("unauthorized");
+  if (!res.ok) throw new Error(data?.error || "Unable to change password");
+  return data;
+}
+
+export async function fetchAccountAddresses() {
+  const res = await fetch(`${API_BASE}/api/account/addresses`, { credentials: "include", cache: "no-store" });
+  if (res.status === 401) return null;
+  const data = await parseJsonSafe(res);
+  if (!res.ok) throw new Error(data?.error || "Unable to load addresses");
+  return data || { addresses: [] };
+}
+
+export async function createAccountAddress(address) {
+  const res = await fetch(`${API_BASE}/api/account/addresses`, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify(address),
+    credentials: "include",
+  });
+  const data = await parseJsonSafe(res);
+  if (res.status === 401) throw new Error("unauthorized");
+  if (!res.ok) throw new Error(data?.error || "Unable to save address");
+  return data;
+}
+
+export async function updateAccountAddress(addressId, address) {
+  const res = await fetch(`${API_BASE}/api/account/addresses/${encodeURIComponent(addressId)}`, {
+    method: "PUT",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify(address),
+    credentials: "include",
+  });
+  const data = await parseJsonSafe(res);
+  if (res.status === 401) throw new Error("unauthorized");
+  if (!res.ok) throw new Error(data?.error || "Unable to update address");
+  return data;
+}
+
+export async function removeAccountAddress(addressId) {
+  const res = await fetch(`${API_BASE}/api/account/addresses/${encodeURIComponent(addressId)}`, {
+    method: "DELETE",
+    credentials: "include",
+  });
+  const data = await parseJsonSafe(res);
+  if (res.status === 401) throw new Error("unauthorized");
+  if (!res.ok) throw new Error(data?.error || "Unable to remove address");
+  return data;
+}
+
+export async function saveCheckoutDetails(details) {
+  const res = await fetch(`${API_BASE}/api/account/checkout-details`, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify(details),
+    credentials: "include",
+  });
+  const data = await parseJsonSafe(res);
+  if (res.status === 401) throw new Error("unauthorized");
+  if (!res.ok) throw new Error(data?.error || "Unable to save checkout details");
+  return data || { ok: true };
 }
 
 export async function fetchOrders() {

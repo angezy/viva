@@ -212,7 +212,7 @@ BEGIN TRY
       [FullName] NVARCHAR(250) NULL,
       [Status] NVARCHAR(30) NOT NULL CONSTRAINT [DF_CRM_Customers_Status] DEFAULT N'Active',
       [CustomerType] NVARCHAR(30) NOT NULL CONSTRAINT [DF_CRM_Customers_CustomerType] DEFAULT N'Retail',
-      [Role] NVARCHAR(50) NOT NULL CONSTRAINT [DF_CRM_Customers_Role] DEFAULT N'user',
+      [Role] NVARCHAR(50) NOT NULL CONSTRAINT [DF_CRM_Customers_Role] DEFAULT N'customer',
       [PreferredLanguage] NVARCHAR(10) NULL,
       [PreferredCurrency] CHAR(3) NULL,
       [MarketingConsent] BIT NOT NULL CONSTRAINT [DF_CRM_Customers_MarketingConsent] DEFAULT (0),
@@ -1441,7 +1441,8 @@ BEGIN TRY
     )
     SELECT NEWID(), u.[UserID], CONCAT(N'CUS-', RIGHT(REPLICATE(N'0', 10) + CONVERT(NVARCHAR(20), u.[UserID]), 10)),
            u.[Username], LOWER(LTRIM(RTRIM(u.[Email]))), N'', N'', u.[Username], N'Active', N'Retail',
-           COALESCE(NULLIF(u.[Role], N''), N'user'), 0, 0, u.[PasswordHash], u.[LastIP], u.[LastLogin],
+           CASE WHEN LOWER(LTRIM(RTRIM(ISNULL(u.[Role], N'')))) IN (N'owner', N'admin') THEN LOWER(LTRIM(RTRIM(u.[Role]))) ELSE N'customer' END,
+           0, 0, u.[PasswordHash], u.[LastIP], u.[LastLogin],
            COALESCE(CONVERT(DATETIME2(3), u.[CreatedAt]), SYSUTCDATETIME()), SYSUTCDATETIME()
     FROM [dbo].[User_tbl] u
     WHERE NOT EXISTS (SELECT 1 FROM [CRM].[Customers] c WHERE c.[LegacyUserId] = u.[UserID] OR c.[Email] = LOWER(LTRIM(RTRIM(u.[Email]))));
@@ -1505,7 +1506,7 @@ BEGIN TRY
   BEGIN
     IF NOT EXISTS (SELECT 1 FROM [Commerce].[Suppliers] WHERE [Code] = N'CJ')
       INSERT INTO [Commerce].[Suppliers] ([Code], [Name], [SupplierType], [Status], [Website], [DefaultCurrency])
-      VALUES (N'CJ', N'CJdropshipping', N'Dropshipping', N'Active', N'https://cjdropshipping.com', 'USD');
+      VALUES (N'CJ', N'Fulfillment Partner', N'Dropshipping', N'Active', N'https://cjdropshipping.com', 'USD');
 
     INSERT INTO [Commerce].[SupplierProducts] (
       [SupplierId], [ProductId], [VariantId], [ExternalProductId], [ExternalVariantId], [SupplierSKU],
@@ -1643,7 +1644,9 @@ BEGIN TRY
           [City], [Zip], [Address], [SignupIP], [LastLoginIP], [LastLoginAt], [CreatedAt], [UpdatedAt]
         )
         SELECT CONCAT(N''CUS-'', REPLACE(CONVERT(NVARCHAR(36), NEWID()), N''-'', N'''')), i.[Username], LOWER(LTRIM(RTRIM(i.[Email]))),
-               N'''', N'''', i.[FullName], N''Active'', N''Retail'', COALESCE(i.[Role], N''user''), 0, 0,
+               N'''', N'''', i.[FullName], N''Active'', N''Retail'',
+               CASE WHEN LOWER(LTRIM(RTRIM(ISNULL(i.[Role], N'''')))) IN (N''owner'', N''admin'') THEN LOWER(LTRIM(RTRIM(i.[Role]))) ELSE N''customer'' END,
+               0, 0,
                i.[PasswordHash], i.[AvatarUrl], i.[Bio], i.[Country], i.[State], i.[City], i.[Zip], i.[Address],
                i.[SignupIP], i.[LastIP], i.[LastLogin], COALESCE(i.[CreatedAt], SYSUTCDATETIME()), SYSUTCDATETIME()
         FROM inserted i;

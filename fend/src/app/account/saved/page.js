@@ -1,8 +1,11 @@
 "use client";
 
 import Link from "next/link";
+import Image from "next/image";
 import { useEffect, useState } from "react";
 import { addToCart, fetchSavedProducts, fetchSession, removeSavedProduct } from "../../lib/apiClient";
+import { hideSupplierBranding } from "../../lib/customerFacingText";
+import { AccountPageSkeleton } from "../../components/LoadingSkeletons";
 import styles from "../account.module.css";
 
 const FALLBACK_IMAGE = "https://placehold.co/480x480?text=Weluxo";
@@ -12,7 +15,7 @@ function productImage(item) {
 }
 
 function productName(item) {
-  return item?.name || item?.title || "Weluxo product";
+  return hideSupplierBranding(item?.name || item?.title, "Weluxo product");
 }
 
 function money(value) {
@@ -96,7 +99,7 @@ export default function SavedProductsPage() {
     }
   }
 
-  if (loading) return <div className={styles.heroTitle}>Loading saved products...</div>;
+  if (loading) return <AccountPageSkeleton variant="saved" />;
 
   if (!authed) {
     return (
@@ -148,10 +151,10 @@ export default function SavedProductsPage() {
               return (
                 <article className={styles.savedCard} key={id}>
                   <Link href={`/product/${id}`} className={styles.savedImageLink}>
-                    <img className={styles.savedImage} src={productImage(item)} alt={item.alt || productName(item)} />
+                    <Image className={styles.savedImage} src={productImage(item)} alt={item.alt || productName(item)} width={480} height={480} sizes="(max-width: 600px) 100vw, 240px" unoptimized />
                   </Link>
                   <div className={styles.savedCardBody}>
-                    <div className={styles.savedMeta}>{item.brand || "Weluxo"} · {item.category || "Collection"}</div>
+                    <div className={styles.savedMeta}>{hideSupplierBranding(item.brand, "Weluxo")} · {item.category || "Collection"}</div>
                     <Link href={`/product/${id}`} className={styles.savedTitle}>{productName(item)}</Link>
                     <div className={styles.savedPrice}>{money(item.price)}</div>
                     <div className={styles.savedActions}>

@@ -3,8 +3,10 @@ import ConditionalShell from "./components/ConditionalShell";
 import ToastProvider from "./components/ToastProvider";
 import ScrollToTop from "./components/ScrollToTop";
 import SiteThemeProvider from "./components/SiteThemeProvider";
+import ButtonLoadingFeedback from "./components/ButtonLoadingFeedback";
 import { AppRouterCacheProvider } from "@mui/material-nextjs/v16-appRouter";
 import { getSiteSettingsServer } from "./lib/siteSettingsServer";
+import { getSiteCustomFontFace } from "./lib/siteSettings";
 import { buildSiteColorVars, buildSiteFontVars } from "./theme";
 
 export const dynamic = "force-dynamic";
@@ -44,13 +46,16 @@ export async function generateMetadata() {
 
 export default async function RootLayout({ children }) {
   const siteSettings = await getSiteSettingsServer();
+  const customFontFace = getSiteCustomFontFace(siteSettings);
 
   return (
     <html lang="en">
+      <head>{customFontFace ? <style data-site-custom-font dangerouslySetInnerHTML={{ __html: customFontFace }} /> : null}</head>
       <body style={{ ...buildSiteColorVars(siteSettings), ...buildSiteFontVars(siteSettings) }}>
         <AppRouterCacheProvider>
           <SiteThemeProvider siteSettings={siteSettings}>
             <ScrollToTop />
+            <ButtonLoadingFeedback />
             <ConditionalShell>{children}</ConditionalShell>
             <ToastProvider />
           </SiteThemeProvider>

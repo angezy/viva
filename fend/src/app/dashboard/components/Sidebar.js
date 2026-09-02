@@ -24,28 +24,32 @@ import LocalOfferOutlinedIcon from '@mui/icons-material/LocalOfferOutlined'
 import styles from './sidebar.module.css'
 
 const navItems = [
-  { label: 'Dashboard', href: '/dashboard', icon: SpaceDashboardOutlinedIcon },
-  { label: 'Overview', href: '/dashboard/Overview', icon: PersonOutlineIcon },
-  { label: 'Page Editor', href: '/dashboard/pageEditor', icon: TextSnippetOutlinedIcon },
-  { label: 'Reviews', href: '/dashboard/reviews', icon: RateReviewOutlinedIcon },
-  { label: 'Products', href: '/dashboard/products', icon: Inventory2OutlinedIcon },
-  { label: 'Orders', href: '/dashboard/orders', icon: ReceiptLongOutlinedIcon },
-  { label: 'Finance', href: '/dashboard/finance', icon: AccountBalanceOutlinedIcon },
-  { label: 'Suppliers', href: '/dashboard/suppliers', icon: LocalShippingOutlinedIcon },
-  { label: 'API Products', href: '/dashboard/api-products', icon: ExtensionOutlinedIcon },
-  { label: 'Users', href: '/dashboard/user', icon: GroupOutlinedIcon },
-  { label: 'Marketing', href: '/dashboard/marketing', icon: CampaignOutlinedIcon },
-  { label: 'Coupons', href: '/dashboard/coupons', icon: LocalOfferOutlinedIcon },
-  { label: 'Loyalty', href: '/dashboard/loyalty', icon: LoyaltyOutlinedIcon },
-  { label: 'Settings', href: '/dashboard/Settings', icon: SettingsOutlinedIcon },
-  { label: 'Messages', href: '/dashboard/item6', icon: ChatBubbleOutlineIcon },
-  { label: 'Integrations', href: '/dashboard/item7', icon: ExtensionOutlinedIcon },
-  { label: 'Help', href: '/dashboard/item8', icon: HelpOutlineIcon },
-  { label: 'Blog Manager', href: '/dashboard/blogManager', icon: ArticleOutlinedIcon },
-  { label: 'Support Tickets', href: '/dashboard/tikects', icon: SupportAgentOutlinedIcon }
+  { label: 'Dashboard', href: '/dashboard', icon: SpaceDashboardOutlinedIcon, permission: 'dashboard.view' },
+  { label: 'Overview', href: '/dashboard/Overview', icon: PersonOutlineIcon, permission: 'analytics.read' },
+  { label: 'Page Editor', href: '/dashboard/pageEditor', icon: TextSnippetOutlinedIcon, permission: 'content.manage' },
+  { label: 'Reviews', href: '/dashboard/reviews', icon: RateReviewOutlinedIcon, permission: 'reviews.manage' },
+  { label: 'Products', href: '/dashboard/products', icon: Inventory2OutlinedIcon, permission: 'products.read' },
+  { label: 'Orders', href: '/dashboard/orders', icon: ReceiptLongOutlinedIcon, permission: 'orders.read' },
+  { label: 'Finance', href: '/dashboard/finance', icon: AccountBalanceOutlinedIcon, permission: 'finance.read' },
+  { label: 'Suppliers', href: '/dashboard/suppliers', icon: LocalShippingOutlinedIcon, permission: 'suppliers.read' },
+  { label: 'API Products', href: '/dashboard/api-products', icon: ExtensionOutlinedIcon, permission: 'integrations.manage' },
+  { label: 'Users', href: '/dashboard/user', icon: GroupOutlinedIcon, permission: 'users.read' },
+  { label: 'CJ Sandbox', href: '/dashboard/cj-sandbox', icon: ExtensionOutlinedIcon, permission: 'integrations.manage' },
+  { label: 'Marketing', href: '/dashboard/marketing', icon: CampaignOutlinedIcon, permission: 'marketing.read' },
+  { label: 'Coupons', href: '/dashboard/coupons', icon: LocalOfferOutlinedIcon, permission: 'coupons.manage' },
+  { label: 'Loyalty', href: '/dashboard/loyalty', icon: LoyaltyOutlinedIcon, permission: 'loyalty.read' },
+  { label: 'Settings', href: '/dashboard/Settings', icon: SettingsOutlinedIcon, permission: 'settings.manage' },
+  { label: 'AI Knowledge', href: '/dashboard/ai-knowledge', icon: SupportAgentOutlinedIcon, permission: 'content.manage' },
+  { label: 'Messages', href: '/dashboard/item6', icon: ChatBubbleOutlineIcon, permission: 'owner.only' },
+  { label: 'Integrations', href: '/dashboard/integrations', icon: ExtensionOutlinedIcon, permission: 'integrations.manage' },
+  { label: 'Help', href: '/dashboard/item8', icon: HelpOutlineIcon, permission: 'content.manage' },
+  { label: 'Blog Manager', href: '/dashboard/blogManager', icon: ArticleOutlinedIcon, permission: 'content.manage' },
+  { label: 'Support Tickets', href: '/dashboard/tikects', icon: SupportAgentOutlinedIcon, permission: 'tickets.read' }
 ]
 
-export default function Sidebar({ open = true, onClose = () => {}, siteName = 'Weluxo' }) {
+const adminPermissions = new Set(['dashboard.view', 'orders.read', 'orders.update', 'tickets.read', 'tickets.reply', 'tickets.update', 'users.read'])
+
+export default function Sidebar({ open = true, onClose = () => {}, siteName = 'Your Store', role = 'owner' }) {
   const [isDesktop, setIsDesktop] = useState(false)
   const pathname = usePathname()
 
@@ -53,7 +57,7 @@ export default function Sidebar({ open = true, onClose = () => {}, siteName = 'W
     if (typeof window === 'undefined') return
     const mq = window.matchMedia('(min-width: 768px)')
     const handler = (e) => setIsDesktop(e.matches)
-    setIsDesktop(mq.matches)
+    queueMicrotask(() => setIsDesktop(mq.matches))
     if (mq.addEventListener) mq.addEventListener('change', handler)
     else mq.addListener(handler)
     return () => {
@@ -125,7 +129,7 @@ export default function Sidebar({ open = true, onClose = () => {}, siteName = 'W
 
         <nav className={styles.nav}>
           <ul className={styles.navList}>
-            {navItems.map(({ label, href, icon: Icon }) => (
+            {navItems.filter((item) => role === 'owner' || adminPermissions.has(item.permission)).map(({ label, href, icon: Icon }) => (
               <li key={href} className={styles.navItem}>
                 <Link
                   href={href}

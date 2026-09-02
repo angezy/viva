@@ -50,7 +50,13 @@ export default function CategoryProductGrid({ products = [], categoryName = "Col
       ) : (
         <Grid container spacing={3}>
           {filteredProducts.map((product) => (
-            <Grid item xs={12} sm={6} md={4} key={product.id}>
+            <Grid
+              key={product.id}
+              size={{
+                xs: 12,
+                sm: 6,
+                md: 4
+              }}>
               <Card sx={{ height: "100%", display: "flex", flexDirection: "column", overflow: "hidden", borderRadius: 4, bgcolor: "#ffffff", color: "var(--color-text-primary)", border: "1px solid var(--color-border)" }}>
                 <Link href={`/product/${product.slug}`}>
                   <Box component="img" src={product.image} alt={product.alt} sx={{ display: "block", width: "100%", height: 250, objectFit: "cover" }} />

@@ -185,7 +185,15 @@ export default function BlogManager() {
 
           <Grid container spacing={2.5}>
             {Array.from({ length: 8 }).map((_, idx) => (
-              <Grid item xs={12} sm={6} md={4} lg={3} key={idx} sx={{ display: "flex" }}>
+              <Grid
+                key={idx}
+                sx={{ display: "flex" }}
+                size={{
+                  xs: 12,
+                  sm: 6,
+                  md: 4,
+                  lg: 3
+                }}>
                 <Card sx={{ height: BLOG_CARD_HEIGHT, width: "100%", borderRadius: 4, overflow: "hidden" }}>
                   <CardContent sx={{ height: "100%", display: "flex", flexDirection: "column" }}>
                     <Stack direction="row" spacing={2} alignItems="flex-start">
@@ -316,7 +324,15 @@ export default function BlogManager() {
               const href = post.slug ? `/blog/${post.slug}` : null;
 
               return (
-                <Grid item xs={12} sm={6} md={4} lg={3} key={post.id} sx={{ display: "flex" }}>
+                <Grid
+                  key={post.id}
+                  sx={{ display: "flex" }}
+                  size={{
+                    xs: 12,
+                    sm: 6,
+                    md: 4,
+                    lg: 3
+                  }}>
                   <Card
                     sx={{
                       width: "300px",
@@ -465,7 +481,11 @@ export default function BlogManager() {
         </DialogTitle>
         <DialogContent dividers sx={{ bgcolor: "#fbfdff" }}>
           <Grid container spacing={2}>
-            <Grid item xs={12} md={8}>
+            <Grid
+              size={{
+                xs: 12,
+                md: 8
+              }}>
               <Stack spacing={2}>
                 <TextField
                   label="Title"
@@ -487,10 +507,18 @@ export default function BlogManager() {
                 />
 
                 <Grid container spacing={2}>
-                  <Grid item xs={12} md={6}>
+                  <Grid
+                    size={{
+                      xs: 12,
+                      md: 6
+                    }}>
                     <TextField label="Author" value={current.author} onChange={(e) => updatePostField("author", e.target.value)} fullWidth />
                   </Grid>
-                  <Grid item xs={12} md={6}>
+                  <Grid
+                    size={{
+                      xs: 12,
+                      md: 6
+                    }}>
                     <TextField
                       label="Date"
                       value={current.date}
@@ -526,7 +554,11 @@ export default function BlogManager() {
               </Stack>
             </Grid>
 
-            <Grid item xs={12} md={4}>
+            <Grid
+              size={{
+                xs: 12,
+                md: 4
+              }}>
               <Card sx={{ borderRadius: 4, border: "1px solid rgba(15,23,42,0.12)" }}>
                 <CardContent>
                   <Typography variant="subtitle2" fontWeight={800} sx={{ mb: 1 }}>
@@ -575,7 +607,7 @@ export default function BlogManager() {
               </Card>
             </Grid>
 
-            <Grid item xs={12}>
+            <Grid size={12}>
               <Divider sx={{ my: 1 }} />
               <Typography variant="subtitle2" fontWeight={900} sx={{ mb: 1 }}>
                 Body

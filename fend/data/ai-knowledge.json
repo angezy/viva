@@ -1,0 +1,109 @@
+{
+  "greeting": "Hi — I’m the Weluxo assistant. I can help with products, stock, shipping, returns, payments, policies, and general store questions.",
+  "entries": [
+    {
+      "id": "product-guidance-storefront",
+      "category": "product_guidance",
+      "title": "Product guidance",
+      "content": "For product-specific guidance, the assistant uses the current product title, description, price, and stock shown in Weluxo's approved store catalog. If those details do not answer the question, the assistant connects the customer with support.",
+      "keywords": ["products", "product", "stock", "availability"],
+      "enabled": true
+    },
+    {
+      "id": "shipping-estimates",
+      "category": "policy",
+      "title": "Shipping times and delivery estimates",
+      "content": "Delivery timing varies by product, destination, fulfillment partner, carrier, and customs processing. The delivery estimate shown at checkout and in the customer's order information is the applicable estimate; Weluxo does not promise one universal delivery time.",
+      "keywords": ["shipping time", "delivery time", "how long", "when arrive", "delivery estimate", "shipping estimate"],
+      "enabled": true
+    },
+    {
+      "id": "international-shipping",
+      "category": "policy",
+      "title": "International shipping availability",
+      "content": "Weluxo serves customers in multiple markets. Shipping availability, available methods, cost, and timing depend on the product and destination and are confirmed at checkout.",
+      "keywords": ["international", "worldwide", "countries", "ship to", "outside usa", "overseas"],
+      "enabled": true
+    },
+    {
+      "id": "tracking-orders",
+      "category": "faq",
+      "title": "Tracking an order",
+      "content": "When a tracking number is created, available updates can be viewed through the customer's account and the tracking page. Carrier scans can take time to appear. For a specific order, Weluxo must verify the order number and checkout email before sharing details.",
+      "keywords": ["track order", "tracking", "track package", "where is my order", "tracking number", "package update"],
+      "enabled": true
+    },
+    {
+      "id": "shipping-costs",
+      "category": "policy",
+      "title": "Shipping costs",
+      "content": "Available shipping methods and costs are shown at checkout. Rates can vary by destination, product, package characteristics, carrier option, and the offer displayed at the time of purchase.",
+      "keywords": ["shipping cost", "delivery cost", "shipping fee", "free shipping", "postage", "shipping price"],
+      "enabled": true
+    },
+    {
+      "id": "return-eligibility",
+      "category": "policy",
+      "title": "Return eligibility",
+      "content": "Customers should contact Weluxo support within 30 days of delivery to ask whether an order is eligible for return. Items should generally be unused, complete, and in their original condition and packaging where possible. Eligibility can vary by product and fulfillment partner.",
+      "keywords": ["return", "return policy", "return window", "30 days", "eligible return", "send back"],
+      "enabled": true
+    },
+    {
+      "id": "return-request",
+      "category": "faq",
+      "title": "How to request a return",
+      "content": "To request a return, contact support with the order number, product details, and reason for the request. Support will confirm eligibility and provide any applicable instructions before the item is sent back.",
+      "keywords": ["start return", "return request", "return item", "return instructions", "exchange"],
+      "enabled": true
+    },
+    {
+      "id": "refund-process",
+      "category": "policy",
+      "title": "Refund process",
+      "content": "After a returned item is received and reviewed, Weluxo or the applicable fulfillment partner determines whether the return is approved. An approved refund is sent to the original payment method. The time for funds to appear depends on the payment provider and banking process.",
+      "keywords": ["refund", "refund time", "money back", "refund status", "original payment method"],
+      "enabled": true
+    },
+    {
+      "id": "damaged-or-wrong-item",
+      "category": "faq",
+      "title": "Damaged, defective, or wrong item",
+      "content": "If an item arrives damaged, defective, or different from what was ordered, contact support promptly with the order number, a description of the issue, and clear photos or video when useful. Keep the item and packaging until support provides instructions.",
+      "keywords": ["damaged", "defective", "broken", "wrong item", "incorrect item", "missing item"],
+      "enabled": true
+    },
+    {
+      "id": "order-change-cancellation",
+      "category": "policy",
+      "title": "Changing or cancelling an order",
+      "content": "Contact support as soon as possible with the order number and requested change or cancellation. Weluxo cannot guarantee changes or cancellation after an order has entered fulfillment or shipped.",
+      "keywords": ["cancel order", "change order", "edit order", "change address", "wrong address", "stop order"],
+      "enabled": true
+    },
+    {
+      "id": "payments",
+      "category": "faq",
+      "title": "Payments and checkout",
+      "content": "Available payment methods are displayed securely during checkout and can vary by destination. If a payment fails, confirm the payment details, try another available method, or contact the payment provider or Weluxo support if the issue continues.",
+      "keywords": ["payment", "pay", "card", "payment failed", "checkout", "accepted payment methods"],
+      "enabled": true
+    },
+    {
+      "id": "order-confirmation",
+      "category": "faq",
+      "title": "Order confirmation email",
+      "content": "If a customer cannot find an order confirmation email, they should check spam or promotions first. If it is still missing, support can help when the customer provides the email and order details used at checkout.",
+      "keywords": ["confirmation email", "order email", "receipt", "no confirmation", "email missing"],
+      "enabled": true
+    },
+    {
+      "id": "account-help",
+      "category": "faq",
+      "title": "Account help",
+      "content": "Customers can create an account from the Account area, use the password reset option on the sign-in page, and update account information after signing in to profile settings.",
+      "keywords": ["account", "sign in", "login", "password", "reset password", "create account", "profile"],
+      "enabled": true
+    }
+  ]
+}

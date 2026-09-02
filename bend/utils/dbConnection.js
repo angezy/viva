@@ -6,16 +6,20 @@ let poolPromise;
 const getPool = async () => {
   if (!poolPromise) {
     poolPromise = sql.connect(dbConfig)
-      .then(pool => {
-        console.log("✅ Connected to SQL Server");
-        return pool;
-      })
-      .catch(err => {
-        console.error("❌ Database connection failed", err);
+      .then((pool) => pool)
+      .catch((err) => {
+        poolPromise = undefined;
+        console.error("Database connection failed", err && err.message ? err.message : err);
         throw err;
       });
   }
   return poolPromise;
 };
 
-module.exports = { getPool };
+async function closePool() {
+  const pool = await poolPromise;
+  poolPromise = undefined;
+  if (pool) await pool.close();
+}
+
+module.exports = { getPool, closePool };

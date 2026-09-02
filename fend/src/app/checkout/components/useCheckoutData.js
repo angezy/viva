@@ -1,7 +1,8 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { fetchCart, fetchSession } from "../../lib/apiClient";
+import { fetchAccountDetails, fetchCart, fetchSession } from "../../lib/apiClient";
+import { hydrateCheckoutFromAccount, readCheckoutState, updateCheckoutState } from "./checkoutState";
 
 export function useCheckoutData() {
   const [data, setData] = useState({ user: null, items: [], subtotal: 0, discount: 0, couponCode: "", loading: true, error: "" });
@@ -11,8 +12,14 @@ export function useCheckoutData() {
 
     async function load() {
       try {
-        const session = await fetchSession();
-        const cart = await fetchCart();
+        const [session, cart] = await Promise.all([fetchSession(), fetchCart()]);
+        const accountDetails = session?.user && !session.user.guest
+          ? await fetchAccountDetails().catch(() => null)
+          : null;
+        const checkout = hydrateCheckoutFromAccount(readCheckoutState(), session?.user, accountDetails);
+        if (session?.user && !session.user.guest) {
+          updateCheckoutState({ information: checkout.information, shipping: checkout.shipping });
+        }
         if (active) {
           setData({
             user: session?.user || { id: "guest", guest: true },

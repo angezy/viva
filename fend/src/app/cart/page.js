@@ -16,6 +16,8 @@ import {
   ShoppingCartOutlined,
   SupportAgentOutlined,
 } from "@mui/icons-material";
+import { hideSupplierBranding } from "../lib/customerFacingText";
+import { useSiteSettings } from "../components/SiteThemeProvider";
 import {
   Alert,
   Box,
@@ -24,6 +26,7 @@ import {
   CardContent,
   CardMedia,
   Chip,
+  CircularProgress,
   Container,
   Dialog,
   DialogActions,
@@ -31,9 +34,7 @@ import {
   DialogTitle,
   Divider,
   IconButton,
-  LinearProgress,
   MenuItem,
-  Skeleton,
   Stack,
   TextField,
   Typography,
@@ -49,14 +50,11 @@ import {
   updateCartItem,
 } from "../lib/apiClient";
 import { readCheckoutState, updateCheckoutState } from "../checkout/components/checkoutState";
+import PageSkeleton from "../components/LoadingSkeletons";
 
-const FREE_SHIPPING_THRESHOLD = 100;
 const FALLBACK_IMAGE = "https://placehold.co/240x240?text=Weluxo";
 
-const initialEstimates = [
-  { method: "standard", label: "Standard Shipping", window: "7-15 business days", cost: 0, free: true },
-  { method: "express", label: "Express Shipping", window: "3-7 business days", cost: 19.99, free: false },
-];
+const initialEstimates = [];
 
 function money(value) {
   return `$${Number(value || 0).toFixed(2)}`;
@@ -93,7 +91,7 @@ function productDetails(product = {}) {
   };
 }
 
-function RecommendedProductCard({ product, details, onAdd }) {
+function RecommendedProductCard({ product, details, onAdd, adding = false }) {
   return (
     <Card sx={{ bgcolor: "#ffffff", color: "var(--color-text-primary)", border: "1px solid var(--color-border)", borderRadius: 3, overflow: "hidden", transition: "transform 180ms ease, box-shadow 180ms ease", "&:hover": { transform: "translateY(-3px)", boxShadow: "0 14px 30px rgba(43,43,43,0.1)" } }}>
       <Box component={Link} href={`/product/${encodeURIComponent(details.slug)}`} sx={{ display: "block", color: "inherit", textDecoration: "none", "&:focus-visible": { outline: "3px solid var(--color-primary-light)", outlineOffset: -3 } }} aria-label={`View ${details.title}`}>
@@ -104,8 +102,8 @@ function RecommendedProductCard({ product, details, onAdd }) {
         </CardContent>
       </Box>
       <Box sx={{ px: 2, pb: 2 }}>
-        <Button fullWidth size="small" variant="contained" onClick={() => onAdd(product)} sx={{ borderRadius: 999 }}>
-          Add to cart
+        <Button fullWidth size="small" variant="contained" onClick={() => onAdd(product)} disabled={adding} data-button-loading-managed="true" startIcon={adding ? <CircularProgress size={16} color="inherit" /> : undefined} sx={{ borderRadius: 999 }}>
+          {adding ? "Adding..." : "Add to cart"}
         </Button>
       </Box>
     </Card>
@@ -147,7 +145,7 @@ function CartItem({ item, pending, onQuantity, onRemove, onSave }) {
                   {item.title || "Product"}
                 </Typography>
                 <Typography variant="body2" sx={{ color: "var(--color-primary)", mt: 0.25 }}>
-                  {item.brand || "Weluxo"} · {item.category || "Collection"}
+                  {hideSupplierBranding(item.brand, "Weluxo")} · {item.category || "Collection"}
                 </Typography>
               </Box>
               <IconButton aria-label={`Remove ${item.title || "item"}`} onClick={() => onRemove(item.productId)} disabled={pending} sx={{ color: "var(--color-text-secondary)", p: 0.5 }}>
@@ -213,6 +211,8 @@ function TrustSection() {
 }
 
 export default function CartPage() {
+  const siteSettings = useSiteSettings();
+  const exitCouponCode = String(siteSettings?.welcomePopupEnabled ? siteSettings?.welcomePopupCouponCode || "" : "").trim();
   const [user, setUser] = useState({ id: "guest", guest: true });
   const [items, setItems] = useState([]);
   const [subtotal, setSubtotal] = useState(0);
@@ -222,14 +222,17 @@ export default function CartPage() {
   const [pendingId, setPendingId] = useState(null);
   const [couponCode, setCouponCode] = useState("");
   const [appliedCoupon, setAppliedCoupon] = useState("");
+  const [couponDiscountPercent, setCouponDiscountPercent] = useState(0);
+  const [couponLoading, setCouponLoading] = useState(false);
   const couponRef = useRef({ code: "", discountPercent: 0, expiresAt: null });
   const [discount, setDiscount] = useState(0);
   const [shippingCountry, setShippingCountry] = useState("US");
   const [shippingPostalCode, setShippingPostalCode] = useState("");
-  const [shippingMethod, setShippingMethod] = useState(() => readCheckoutState().shipping.method || "standard");
+  const [shippingMethod, setShippingMethod] = useState(() => readCheckoutState().shipping.logisticName || readCheckoutState().shipping.method || "");
   const [shippingEstimates, setShippingEstimates] = useState(initialEstimates);
   const [shippingLoading, setShippingLoading] = useState(false);
   const [recommended, setRecommended] = useState([]);
+  const [recommendedPendingId, setRecommendedPendingId] = useState(null);
   const [exitOpen, setExitOpen] = useState(false);
 
   const countryOptions = useMemo(
@@ -237,11 +240,9 @@ export default function CartPage() {
     []
   );
 
-  const selectedShipping = shippingEstimates.find((estimate) => estimate.method === shippingMethod) || initialEstimates[0];
-  const shippingCost = Number(selectedShipping.cost) || 0;
+  const selectedShipping = shippingEstimates.find((estimate) => estimate.method === shippingMethod) || null;
+  const shippingCost = Number(selectedShipping?.cost) || 0;
   const total = Math.max(0, subtotal + shippingCost - discount);
-  const freeShippingProgress = Math.min(100, (subtotal / FREE_SHIPPING_THRESHOLD) * 100);
-  const remainingForFreeShipping = Math.max(0, FREE_SHIPPING_THRESHOLD - subtotal);
 
   const syncCart = useCallback((data) => {
     const nextItems = Array.isArray(data?.items) ? data.items : [];
@@ -256,6 +257,7 @@ export default function CartPage() {
         expiresAt: data.coupon.expiresAt || null,
       } : { code: "", discountPercent: 0, expiresAt: null };
       couponRef.current = nextCoupon;
+      setCouponDiscountPercent(nextCoupon.discountPercent);
       setAppliedCoupon(nextCoupon.code);
       setDiscount(Number(data.discount) || 0);
     } else {
@@ -280,7 +282,7 @@ export default function CartPage() {
   }, [syncCart]);
 
   useEffect(() => {
-    loadCart();
+    queueMicrotask(loadCart);
     fetch("/api/shop", { cache: "no-store" }).then((res) => res.json()).then((data) => setRecommended(Array.isArray(data) ? data.slice(0, 4) : [])).catch(() => {});
   }, [loadCart]);
 
@@ -292,13 +294,13 @@ export default function CartPage() {
 
   useEffect(() => {
     const handleExitIntent = (event) => {
-      if (event.clientY > 0 || !items.length || window.sessionStorage.getItem("weluxo_exit_offer_seen")) return;
+      if (event.clientY > 0 || !items.length || !exitCouponCode || window.sessionStorage.getItem("weluxo_exit_offer_seen")) return;
       window.sessionStorage.setItem("weluxo_exit_offer_seen", "1");
       setExitOpen(true);
     };
     document.addEventListener("mouseleave", handleExitIntent);
     return () => document.removeEventListener("mouseleave", handleExitIntent);
-  }, [items.length]);
+  }, [items.length, exitCouponCode]);
 
   async function handleQuantity(item, delta) {
     const currentQuantity = Number(item.quantity) || 1;
@@ -350,18 +352,24 @@ export default function CartPage() {
 
   async function handleApplyCoupon(event) {
     event.preventDefault();
+    if (couponLoading) return;
+
+    setCouponLoading(true);
     setError("");
     try {
       const result = await applyCartCoupon(couponCode);
       const nextCode = result.code || couponCode.trim().toUpperCase();
       const nextCoupon = { code: nextCode, discountPercent: Number(result.discountPercent) || 0, expiresAt: result.expiresAt || null };
       couponRef.current = nextCoupon;
+      setCouponDiscountPercent(nextCoupon.discountPercent);
       setAppliedCoupon(nextCode);
       setDiscount(Number(result.discount) || 0);
       updateCheckoutState({ coupon: { ...nextCoupon, discount: Number(result.discount) || 0 } });
       setNotice(`${result.code || couponCode.toUpperCase()} applied. You saved ${money(result.discount)}.`);
     } catch (err) {
       setError(err.message || "Unable to apply coupon");
+    } finally {
+      setCouponLoading(false);
     }
   }
 
@@ -372,6 +380,7 @@ export default function CartPage() {
     try {
       const result = await estimateCartShipping({ country: shippingCountry, postalCode: shippingPostalCode, method: shippingMethod });
       setShippingEstimates(result.estimates || initialEstimates);
+      if (result.selected) chooseShippingMethod(result.selected);
       setNotice("Shipping estimates updated.");
     } catch (err) {
       setError(err.message || "Unable to estimate shipping");
@@ -380,20 +389,35 @@ export default function CartPage() {
     }
   }
 
-  function chooseShippingMethod(method) {
+  function chooseShippingMethod(option) {
+    const method = option.logisticName || option.method;
     setShippingMethod(method);
     const checkoutState = readCheckoutState();
-    updateCheckoutState({ shipping: { ...checkoutState.shipping, method } });
+    updateCheckoutState({ shipping: {
+      ...checkoutState.shipping,
+      country: shippingCountry,
+      postalCode: shippingPostalCode,
+      method,
+      logisticName: method,
+      label: option.label || method,
+      window: option.window || "",
+      cost: Number(option.cost) || 0,
+      fromCountryCode: option.fromCountryCode || "",
+    } });
   }
 
   async function handleRecommendedAdd(product) {
     const details = productDetails(product);
+    const pendingId = String(details.id || details.slug || details.title);
+    setRecommendedPendingId(pendingId);
     try {
       const result = await addToCart({ productId: details.id, title: details.title, price: details.price, image: details.image, quantity: 1 });
       syncCart(result);
       setNotice(`${details.title} added to your cart.`);
     } catch (err) {
       setError(err.message || "Unable to add item");
+    } finally {
+      setRecommendedPendingId(null);
     }
   }
 
@@ -402,9 +426,9 @@ export default function CartPage() {
       <CardContent sx={{ p: { xs: 2.5, sm: 3 } }}>
         <Typography variant="h5" sx={{ fontWeight: 900, mb: 2 }}>Order summary</Typography>
         <Stack direction="row" justifyContent="space-between" sx={{ mb: 1.25 }}><Typography color="var(--color-text-secondary)">Subtotal</Typography><Typography>{money(subtotal)}</Typography></Stack>
-        <Stack direction="row" justifyContent="space-between" sx={{ mb: 1.25 }}><Typography color="var(--color-text-secondary)">Shipping</Typography><Typography color={shippingCost ? "var(--color-text-primary)" : "#15803d"}>{shippingCost ? money(shippingCost) : "Free"}</Typography></Stack>
+        <Stack direction="row" justifyContent="space-between" sx={{ mb: 1.25 }}><Typography color="var(--color-text-secondary)">Shipping</Typography><Typography color={shippingCost ? "var(--color-text-primary)" : "var(--color-success)"}>{shippingCost ? money(shippingCost) : "Free"}</Typography></Stack>
         <Stack direction="row" justifyContent="space-between" sx={{ mb: 1.25 }}><Typography color="var(--color-text-secondary)">Tax</Typography><Typography color="var(--color-text-secondary)">Calculated at checkout</Typography></Stack>
-        {discount > 0 && <Stack direction="row" justifyContent="space-between" sx={{ mb: 1.25 }}><Typography color="var(--color-text-secondary)">Discount {appliedCoupon && `(${appliedCoupon})`}</Typography><Typography color="#15803d">-{money(discount)}</Typography></Stack>}
+        {discount > 0 && <Stack direction="row" justifyContent="space-between" sx={{ mb: 1.25 }}><Typography color="var(--color-text-secondary)">Discount {appliedCoupon && `(${appliedCoupon})`}</Typography><Typography color="var(--color-success)">-{money(discount)}</Typography></Stack>}
         <Divider sx={{ borderColor: "var(--color-border)", my: 2 }} />
         <Stack direction="row" justifyContent="space-between" alignItems="baseline" sx={{ mb: 2.5 }}><Typography variant="h6" sx={{ fontWeight: 900 }}>Total</Typography><Typography variant="h5" sx={{ fontWeight: 900 }}>{money(total)}</Typography></Stack>
         <Button component={Link} href={items.length ? "/checkout" : undefined} disabled={!items.length || loading} fullWidth variant="contained" size="large" sx={{ borderRadius: 999, py: 1.5, fontWeight: 900 }}>{loading ? "Loading cart..." : "Proceed to checkout"}</Button>
@@ -415,7 +439,7 @@ export default function CartPage() {
   );
 
   if (loading) {
-    return <Box sx={{ backgroundColor: "var(--color-background)", minHeight: "100vh", py: 6 }}><Container maxWidth="lg"><Skeleton variant="text" width={260} height={60} /><Skeleton variant="rounded" height={180} sx={{ mt: 2 }} /></Container></Box>;
+    return <PageSkeleton variant="cart" />;
   }
 
   return (
@@ -439,22 +463,22 @@ export default function CartPage() {
         {items.length === 0 ? (
           <Box>
             <Card sx={{ p: { xs: 4, md: 7 }, textAlign: "center", bgcolor: "#ffffff", color: "var(--color-text-primary)", border: "1px solid var(--color-border)", borderRadius: 4 }}>
-              <ShoppingCartOutlined sx={{ fontSize: 72, color: "primary.light", mb: 1 }} />
+              <ShoppingCartOutlined sx={{ fontSize: 72, color: "var(--color-primary)", mb: 1 }} />
               <Typography variant="h4" sx={{ fontWeight: 900, mb: 1 }}>Your cart is empty</Typography>
               <Typography sx={{ color: "var(--color-text-secondary)", maxWidth: 430, mx: "auto", mb: 3 }}>Looks like you haven’t added anything yet. Discover something made for your next goal.</Typography>
               <Button component={Link} href="/shop" variant="contained" size="large" sx={{ borderRadius: 999, px: 4 }}>Continue shopping</Button>
             </Card>
-            {!!recommended.length && <Box sx={{ mt: 5 }}><Typography variant="h5" sx={{ fontWeight: 900, mb: 2 }}>Recommended for you</Typography><Box sx={{ display: "grid", gridTemplateColumns: { xs: "1fr", sm: "repeat(2, minmax(0, 1fr))", md: "repeat(4, minmax(0, 1fr))" }, gap: 2 }}>{recommended.map((product) => { const details = productDetails(product); return <RecommendedProductCard key={details.id || details.title} product={product} details={details} onAdd={handleRecommendedAdd} />; })}</Box></Box>}
+            {!!recommended.length && <Box sx={{ mt: 5 }}><Typography variant="h5" sx={{ fontWeight: 900, mb: 2 }}>Recommended for you</Typography><Box sx={{ display: "grid", gridTemplateColumns: { xs: "1fr", sm: "repeat(2, minmax(0, 1fr))", md: "repeat(4, minmax(0, 1fr))" }, gap: 2 }}>{recommended.map((product) => { const details = productDetails(product); const productId = String(details.id || details.slug || details.title); return <RecommendedProductCard key={productId} product={product} details={details} onAdd={handleRecommendedAdd} adding={recommendedPendingId === productId} />; })}</Box></Box>}
           </Box>
         ) : (
           <Box sx={{ display: "grid", gridTemplateColumns: { xs: "1fr", md: "minmax(0, 7fr) minmax(320px, 3fr)" }, gap: 3, alignItems: "start" }}>
             <Box sx={{ minWidth: 0 }}>
-              {remainingForFreeShipping > 0 ? <Card sx={{ mb: 2, bgcolor: "rgba(37,99,235,0.13)", color: "white", border: "1px solid rgba(96,165,250,0.22)" }}><CardContent sx={{ p: 2, "&:last-child": { pb: 2 } }}><Stack direction="row" spacing={1} alignItems="center"><LocalShippingOutlined color="primary" /><Typography variant="body2">You are <strong>{money(remainingForFreeShipping)}</strong> away from free shipping.</Typography></Stack><LinearProgress variant="determinate" value={freeShippingProgress} sx={{ mt: 1.25, height: 7, borderRadius: 99 }} /></CardContent></Card> : <Alert severity="success" sx={{ mb: 2 }}>You unlocked free standard shipping.</Alert>}
+              <Alert severity="info" sx={{ mb: 2 }}>Shipping prices are calculated live for your cart and destination.</Alert>
               <Stack spacing={2}>{items.map((item) => <CartItem key={item.productId} item={item} pending={pendingId === item.productId} onQuantity={handleQuantity} onRemove={handleRemove} onSave={handleSave} />)}</Stack>
 
-              <Card sx={{ mt: 2, bgcolor: "#ffffff", color: "var(--color-text-primary)", border: "1px solid var(--color-border)" }}><CardContent><Typography variant="h6" sx={{ fontWeight: 850, mb: 1 }}>Have a promo code?</Typography><Box component="form" onSubmit={handleApplyCoupon} sx={{ display: "flex", gap: 1, flexWrap: "wrap" }}><TextField size="small" value={couponCode} onChange={(event) => setCouponCode(event.target.value)} placeholder="Enter coupon code" sx={{ flex: "1 1 220px" }} /><Button type="submit" variant="outlined" sx={{ color: "var(--color-primary)", borderColor: "var(--color-primary)", borderRadius: 2 }}>Apply</Button></Box>{appliedCoupon && <Typography variant="body2" sx={{ mt: 1.25, color: "#15803d" }}>{appliedCoupon} · {couponRef.current.discountPercent}% discount applied</Typography>}</CardContent></Card>
+              <Card sx={{ mt: 2, bgcolor: "#ffffff", color: "var(--color-text-primary)", border: "1px solid var(--color-border)" }}><CardContent><Typography variant="h6" sx={{ fontWeight: 850, mb: 1 }}>Have a promo code?</Typography><Box component="form" onSubmit={handleApplyCoupon} sx={{ display: "flex", gap: 1, flexWrap: "wrap" }}><TextField size="small" value={couponCode} onChange={(event) => setCouponCode(event.target.value)} placeholder="Enter coupon code" disabled={couponLoading} sx={{ flex: "1 1 220px" }} /><Button type="submit" variant="outlined" disabled={couponLoading} aria-busy={couponLoading} startIcon={couponLoading ? <CircularProgress size={16} color="inherit" aria-label="Applying promo code" /> : undefined} sx={{ color: "var(--color-primary)", borderColor: "var(--color-primary)", borderRadius: 2, minWidth: 88 }}>{couponLoading ? "Applying..." : "Apply"}</Button></Box>{appliedCoupon && <Typography variant="body2" sx={{ mt: 1.25, color: "var(--color-success)" }}>{appliedCoupon} · {couponDiscountPercent}% discount applied</Typography>}</CardContent></Card>
 
-              <Card sx={{ mt: 2, bgcolor: "#ffffff", color: "var(--color-text-primary)", border: "1px solid var(--color-border)" }}><CardContent><Typography variant="h6" sx={{ fontWeight: 850, mb: 1 }}>Estimate shipping</Typography><Box component="form" onSubmit={handleEstimateShipping} sx={{ display: "grid", gridTemplateColumns: { xs: "1fr", sm: "1fr 1fr auto" }, gap: 1.5, alignItems: "start" }}><TextField select size="small" label="Country" value={shippingCountry} onChange={(event) => setShippingCountry(event.target.value)} /><TextField size="small" label="ZIP / postal code" value={shippingPostalCode} onChange={(event) => setShippingPostalCode(event.target.value)} /><Button type="submit" variant="contained" disabled={shippingLoading} sx={{ borderRadius: 2, minHeight: 40 }}>Calculate</Button></Box><Stack spacing={1} sx={{ mt: 2 }}>{shippingEstimates.map((estimate) => <Button key={estimate.method} onClick={() => chooseShippingMethod(estimate.method)} sx={{ justifyContent: "space-between", textAlign: "left", color: "var(--color-text-primary)", p: 1.5, borderRadius: 2, border: shippingMethod === estimate.method ? "1px solid var(--color-primary)" : "1px solid var(--color-border)", bgcolor: shippingMethod === estimate.method ? "var(--color-primary-soft)" : "transparent" }}><Box><Typography variant="body2" sx={{ fontWeight: 800 }}>{estimate.label}</Typography><Typography variant="caption" sx={{ color: "var(--color-text-secondary)" }}>{estimate.window}</Typography></Box><Typography>{estimate.cost ? money(estimate.cost) : "FREE"}</Typography></Button>)}</Stack></CardContent></Card>
+              <Card sx={{ mt: 2, bgcolor: "#ffffff", color: "var(--color-text-primary)", border: "1px solid var(--color-border)" }}><CardContent><Typography variant="h6" sx={{ fontWeight: 850, mb: 1 }}>Estimate shipping</Typography><Box component="form" onSubmit={handleEstimateShipping} sx={{ display: "grid", gridTemplateColumns: { xs: "1fr", sm: "1fr 1fr auto" }, gap: 1.5, alignItems: "start" }}><TextField select size="small" label="Country" value={shippingCountry} onChange={(event) => setShippingCountry(event.target.value)}>{countryOptions.map((country) => <MenuItem key={country.code} value={country.code}>{country.label}</MenuItem>)}</TextField><TextField size="small" label="ZIP / postal code" value={shippingPostalCode} onChange={(event) => setShippingPostalCode(event.target.value)} /><Button type="submit" variant="contained" disabled={shippingLoading} sx={{ borderRadius: 2, minHeight: 40 }}>{shippingLoading ? "Calculating..." : "Calculate"}</Button></Box><Stack spacing={1} sx={{ mt: 2 }}>{shippingEstimates.map((estimate) => <Button key={estimate.method} onClick={() => chooseShippingMethod(estimate)} sx={{ justifyContent: "space-between", textAlign: "left", color: "var(--color-text-primary)", p: 1.5, borderRadius: 2, border: shippingMethod === estimate.method ? "1px solid var(--color-primary)" : "1px solid var(--color-border)", bgcolor: shippingMethod === estimate.method ? "var(--color-primary-soft)" : "transparent" }}><Box><Typography variant="body2" sx={{ fontWeight: 800 }}>{estimate.label}</Typography><Typography variant="caption" sx={{ color: "var(--color-text-secondary)" }}>{estimate.window}</Typography></Box><Typography>{estimate.cost ? money(estimate.cost) : "FREE"}</Typography></Button>)}</Stack></CardContent></Card>
             </Box>
             <Box sx={{ minWidth: 0 }}>{summary}</Box>
             {!!recommended.length && <Box sx={{ gridColumn: { md: "1 / -1" }, mt: 2 }}><Typography variant="h5" sx={{ fontWeight: 900, mb: 2 }}>Frequently bought together</Typography><Box sx={{ display: "grid", gridTemplateColumns: { xs: "1fr", sm: "repeat(2, minmax(0, 1fr))", md: "repeat(4, minmax(0, 1fr))" }, gap: 2 }}>{recommended.map((product) => { const details = productDetails(product); return <RecommendedProductCard key={`frequent-${details.id || details.title}`} product={product} details={details} onAdd={handleRecommendedAdd} />; })}</Box></Box>}
@@ -462,7 +486,7 @@ export default function CartPage() {
         )}
       </Container>
 
-      <Dialog open={exitOpen} onClose={() => setExitOpen(false)} PaperProps={{ sx: { borderRadius: 3, p: 1 } }}><DialogTitle sx={{ fontWeight: 900 }}>Wait! Get 10% off your order</DialogTitle><DialogContent><Typography color="text.secondary">Use code WELCOME10 before checkout and save on your Weluxo cart.</Typography></DialogContent><DialogActions><Button onClick={() => setExitOpen(false)}>Keep browsing</Button><Button variant="contained" onClick={async () => { try { const result = await applyCartCoupon("WELCOME10"); const nextCoupon = { code: result.code || "WELCOME10", discountPercent: Number(result.discountPercent) || 0, expiresAt: result.expiresAt || null }; couponRef.current = nextCoupon; setCouponCode("WELCOME10"); setAppliedCoupon(nextCoupon.code); setDiscount(Number(result.discount) || 0); updateCheckoutState({ coupon: { ...nextCoupon, discount: Number(result.discount) || 0 } }); setNotice("WELCOME10 applied. Your discount is ready."); } catch (err) { setError(err.message || "Unable to apply discount"); } setExitOpen(false); }}>Apply discount</Button></DialogActions></Dialog>
+      {exitCouponCode && <Dialog open={exitOpen} onClose={() => setExitOpen(false)} PaperProps={{ sx: { borderRadius: 3, p: 1 } }}><DialogTitle sx={{ fontWeight: 900 }}>{siteSettings.welcomePopupTitle}</DialogTitle><DialogContent><Typography color="text.secondary">{siteSettings.welcomePopupDescription} Use code {exitCouponCode} at checkout.</Typography></DialogContent><DialogActions><Button onClick={() => setExitOpen(false)}>Keep browsing</Button><Button variant="contained" onClick={async () => { try { const result = await applyCartCoupon(exitCouponCode); const nextCoupon = { code: result.code || exitCouponCode, discountPercent: Number(result.discountPercent) || 0, expiresAt: result.expiresAt || null }; couponRef.current = nextCoupon; setCouponDiscountPercent(nextCoupon.discountPercent); setCouponCode(exitCouponCode); setAppliedCoupon(nextCoupon.code); setDiscount(Number(result.discount) || 0); updateCheckoutState({ coupon: { ...nextCoupon, discount: Number(result.discount) || 0 } }); setNotice(`${exitCouponCode} applied. Your discount is ready.`); } catch (err) { setError(err.message || "Unable to apply discount"); } setExitOpen(false); }}>{siteSettings.welcomePopupButtonLabel || "Apply discount"}</Button></DialogActions></Dialog>}
     </Box>
   );
 }

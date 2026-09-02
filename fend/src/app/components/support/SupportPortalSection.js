@@ -59,7 +59,13 @@ export default function SupportPortalSection() {
           <Button component={Link} href="/support/new-ticket" variant="contained" startIcon={<SupportAgentOutlinedIcon />} sx={{ borderRadius: 999, bgcolor: "var(--color-primary)", textTransform: "none", fontWeight: 800, px: 2.25 }}>Create a support ticket</Button>
         </Box>
         <Grid container spacing={2}>
-          {actions.map(([title, description, href], index) => <Grid item xs={12} sm={6} md={index === 6 ? 12 : 3} key={title}><Card sx={{ height: "100%", bgcolor: index % 2 ? "var(--color-accent-soft)" : "#ffffff", border: "1px solid var(--color-border)", borderRadius: 3, boxShadow: "none" }}><CardContent sx={{ p: 3, height: "100%", display: "flex", flexDirection: "column" }}><Typography component="h3" sx={{ fontWeight: 800, mb: 1 }}>{title}</Typography><Typography sx={{ color: "var(--color-text-secondary)", lineHeight: 1.65, fontSize: 14, mb: 3 }}>{description}</Typography><Button component={Link} href={href} endIcon={<ArrowForwardIcon />} sx={{ mt: "auto", alignSelf: "flex-start", color: "var(--color-primary)", textTransform: "none", fontWeight: 800 }}>Open help</Button></CardContent></Card></Grid>)}
+          {actions.map(([title, description, href], index) => <Grid
+            key={title}
+            size={{
+              xs: 12,
+              sm: 6,
+              md: index === 6 ? 12 : 3
+            }}><Card sx={{ height: "100%", bgcolor: index % 2 ? "var(--color-accent-soft)" : "#ffffff", border: "1px solid var(--color-border)", borderRadius: 3, boxShadow: "none" }}><CardContent sx={{ p: 3, height: "100%", display: "flex", flexDirection: "column" }}><Typography component="h3" sx={{ fontWeight: 800, mb: 1 }}>{title}</Typography><Typography sx={{ color: "var(--color-text-secondary)", lineHeight: 1.65, fontSize: 14, mb: 3 }}>{description}</Typography><Button component={Link} href={href} endIcon={<ArrowForwardIcon />} sx={{ mt: "auto", alignSelf: "flex-start", color: "var(--color-primary)", textTransform: "none", fontWeight: 800 }}>Open help</Button></CardContent></Card></Grid>)}
         </Grid>
       </Container>
     </Box>

@@ -2,6 +2,7 @@ import { promises as fs } from "fs";
 import path from "path";
 import { NextResponse } from "next/server";
 import { DEFAULT_SITE_CHROME } from "../../lib/siteChrome";
+import { requireDashboardAdmin } from "../dashboard/auth";
 
 const dataPath = path.join(process.cwd(), "data", "site-chrome.json");
 
@@ -25,6 +26,8 @@ export async function GET() {
 }
 
 export async function POST(request) {
+  const authError = await requireDashboardAdmin("content.manage");
+  if (authError) return authError;
   try {
     const body = await request.json();
     if (!body || typeof body !== "object" || !body.header || !body.footer) {

@@ -9,7 +9,7 @@ export default function ProfileSection({ loading: parentLoading }) {
 
   useEffect(() => {
     let mounted = true;
-    setLoading(true);
+    queueMicrotask(() => setLoading(true));
     fetch('/api/dashboard/profile')
       .then((r) => r.json())
       .then((data) => {
@@ -31,7 +31,11 @@ export default function ProfileSection({ loading: parentLoading }) {
   return (
     <Box sx={{ mb: 4 }}>
       <Grid container spacing={2}>
-        <Grid item xs={12} md={4}>
+        <Grid
+          size={{
+            xs: 12,
+            md: 4
+          }}>
           <Card sx={{ borderRadius: 3 }}>
             <CardContent sx={{ display: "flex", gap: 2, alignItems: "center" }}>
               {loading ? (
@@ -58,15 +62,17 @@ export default function ProfileSection({ loading: parentLoading }) {
                 <Typography variant="body2">{profile?.bio}</Typography>
               )}
               <Box mt={2}>
-                <Button size="small" variant="contained" disabled={loading}>
-                  View profile
-                </Button>
+                {loading ? <Skeleton variant="rounded" width={110} height={32} sx={{ borderRadius: 1.5 }} /> : <Button size="small" variant="contained">View profile</Button>}
               </Box>
             </CardContent>
           </Card>
         </Grid>
 
-        <Grid item xs={12} md={8}>
+        <Grid
+          size={{
+            xs: 12,
+            md: 8
+          }}>
           <Card sx={{ borderRadius: 3 }}>
             <CardContent>
               <Typography variant="h6" gutterBottom>
@@ -75,22 +81,30 @@ export default function ProfileSection({ loading: parentLoading }) {
               {loading ? (
                 <Grid container spacing={2}>
                   {Array.from({ length: 3 }).map((_, i) => (
-                    <Grid item xs={12} sm={4} key={i}>
-                      <Skeleton variant="rounded" height={48} />
+                    <Grid
+                      key={i}
+                      size={{
+                        xs: 12,
+                        sm: 4
+                      }}>
+                      <Box>
+                        <Skeleton variant="text" width="44%" height={18} />
+                        <Skeleton variant="text" width="62%" height={28} />
+                      </Box>
                     </Grid>
                   ))}
                 </Grid>
               ) : (
                 <Grid container spacing={2}>
-                  <Grid item xs={4}>
+                  <Grid size={4}>
                     <Typography variant="subtitle2" color="text.secondary">Orders</Typography>
                     <Typography variant="h6">128</Typography>
                   </Grid>
-                  <Grid item xs={4}>
+                  <Grid size={4}>
                     <Typography variant="subtitle2" color="text.secondary">Revenue</Typography>
                     <Typography variant="h6">$23,450</Typography>
                   </Grid>
-                  <Grid item xs={4}>
+                  <Grid size={4}>
                     <Typography variant="subtitle2" color="text.secondary">Products</Typography>
                     <Typography variant="h6">320</Typography>
                   </Grid>

@@ -1,9 +1,15 @@
 "use client";
 
 import { CssBaseline, ThemeProvider } from "@mui/material";
-import { useEffect, useMemo, useState } from "react";
+import { createContext, useContext, useEffect, useMemo, useState } from "react";
 import { buildSiteColorVars, buildSiteFontVars, createSiteTheme } from "../theme";
-import { fetchSiteSettings, getSiteCustomFontFace, normalizeSiteSettings } from "../lib/siteSettings";
+import { getSiteCustomFontFace, normalizeSiteSettings } from "../lib/siteSettings";
+
+const SiteSettingsContext = createContext(normalizeSiteSettings());
+
+export function useSiteSettings() {
+  return useContext(SiteSettingsContext);
+}
 
 export default function SiteThemeProvider({ children, siteSettings }) {
   const [currentSettings, setCurrentSettings] = useState(() => normalizeSiteSettings(siteSettings));
@@ -15,14 +21,13 @@ export default function SiteThemeProvider({ children, siteSettings }) {
   }), [currentSettings]);
 
   useEffect(() => {
-    setCurrentSettings(normalizeSiteSettings(siteSettings));
+    queueMicrotask(() => setCurrentSettings(normalizeSiteSettings(siteSettings)));
   }, [siteSettings]);
 
   useEffect(() => {
     const applySettings = (value) => setCurrentSettings((previous) => normalizeSiteSettings({ ...previous, ...value }));
     const handleSettingsUpdated = (event) => applySettings(event.detail || {});
 
-    fetchSiteSettings().then(applySettings).catch(() => undefined);
     window.addEventListener("site-settings-updated", handleSettingsUpdated);
     return () => window.removeEventListener("site-settings-updated", handleSettingsUpdated);
   }, []);
@@ -31,11 +36,27 @@ export default function SiteThemeProvider({ children, siteSettings }) {
     Object.entries(siteVars).forEach(([name, value]) => document.body.style.setProperty(name, value));
   }, [siteVars]);
 
+  useEffect(() => {
+    let style = document.head.querySelector("style[data-site-custom-font]");
+    if (!customFontFace) {
+      style?.remove();
+      return undefined;
+    }
+    if (!style) {
+      style = document.createElement("style");
+      style.setAttribute("data-site-custom-font", "true");
+      document.head.appendChild(style);
+    }
+    style.textContent = customFontFace;
+    return undefined;
+  }, [customFontFace]);
+
   return (
-    <ThemeProvider theme={theme}>
-      <CssBaseline />
-      {customFontFace && <style data-site-custom-font dangerouslySetInnerHTML={{ __html: customFontFace }} />}
-      {children}
-    </ThemeProvider>
+    <SiteSettingsContext.Provider value={currentSettings}>
+      <ThemeProvider theme={theme}>
+        <CssBaseline />
+        {children}
+      </ThemeProvider>
+    </SiteSettingsContext.Provider>
   );
 }

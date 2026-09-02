@@ -59,7 +59,7 @@ export default function ReviewsAdminPage() {
   }, [status]);
 
   useEffect(() => {
-    loadReviews();
+    queueMicrotask(loadReviews);
   }, [loadReviews]);
 
   async function moderate(reviewId, action) {
@@ -128,7 +128,13 @@ export default function ReviewsAdminPage() {
       ) : (
         <Grid container spacing={2}>
           {reviews.map((review) => (
-            <Grid item xs={12} md={6} xl={4} key={review.id}>
+            <Grid
+              key={review.id}
+              size={{
+                xs: 12,
+                md: 6,
+                xl: 4
+              }}>
               <Card sx={{ height: "100%", display: "flex", flexDirection: "column" }}>
                 <CardContent sx={{ flexGrow: 1 }}>
                   <Stack direction="row" justifyContent="space-between" alignItems="flex-start" spacing={2} sx={{ mb: 2 }}>

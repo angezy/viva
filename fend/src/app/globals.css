@@ -1,30 +1,3 @@
-:root {
-  --background: var(--color-background);
-  --foreground: var(--color-text-primary);
-  --cream: var(--color-background);
-  --matte-white: #ffffff;
-  --charcoal: #2b2b2b;
-  --blue: var(--color-primary);
-  --orange: var(--color-accent);
-  --color-primary: #2563eb;
-  --color-primary-dark: #1746b2;
-  --color-primary-light: #5b8def;
-  --color-primary-soft: #eef4ff;
-  --color-accent: #f28c28;
-  --color-accent-dark: #c96a0e;
-  --color-accent-light: #ffb15a;
-  --color-accent-soft: #fff4e5;
-  --color-background: #fbf4e8;
-  --color-surface: #ffffff;
-  --color-surface-muted: #fffaf2;
-  --color-border: #e7dfd3;
-  --color-text-primary: #2b2b2b;
-  --color-text-secondary: #62656b;
-  --color-success: #2e8b57;
-  --color-warning: #f28c28;
-  --color-error: #c94a4a;
-}
-
 html,
 body {
   max-width: 100vw;
@@ -86,3 +59,37 @@ a {
 }
 
 html { color-scheme: light; }
+
+/* Give every action button immediate feedback and prevent duplicate clicks. */
+[data-button-action-loading="true"] {
+  position: relative !important;
+  cursor: wait !important;
+  pointer-events: none !important;
+  opacity: 0.78;
+}
+
+[data-button-action-loading="true"] > * {
+  visibility: hidden;
+}
+
+[data-button-action-loading="true"]::after {
+  content: "";
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  width: 1em;
+  height: 1em;
+  border: 2px solid currentColor;
+  border-right-color: transparent;
+  border-radius: 50%;
+  transform: translate(-50%, -50%);
+  animation: button-action-spin 700ms linear infinite;
+}
+
+@keyframes button-action-spin {
+  to { transform: translate(-50%, -50%) rotate(360deg); }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  [data-button-action-loading="true"]::after { animation-duration: 1400ms; }
+}

@@ -8,7 +8,7 @@ export default function StatsSection({ loading: parentLoading }) {
 
   useEffect(() => {
     let mounted = true;
-    setLoading(true);
+    queueMicrotask(() => setLoading(true));
     fetch("/api/dashboard/stats")
       .then((r) => r.json())
       .then((data) => {
@@ -38,15 +38,31 @@ export default function StatsSection({ loading: parentLoading }) {
           {isLoading ? (
             <Grid container spacing={2}>
               {Array.from({ length: 4 }).map((_, i) => (
-                <Grid item xs={12} sm={6} md={3} key={i}>
-                  <Skeleton height={64} />
+                <Grid
+                  key={i}
+                  size={{
+                    xs: 12,
+                    sm: 6,
+                    md: 3
+                  }}>
+                  <Box sx={{ p: 1.5, border: "1px solid #e2e8f0", borderRadius: 2 }}>
+                    <Skeleton variant="text" width="58%" height={18} />
+                    <Skeleton variant="text" width="42%" height={30} />
+                    <Skeleton variant="rounded" width="100%" height={8} sx={{ mt: 1, borderRadius: 99 }} />
+                  </Box>
                 </Grid>
               ))}
             </Grid>
           ) : (
             <Grid container spacing={2}>
               {metrics.map((m) => (
-                <Grid item xs={12} sm={6} md={3} key={m.name}>
+                <Grid
+                  key={m.name}
+                  size={{
+                    xs: 12,
+                    sm: 6,
+                    md: 3
+                  }}>
                   <Typography variant="subtitle2" color="text.secondary">
                     {m.name}
                   </Typography>

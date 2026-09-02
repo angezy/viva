@@ -1,6 +1,6 @@
 "use client";
 import React, { useState, useEffect } from "react";
-import { Alert, Box, Card, CardContent, Typography, FormControlLabel, Switch, Skeleton } from "@mui/material";
+import { Alert, Box, Card, CardContent, Typography, FormControlLabel, Switch, Skeleton, Stack } from "@mui/material";
 
 export default function SettingsSection({ loading: parentLoading }) {
   const [loading, setLoading] = useState(parentLoading);
@@ -11,7 +11,7 @@ export default function SettingsSection({ loading: parentLoading }) {
 
   useEffect(() => {
     let mounted = true;
-    setLoading(true);
+    queueMicrotask(() => setLoading(true));
     fetch('/api/dashboard/settings')
       .then((r) => {
         if (!r.ok) throw new Error(`Settings request failed (${r.status})`);
@@ -59,10 +59,14 @@ export default function SettingsSection({ loading: parentLoading }) {
         <Typography variant="h6" mb={2}>Store Settings</Typography>
         {error && <Alert severity="error" sx={{ mb: 2 }}>{error}</Alert>}
         {loading ? (
-          <Box>
-            <Skeleton width={160} height={32} sx={{ mb: 1 }} />
-            <Skeleton width={140} height={32} />
-          </Box>
+          <Stack spacing={1.25}>
+            {[0, 1].map((item) => (
+              <Stack key={item} direction="row" spacing={1.25} alignItems="center">
+                <Skeleton variant="rounded" width={38} height={22} sx={{ borderRadius: 99 }} />
+                <Skeleton variant="text" width={item === 0 ? 160 : 140} height={24} />
+              </Stack>
+            ))}
+          </Stack>
         ) : (
           <>
             <FormControlLabel

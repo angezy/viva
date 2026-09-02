@@ -6,6 +6,8 @@ import { Alert, Box, Button, Chip, Container, Grid, MenuItem, Paper, Stack, Text
 import ArrowBackIcon from "@mui/icons-material/ArrowBack";
 import SendIcon from "@mui/icons-material/Send";
 import RichTextEditor from "./RichTextEditor";
+import { DetailPageSkeleton } from "../LoadingSkeletons";
+import { sanitizeCmsHtml } from "../../lib/contentSanitizer";
 
 const statuses = ["New", "Open", "In Progress", "Waiting for Customer", "Resolved", "Closed"];
 const priorities = ["Low", "Normal", "High", "Urgent"];
@@ -13,6 +15,25 @@ const categories = ["Order", "Shipping", "Payment", "Refund", "Return", "Product
 
 function htmlText(value) {
   return String(value || "").replace(/<br\s*\/?>/gi, "\n").replace(/<[^>]+>/g, "").replace(/&nbsp;/gi, " ").trim();
+}
+
+function escapeHtml(value) {
+  return String(value || "").replace(/[&<>\"']/g, (character) => ({
+    "&": "&amp;",
+    "<": "&lt;",
+    ">": "&gt;",
+    '\"': "&quot;",
+    "'": "&#39;",
+  }[character]));
+}
+
+function safeMessageHtml(item) {
+  const fallback = "<p>" + escapeHtml(item?.contentText) + "</p>";
+  return sanitizeCmsHtml(item?.contentHtml || fallback);
+}
+
+function normalizeTicketData(value) {
+  return { ...value, ticket: { ...value.ticket, messages: (value.ticket?.messages || []).map((item) => ({ ...item, contentHtml: safeMessageHtml(item) })) } };
 }
 
 export default function AdminTicketView({ ticketId }) {
@@ -31,7 +52,7 @@ export default function AdminTicketView({ ticketId }) {
   const load = () => fetch(`/api/support/admin/tickets/${ticketId}`, { credentials: "include" })
     .then((response) => response.ok ? response.json() : response.json().then((body) => Promise.reject(new Error(body.error || "Unable to load ticket"))))
     .then((value) => {
-      setData(value);
+      setData(normalizeTicketData(value));
       setStatus(value.ticket.status);
       setPriority(value.ticket.priority);
       setCategory(value.ticket.category);
@@ -70,7 +91,7 @@ export default function AdminTicketView({ ticketId }) {
       const response = await fetch(`/api/support/tickets/${ticketId}/messages`, { method: "POST", body, credentials: "include" });
       const result = await response.json().catch(() => ({}));
       if (!response.ok) throw new Error(result.error || "Unable to send message");
-      setData((prev) => ({ ...(prev || {}), ticket: result.ticket }));
+      setData((prev) => normalizeTicketData({ ...(prev || {}), ticket: result.ticket }));
       setDraft("");
       setFiles([]);
     } catch (sendError) {
@@ -81,7 +102,7 @@ export default function AdminTicketView({ ticketId }) {
   };
 
   if (error && !data) return <Container sx={{ py: 8 }}><Alert severity="error">{error}</Alert></Container>;
-  if (!data) return <Container sx={{ py: 8 }}><Typography>Loading ticket...</Typography></Container>;
+  if (!data) return <DetailPageSkeleton />;
 
   const { ticket, customer, orders, previousTickets } = data;
   const customerValue = (orders || []).reduce((sum, order) => sum + (Number(order.Total) || 0), 0);
@@ -90,7 +111,11 @@ export default function AdminTicketView({ ticketId }) {
       <Container maxWidth="xl">
         <Button component={Link} href="/admin/tickets" startIcon={<ArrowBackIcon />} sx={{ mb: 2, textTransform: "none" }}>All tickets</Button>
         <Grid container spacing={2} alignItems="flex-start">
-          <Grid item xs={12} md={3}>
+          <Grid
+            size={{
+              xs: 12,
+              md: 3
+            }}>
             <Paper elevation={0} sx={{ p: 2.5, border: "1px solid #e2e8f0" }}>
               <Typography variant="overline" sx={{ color: "var(--color-primary)", fontWeight: 800 }}>CUSTOMER</Typography>
               <Typography component="h2" sx={{ fontWeight: 800, fontSize: 20 }}>{ticket.customerName}</Typography>
@@ -108,7 +133,11 @@ export default function AdminTicketView({ ticketId }) {
             </Paper>
           </Grid>
 
-          <Grid item xs={12} md={6}>
+          <Grid
+            size={{
+              xs: 12,
+              md: 6
+            }}>
             <Paper elevation={0} sx={{ border: "1px solid #e2e8f0", overflow: "hidden" }}>
               <Box sx={{ p: 2.5, borderBottom: "1px solid #e2e8f0" }}>
                 <Typography variant="overline" sx={{ color: "var(--color-primary)", fontWeight: 800 }}>{ticket.ticketNumber}</Typography>
@@ -121,11 +150,11 @@ export default function AdminTicketView({ ticketId }) {
                       <Typography sx={{ fontWeight: 800, fontSize: 12, color: item.visibility === "internal" ? "#c2410c" : "var(--color-primary)" }}>{item.senderType} · {item.visibility}</Typography>
                       <Typography sx={{ color: "#94a3b8", fontSize: 11 }}>{new Date(item.createdAt).toLocaleString()}</Typography>
                     </Stack>
-                    <Box sx={{ mt: 1, color: "#334155", "& p": { mt: 0, mb: 1 }, "& ul": { pl: 3 } }} dangerouslySetInnerHTML={{ __html: item.contentHtml || `<p>${item.contentText || ""}</p>` }} />
+                    <Box sx={{ mt: 1, color: "#334155", "& p": { mt: 0, mb: 1 }, "& ul": { pl: 3 } }} dangerouslySetInnerHTML={{ __html: safeMessageHtml(item) }} />
                     {item.attachments?.length > 0 && (
                       <Stack spacing={0.5} sx={{ mt: 1, pt: 1, borderTop: "1px solid #e2e8f0" }}>
                         <Typography sx={{ fontWeight: 700, fontSize: 12 }}>Attachments</Typography>
-                        {item.attachments.map((file, index) => <a key={`${file.url || "attachment"}-${index}`} href={file.url} target="_blank" rel="noreferrer" style={{ color: "#2d6a4f", fontSize: 13 }}>{file.name || "Download attachment"}</a>)}
+                        {item.attachments.map((file, index) => <a key={`${file.url || "attachment"}-${index}`} href={file.url} target="_blank" rel="noreferrer" style={{ color: "var(--color-primary)", fontSize: 13 }}>{file.name || "Download attachment"}</a>)}
                       </Stack>
                     )}
                   </Box>
@@ -149,7 +178,11 @@ export default function AdminTicketView({ ticketId }) {
             </Paper>
           </Grid>
 
-          <Grid item xs={12} md={3}>
+          <Grid
+            size={{
+              xs: 12,
+              md: 3
+            }}>
             <Paper elevation={0} sx={{ p: 2.5, border: "1px solid #e2e8f0" }}>
               <Typography variant="overline" sx={{ color: "var(--color-primary)", fontWeight: 800 }}>TICKET CONTROLS</Typography>
               <Stack spacing={1.5} sx={{ mt: 1.5 }}>

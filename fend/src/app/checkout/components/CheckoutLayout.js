@@ -3,6 +3,7 @@
 import Link from "next/link";
 import { Box, Button, Card, CardContent, CardMedia, Container, Divider, Grid, Stack, Typography } from "@mui/material";
 import { canAccessCheckoutStep, readCheckoutState, shippingCost, shippingLabel } from "./checkoutState";
+import { CheckoutPageSkeleton } from "../../components/LoadingSkeletons";
 
 export const CHECKOUT_STEPS = [
   { key: "overview", label: "Checkout", href: "/checkout" },
@@ -16,8 +17,11 @@ function money(value) {
   return `$${Number(value || 0).toFixed(2)}`;
 }
 
-export default function CheckoutLayout({ currentStep, children, items = [], subtotal = 0, discount = null, couponCode = "", shippingMethod = "standard" }) {
+export default function CheckoutLayout({ currentStep, children, items = [], subtotal = 0, discount = null, couponCode = "", shippingMethod = "" }) {
   const shipping = shippingCost(shippingMethod);
+  const hasShippingSelection = typeof shippingMethod === "object"
+    ? Boolean(shippingMethod?.logisticName || shippingMethod?.method)
+    : Boolean(shippingMethod);
   const tax = 0;
   const checkoutState = readCheckoutState();
   const appliedDiscount = discount == null ? Number(checkoutState.coupon?.discount) || 0 : Math.max(0, Number(discount) || 0);
@@ -87,10 +91,20 @@ export default function CheckoutLayout({ currentStep, children, items = [], subt
         </Card>
 
         <Grid container spacing={3} alignItems="flex-start">
-          <Grid item xs={12} md={7} sx={{ minWidth: 0, width: "100%" }}>
+          <Grid
+            sx={{ minWidth: 0, width: "100%" }}
+            size={{
+              xs: 12,
+              md: 7
+            }}>
             {children}
           </Grid>
-          <Grid item xs={12} md={5} sx={{ minWidth: 0, width: "100%" }}>
+          <Grid
+            sx={{ minWidth: 0, width: "100%" }}
+            size={{
+              xs: 12,
+              md: 5
+            }}>
             <Card sx={{ width: "100%", minWidth: 0, bgcolor: "#ffffff", color: "var(--color-text-primary)", border: "1px solid var(--color-border)", position: { md: "sticky" }, top: { md: 24 } }}>
               <CardContent>
                 <Typography variant="h6" sx={{ fontWeight: 800, mb: 2 }}>
@@ -110,7 +124,7 @@ export default function CheckoutLayout({ currentStep, children, items = [], subt
                 </Stack>
                 <Divider sx={{ borderColor: "var(--color-border)", my: 2 }} />
                 <Stack direction="row" justifyContent="space-between" sx={{ mb: 1 }}><Typography color="var(--color-text-secondary)">Subtotal</Typography><Typography>{money(subtotal)}</Typography></Stack>
-                <Stack direction="row" justifyContent="space-between" sx={{ mb: 1 }}><Typography color="var(--color-text-secondary)">{shippingLabel(shippingMethod)}</Typography><Typography>{shipping ? money(shipping) : "Free"}</Typography></Stack>
+                <Stack direction="row" justifyContent="space-between" sx={{ mb: 1 }}><Typography color="var(--color-text-secondary)">{shippingLabel(shippingMethod)}</Typography><Typography>{!hasShippingSelection ? "Pending" : shipping ? money(shipping) : "Free"}</Typography></Stack>
                 <Stack direction="row" justifyContent="space-between" sx={{ mb: 1 }}><Typography color="var(--color-text-secondary)">Tax</Typography><Typography>{tax ? money(tax) : "Calculated later"}</Typography></Stack>
                 <Stack direction="row" justifyContent="space-between" sx={{ mb: 2 }}><Typography color="var(--color-text-secondary)">Discount {appliedCouponCode && `(${appliedCouponCode})`}</Typography><Typography>{appliedDiscount ? `-${money(appliedDiscount)}` : "—"}</Typography></Stack>
                 <Divider sx={{ borderColor: "var(--color-border)", mb: 2 }} />
@@ -133,7 +147,7 @@ export default function CheckoutLayout({ currentStep, children, items = [], subt
 }
 
 export function CheckoutLoading() {
-  return <Container sx={{ py: 8, color: "var(--color-text-primary)" }}><Typography>Loading checkout...</Typography></Container>;
+  return <CheckoutPageSkeleton />;
 }
 
 export function CheckoutAuthPrompt() {

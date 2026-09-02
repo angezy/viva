@@ -39,10 +39,10 @@ export default function MostChosenScroll() {
           boxShadow: 1,
         }}
       >
-        <Skeleton variant="rectangular" height={140} />
+        <Skeleton variant="rectangular" height={140} sx={{ bgcolor: "#eee8df" }} />
         <CardContent>
-          <Skeleton variant="text" width="80%" />
-          <Skeleton variant="text" width="60%" />
+          <Skeleton variant="text" width="80%" sx={{ bgcolor: "#eee8df" }} />
+          <Skeleton variant="text" width="60%" sx={{ bgcolor: "#eee8df" }} />
         </CardContent>
       </Card>
     ));
@@ -70,7 +70,7 @@ export default function MostChosenScroll() {
                   alt={item.title || "Most chosen"}
                 />
               ) : (
-                <Skeleton variant="rectangular" height={140} />
+                <Skeleton variant="rectangular" height={140} sx={{ bgcolor: "#eee8df" }} />
               )}
               <CardContent>
                 <Typography variant="h6" noWrap>

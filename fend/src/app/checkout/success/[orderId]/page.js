@@ -11,6 +11,7 @@ export default function CheckoutSuccessOrderPage() {
   const { orderId } = useParams();
   const [order, setOrder] = useState(null);
   const [error, setError] = useState("");
+  const [loading, setLoading] = useState(true);
   const tracked = useRef(false);
 
   useEffect(() => {
@@ -18,9 +19,12 @@ export default function CheckoutSuccessOrderPage() {
     async function load() {
       try {
         const result = await fetchOrderById(orderId);
-        if (active) setOrder(result.order || null);
+        if (!result?.order) throw new Error("Order not found");
+        if (active) setOrder(result.order);
       } catch (loadError) {
         if (active) setError(loadError.message || "Order details are still processing.");
+      } finally {
+        if (active) setLoading(false);
       }
     }
     if (orderId) load();
@@ -38,8 +42,20 @@ export default function CheckoutSuccessOrderPage() {
     }
   }, [order]);
 
+  if (loading) {
+    return <OrderOutcomeLayout type="cancelled" eyebrow="Order confirmation" title="Verifying your order" description="We are checking the order record before showing confirmation details." actions={<OutcomeButton href="/checkout">Return to checkout</OutcomeButton>} />;
+  }
+
+  if (error || !order) {
+    return (
+      <OrderOutcomeLayout type="cancelled" eyebrow="Order not verified" title="We couldn’t verify this order" description="This confirmation page only becomes available after a paid checkout creates an order." actions={<><OutcomeButton href="/checkout">Return to checkout</OutcomeButton><OutcomeButton href="/cart" variant="outlined">View cart</OutcomeButton></>}>
+        <Alert severity="warning">No completed paid order was found for this confirmation link.</Alert>
+      </OrderOutcomeLayout>
+    );
+  }
+
   const shipping = order?.shippingAddress || {};
-  const arrival = shipping.shippingMethod === "express" ? "3–7 business days" : "7–15 business days";
+  const arrival = shipping.shippingWindow || "See tracking for the latest delivery estimate";
 
   return (
     <OrderOutcomeLayout type="success" eyebrow="Order confirmed" title="Thank you for your order!" description="Your order has been successfully placed. We’ll keep you updated as it moves through processing and delivery." orderId={orderId} actions={<><OutcomeButton href="/tracking">Track my order</OutcomeButton><OutcomeButton href="/shop" variant="outlined">Continue shopping</OutcomeButton></>}>
@@ -65,7 +81,7 @@ export default function CheckoutSuccessOrderPage() {
         </Box>
         <Box sx={{ p: 2.5, borderRadius: 3, bgcolor: "var(--color-surface-muted)", border: "1px solid var(--color-border)" }}>
           <Typography variant="h6" sx={{ fontWeight: 800, mb: 1 }}>Delivery information</Typography>
-          <Typography color="primary.light">Estimated arrival: {arrival}</Typography>
+          <Typography color="var(--color-primary)">Estimated arrival: {arrival}</Typography>
           <Typography sx={{ mt: 1 }}>{shipping.fullName}</Typography>
           <Typography color="var(--color-text-secondary)">{[shipping.addressLine1, shipping.addressLine2, shipping.city, shipping.region, shipping.postalCode, shipping.country].filter(Boolean).join(", ") || "Shipping details are processing."}</Typography>
         </Box>

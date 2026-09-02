@@ -3,6 +3,8 @@
 import { NextResponse } from "next/server";
 import { promises as fs } from "fs";
 import path from "path";
+import { requireDashboardAdmin } from "../auth";
+import { sanitizeBlogContent } from "../../../lib/contentSanitizer";
 
 const dataPath = path.join(process.cwd(), "data", "blog.json");
 
@@ -81,14 +83,17 @@ export async function GET() {
 }
 
 export async function POST(req) {
+  const authError = await requireDashboardAdmin("content.manage");
+  if (authError) return authError;
   try {
     const body = await req.json();
     if (!body || typeof body !== "object" || !body.content) {
       return NextResponse.json({ error: "Missing content" }, { status: 400 });
     }
     await ensureFile();
-    await writeContent(body.content);
-    return NextResponse.json({ ok: true, content: body.content });
+    const content = sanitizeBlogContent(body.content);
+    await writeContent(content);
+    return NextResponse.json({ ok: true, content });
   } catch (err) {
     console.error("blog content write error", err);
     return NextResponse.json({ error: "Save failed" }, { status: 500 });

@@ -14,6 +14,7 @@ import LegalPageSection from "@/app/components/LegalPageSection";
 import ShopPage from "@/app/shop/page";
 import { Box } from "@mui/material";
 import { DEFAULT_SITE_CHROME } from "@/app/lib/siteChrome";
+import PageSkeleton from "@/app/components/LoadingSkeletons";
 
 const EMPTY_PRODUCT = { title: "", price: "", image: "", alt: "" };
 const DEFAULT_PRODUCTS_SECTION = {
@@ -687,10 +688,10 @@ export default function PageEditor() {
           ))}
 
           <h4 style={{ margin: "12px 0 0" }}>Footer columns</h4>
-           <Input label="Shop column title" value={footer.columns?.shopTitle || ""} onChange={(v) => updateFooterNested("columns", "shopTitle", v)} />
-           <Input label="Support column title" value={footer.columns?.supportTitle || ""} onChange={(v) => updateFooterNested("columns", "supportTitle", v)} />
-           <Input label="Company column title" value={footer.columns?.companyTitle || ""} onChange={(v) => updateFooterNested("columns", "companyTitle", v)} />
-           <Input label="Legal column title" value={footer.columns?.legalTitle || ""} onChange={(v) => updateFooterNested("columns", "legalTitle", v)} />
+          <Input label="Shop column title" value={footer.columns?.shopTitle || ""} onChange={(v) => updateFooterNested("columns", "shopTitle", v)} />
+          <Input label="Support column title" value={footer.columns?.supportTitle || ""} onChange={(v) => updateFooterNested("columns", "supportTitle", v)} />
+          <Input label="Company column title" value={footer.columns?.companyTitle || ""} onChange={(v) => updateFooterNested("columns", "companyTitle", v)} />
+          <Input label="Legal column title" value={footer.columns?.legalTitle || ""} onChange={(v) => updateFooterNested("columns", "legalTitle", v)} />
           {["shopLinks", "supportLinks", "companyLinks", "legalLinks"].map((field) => (
             <div key={field} style={{ display: "grid", gap: 8 }}>
               <h4 style={{ margin: "8px 0 0" }}>{field.replace(/([A-Z])/g, " $1").replace(/^./, (letter) => letter.toUpperCase())}</h4>
@@ -1329,7 +1330,7 @@ export default function PageEditor() {
   };
 
   if (loading || loadingBlog || loadingAbout || loadingWhy || loadingHow || loadingFaq || loadingHelpCenter || loadingShop || loadingSiteChrome) {
-    return <div style={{ padding: 16 }}>Loading dashboard editor...</div>;
+    return <PageSkeleton variant="table" />;
   }
 
   if (!content) {

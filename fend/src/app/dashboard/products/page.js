@@ -31,44 +31,6 @@ const CARD_THUMB_SIZE = 100
 const CARD_ACTIONS_HEIGHT = 56
 const THUMB_SIZE = 44
 
-const fallbackProducts = [
-  {
-    id: "p-1001",
-    title: "Wireless Headphones",
-    description: "Comfortable noise-cancelling headphones with long battery life.",
-    image: "https://picsum.photos/seed/headphones/600/400",
-    price: 59.99,
-    stock: 38,
-    category: "Electronics",
-    brand: "Weluxo",
-    address: "123 Demo Street, Sample City",
-    images: [],
-  },
-  {
-    id: "p-1002",
-    title: "Smart Watch",
-    description: "Water-resistant smartwatch with health tracking.",
-    image: "https://picsum.photos/seed/watch/600/400",
-    price: 129.99,
-    stock: 21,
-    category: "Wearables",
-    brand: "Weluxo",
-    address: "123 Demo Street, Sample City",
-    images: [],
-  },
-  {
-    id: "p-1003",
-    title: "Portable Speaker",
-    description: "Compact speaker with crisp sound and deep bass.",
-    image: "https://picsum.photos/seed/speaker/600/400",
-    price: 39.99,
-    stock: 52,
-    category: "Audio",
-    brand: "Weluxo",
-    address: "123 Demo Street, Sample City",
-    images: [],
-  },
-]
 
 const formatPrice = (value) => {
   const num = Number(value)
@@ -151,9 +113,9 @@ export default function Products() {
       } catch (err) {
         console.error("Failed to load products:", err)
         if (isMounted) {
-          setProducts(fallbackProducts.map((item, index) => normalizeProduct(item, index)).filter(Boolean))
-          setError("Unable to load live products. Showing cached list.")
-          setSnack({ open: true, message: "Loaded cached products" })
+          setProducts([])
+          setError("Unable to load live products. Try again after the backend is available.")
+          setSnack({ open: true, message: "Unable to load products" })
         }
       } finally {
         if (isMounted) {
@@ -171,7 +133,7 @@ export default function Products() {
 
   function handleOpenNew() {
     setCurrent({
-      id: `p-${Date.now()}`,
+      id: "new-product",
       title: "",
       sku: "",
       description: "",
@@ -330,8 +292,15 @@ export default function Products() {
       {loading ? (
         <Grid container spacing={3}>
           {Array.from({ length: 9 }).map((_, idx) => (
-            <Grid item xs={12} sm={6} md={4} key={idx} sx={{ display: "flex" }}>
-              <Card sx={{ height: CARD_HEIGHT, width: "100%", display: "flex", flexDirection: "column", borderRadius: 4 }}>
+            <Grid
+              key={idx}
+              sx={{ display: "flex" }}
+              size={{
+                xs: 12,
+                sm: 6,
+                md: 4
+              }}>
+              <Card sx={{ height: CARD_HEIGHT, width: "300px", maxWidth: "100%", display: "flex", flexDirection: "column", borderRadius: 4 }}>
                 <CardContent sx={{ flexGrow: 1, display: "flex", flexDirection: "column", gap: 1, minHeight: 0 }}>
                   <Stack direction="row" spacing={2} alignItems="flex-start">
                     <Skeleton variant="rounded" width={CARD_THUMB_SIZE} height={CARD_THUMB_SIZE} />
@@ -362,12 +331,19 @@ export default function Products() {
       ) : (
         <Grid container spacing={3}>
           {products.length === 0 ? (
-            <Grid item xs={12}>
+            <Grid size={12}>
               <Typography color="text.secondary">No products found.</Typography>
             </Grid>
           ) : (
             products.map((p) => (
-              <Grid key={p.id} item xs={12} sm={6} md={4} sx={{ display: "flex" }}>
+              <Grid
+                key={p.id}
+                sx={{ display: "flex" }}
+                size={{
+                  xs: 12,
+                  sm: 6,
+                  md: 4
+                }}>
                 <Card sx={{ height: `${CARD_HEIGHT}px`, width: "300px", display: "flex", flexDirection: "column", overflow: "hidden" }}>
                   <CardContent sx={{ flexGrow: 1, minHeight: 0, overflow: "hidden", display: "flex", flexDirection: "column", gap: 1 }}>
                     <Stack direction="row" spacing={2} alignItems="flex-start">
@@ -404,7 +380,7 @@ export default function Products() {
                             {p.category || "General"}
                           </Typography>
                           {p.isTrending && (
-                            <Typography variant="caption" sx={{ px: 1, py: 0.25, borderRadius: 999, backgroundColor: "#0f766e", color: "#fff" }}>
+                            <Typography variant="caption" sx={{ px: 1, py: 0.25, borderRadius: 999, backgroundColor: "var(--color-primary)", color: "#fff" }}>
                               Trending
                             </Typography>
                           )}
@@ -455,12 +431,12 @@ export default function Products() {
                   </CardContent>
                   <CardActions sx={{ justifyContent: "flex-end", mt: "auto", height: CARD_ACTIONS_HEIGHT }}>
                     <Tooltip title="Edit">
-                      <IconButton color="primary" onClick={() => handleEdit(p)}>
+                      <IconButton color="primary" aria-label={`Edit ${p.title}`} onClick={() => handleEdit(p)}>
                         <EditIcon />
                       </IconButton>
                     </Tooltip>
                     <Tooltip title="Delete">
-                      <IconButton color="error" onClick={() => handleDelete(p.id)}>
+                      <IconButton color="error" aria-label={`Delete ${p.title}`} onClick={() => handleDelete(p.id)}>
                         <DeleteIcon />
                       </IconButton>
                     </Tooltip>
@@ -574,5 +550,5 @@ export default function Products() {
 
       <Snackbar open={snack.open} autoHideDuration={3000} onClose={() => setSnack({ open: false, message: "" })} message={snack.message} />
     </Box>
-  )
+  );
 }

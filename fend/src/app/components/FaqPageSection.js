@@ -56,7 +56,7 @@ export default function FaqPageSection({ initialContent = null, onEdit = {}, edi
 
   useEffect(() => {
     if (initialContent) {
-      setContent(initialContent);
+      queueMicrotask(() => setContent(initialContent));
       return;
     }
     let mounted = true;
@@ -105,7 +105,7 @@ export default function FaqPageSection({ initialContent = null, onEdit = {}, edi
           ))}
         </Box>
 
-        <Box component="section" aria-labelledby="faq-support-title" sx={{ position: "relative", bgcolor: "var(--color-primary-soft)", border: "1px solid rgba(37,99,235,0.16)", borderRadius: { xs: 3, md: 5 }, p: { xs: 3, md: 7 }, mb: { xs: 5, md: 8 } }}>
+        <Box component="section" aria-labelledby="faq-support-title" sx={{ position: "relative", bgcolor: "var(--color-primary-soft)", border: "1px solid color-mix(in srgb, var(--color-primary) 16%, transparent)", borderRadius: { xs: 3, md: 5 }, p: { xs: 3, md: 7 }, mb: { xs: 5, md: 8 } }}>
           <EditButton onClick={onEdit.support} editable={editable} />
           <Label>{support.eyebrow}</Label>
           <Typography id="faq-support-title" component="h2" sx={{ fontWeight: 850, letterSpacing: "-0.05em", fontSize: { xs: "2.6rem", md: "4.2rem" }, lineHeight: 0.98, mb: 2 }}>{support.title}</Typography>

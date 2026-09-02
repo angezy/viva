@@ -72,7 +72,7 @@ export default function LegalPageSection({ pageSlug, initialContent = null, onEd
 
   useEffect(() => {
     if (initialContent) {
-      setContent(initialContent);
+      queueMicrotask(() => setContent(initialContent));
       return;
     }
     let mounted = true;
@@ -125,7 +125,7 @@ export default function LegalPageSection({ pageSlug, initialContent = null, onEd
         {(faqItems.length > 0 || (editable && onEdit.faq)) && (
           <Box component="section" aria-labelledby="legal-faq-title" sx={{ mt: { xs: 8, md: 11 }, position: "relative" }}>
             <EditButton onClick={onEdit.faq} editable={editable} />
-            <Typography variant="overline" sx={{ color: "#3e785e", fontWeight: 800, letterSpacing: "0.14em" }}>QUESTIONS, ANSWERED</Typography>
+            <Typography variant="overline" sx={{ color: "var(--color-primary)", fontWeight: 800, letterSpacing: "0.14em" }}>QUESTIONS, ANSWERED</Typography>
             <Typography id="legal-faq-title" component="h2" sx={{ fontWeight: 820, letterSpacing: "-0.04em", fontSize: { xs: "2rem", md: "3rem" }, lineHeight: 1.05, mt: 1, mb: 4 }}>{faq.title}</Typography>
             {faqItems.length === 0 && <Typography sx={{ color: "var(--color-text-secondary)", py: 2 }}>No questions have been added yet.</Typography>}
             {faqItems.map((item, index) => (

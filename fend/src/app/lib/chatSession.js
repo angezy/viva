@@ -59,11 +59,12 @@ export async function endLiveChatSession() {
   let conversationId = "";
   try {
     conversationId = window.sessionStorage.getItem("weluxoChatConversationId") || "";
+    const conversationToken = window.sessionStorage.getItem("weluxoChatConversationToken") || "";
     if (conversationId) {
       await fetch("/api/chat/session", {
         method: "DELETE",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ conversationId }),
+        body: JSON.stringify({ conversationId, conversationToken }),
         cache: "no-store",
       });
     }

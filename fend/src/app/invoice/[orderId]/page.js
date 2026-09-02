@@ -4,6 +4,7 @@ import { useEffect, useState } from "react";
 import { useParams } from "next/navigation";
 import { Box, Button, Card, CardContent, Container, Divider, Stack, Typography } from "@mui/material";
 import { fetchOrderById } from "../../lib/apiClient";
+import { DetailPageSkeleton } from "../../components/LoadingSkeletons";
 
 export default function InvoicePage() {
   const { orderId } = useParams();
@@ -15,7 +16,7 @@ export default function InvoicePage() {
   }, [orderId]);
 
   if (error) return <Container sx={{ py: 8 }}><Typography color="error">{error}</Typography></Container>;
-  if (!order) return <Container sx={{ py: 8 }}><Typography>Loading invoice...</Typography></Container>;
+  if (!order) return <DetailPageSkeleton />;
 
   return (
     <Container maxWidth="md" sx={{ py: 6 }}>

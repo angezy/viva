@@ -59,6 +59,7 @@ const initialForm = {
   firstName: "",
   lastName: "",
   email: "",
+  emailMarketing: false,
   password: "",
   phone: "",
   smsMarketing: false,
@@ -87,8 +88,8 @@ export default function SignupPage() {
       setError("First name, last name, email, and password are required.");
       return;
     }
-    if (form.password.length < 6 || form.password.length > 12) {
-      setError("Password must be between 6 and 12 characters.");
+    if (form.password.length < 8 || form.password.length > 32) {
+      setError("Password must be between 8 and 32 characters.");
       return;
     }
     if (form.smsMarketing && !form.phone.trim()) {
@@ -139,7 +140,15 @@ export default function SignupPage() {
               </Stack>
 
               <TextField label="Email Address" type="email" value={form.email} onChange={handleChange("email")} fullWidth required autoComplete="email" InputLabelProps={{ sx: labelSx }} InputProps={{ sx: inputSx }} />
-              <TextField label="Password (6 to 12 characters)" type="password" value={form.password} onChange={handleChange("password")} fullWidth required inputProps={{ minLength: 6, maxLength: 12 }} autoComplete="new-password" helperText="Use 6–12 characters." FormHelperTextProps={{ sx: helperSx }} InputLabelProps={{ sx: labelSx }} InputProps={{ sx: inputSx }} />
+              <FormControlLabel
+                control={<Checkbox checked={Boolean(form.emailMarketing)} onChange={(event) => setForm((current) => ({ ...current, emailMarketing: event.target.checked }))} sx={checkboxSx} />}
+                label={<Typography sx={{ color: "var(--color-text-primary)", fontSize: 14, fontWeight: 750 }}>Send me Weluxo email updates, product news, and offers.</Typography>}
+                sx={{ m: 0, alignItems: "flex-start" }}
+              />
+              <Typography sx={{ color: "var(--color-text-secondary)", fontSize: 12, lineHeight: 1.55, mt: -1 }}>
+                You can change this preference at any time from your account settings.
+              </Typography>
+              <TextField label="Password (8 to 32 characters)" type="password" value={form.password} onChange={handleChange("password")} fullWidth required inputProps={{ minLength: 8, maxLength: 32 }} autoComplete="new-password" helperText="Use 8–32 characters." FormHelperTextProps={{ sx: helperSx }} InputLabelProps={{ sx: labelSx }} InputProps={{ sx: inputSx }} />
 
               <Stack direction={{ xs: "column", sm: "row" }} spacing={2} alignItems={{ sm: "center" }}>
                 <TextField label="Phone Number" type="tel" value={form.phone} onChange={handleChange("phone")} fullWidth autoComplete="tel" InputLabelProps={{ sx: labelSx }} InputProps={{ sx: inputSx }} />

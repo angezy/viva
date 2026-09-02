@@ -1,3 +1,5 @@
+const DEFAULT_STORE_NAME = process.env.NEXT_PUBLIC_STORE_NAME || "Your Store";
+
 export const DEFAULT_SITE_CHROME = {
   header: {
     announcementShipping: "Free standard shipping on orders over $100",
@@ -25,9 +27,9 @@ export const DEFAULT_SITE_CHROME = {
       { label: "Recovery", href: "/category/recovery" },
     ],
     aboutLinks: [
-      { label: "About Weluxo", href: "/aboutus" },
+      { label: `About ${DEFAULT_STORE_NAME}`, href: "/aboutus" },
       { label: "How it works", href: "/how-it-works" },
-      { label: "Why Weluxo", href: "/why-weluxo" },
+      { label: `Why ${DEFAULT_STORE_NAME}`, href: "/why-weluxo" },
       { label: "FAQ", href: "/faq" },
     ],
     allProductsLabel: "All products",
@@ -53,7 +55,7 @@ export const DEFAULT_SITE_CHROME = {
     checkoutLabel: "Checkout",
   },
   footer: {
-    logoText: "Weluxo",
+    logoText: DEFAULT_STORE_NAME,
     brandDescription: "Thoughtful gear and guidance for the way you move.",
     trustItems: [
       { icon: "shipping", title: "Reliable delivery", copy: "Free standard shipping on orders over $100." },
@@ -83,7 +85,7 @@ export const DEFAULT_SITE_CHROME = {
     companyLinks: [
       { label: "About us", href: "/aboutus" },
       { label: "How it works", href: "/how-it-works" },
-      { label: "Why Weluxo", href: "/why-weluxo" },
+      { label: `Why ${DEFAULT_STORE_NAME}`, href: "/why-weluxo" },
       { label: "Journal", href: "/blog" },
       { label: "FAQ", href: "/faq" },
     ],

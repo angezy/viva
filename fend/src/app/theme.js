@@ -1,24 +1,25 @@
 import { createTheme } from "@mui/material/styles";
-import { getSiteFontFamily } from "./lib/siteSettings";
+import { DEFAULT_SITE_SETTINGS, getSiteFontFamily } from "./lib/siteSettings";
 
 export const DEFAULT_SITE_COLORS = {
-  primary: "#2563eb",
-  primaryDark: "#1746b2",
-  primaryLight: "#5b8def",
-  primarySoft: "#eef4ff",
-  accent: "#f28c28",
-  accentDark: "#c96a0e",
-  accentLight: "#ffb15a",
-  accentSoft: "#fff4e5",
-  background: "#fbf4e8",
-  surface: "#ffffff",
-  surfaceMuted: "#fffaf2",
-  border: "#e7dfd3",
-  textPrimary: "#2b2b2b",
-  textSecondary: "#62656b",
-  success: "#2e8b57",
-  warning: "#f28c28",
-  error: "#c94a4a",
+  primary: DEFAULT_SITE_SETTINGS.primaryColor,
+  primaryDark: DEFAULT_SITE_SETTINGS.primaryDarkColor,
+  linkHover: DEFAULT_SITE_SETTINGS.linkHoverColor,
+  primaryLight: DEFAULT_SITE_SETTINGS.primaryLightColor,
+  primarySoft: DEFAULT_SITE_SETTINGS.primarySoftColor,
+  accent: DEFAULT_SITE_SETTINGS.accentColor,
+  accentDark: DEFAULT_SITE_SETTINGS.accentDarkColor,
+  accentLight: DEFAULT_SITE_SETTINGS.accentLightColor,
+  accentSoft: DEFAULT_SITE_SETTINGS.accentSoftColor,
+  background: DEFAULT_SITE_SETTINGS.backgroundColor,
+  surface: DEFAULT_SITE_SETTINGS.surfaceColor,
+  surfaceMuted: DEFAULT_SITE_SETTINGS.surfaceMutedColor,
+  border: DEFAULT_SITE_SETTINGS.borderColor,
+  textPrimary: DEFAULT_SITE_SETTINGS.textPrimaryColor,
+  textSecondary: DEFAULT_SITE_SETTINGS.textSecondaryColor,
+  success: DEFAULT_SITE_SETTINGS.successColor,
+  warning: DEFAULT_SITE_SETTINGS.warningColor,
+  error: DEFAULT_SITE_SETTINGS.errorColor,
 };
 
 function safeHex(value, fallback) {

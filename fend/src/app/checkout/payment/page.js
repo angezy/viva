@@ -22,7 +22,7 @@ export default function CheckoutPaymentPage() {
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState("");
 
-  useEffect(() => setCheckout(readCheckoutState()), []);
+  useEffect(() => queueMicrotask(() => setCheckout(readCheckoutState())), [user]);
 
   useEffect(() => {
     const state = readCheckoutState();
@@ -56,8 +56,19 @@ export default function CheckoutPaymentPage() {
     }
     setSubmitting(true);
     try {
-      const total = Math.max(0, subtotal + shippingCost(checkout.shipping.method) - discount);
-      const payment = await createPayment({ amount: total, currency: "USD", method: "card", customerEmail: checkout.information.email, shippingMethod: checkout.shipping.method, couponCode });
+      const total = Math.max(0, subtotal + shippingCost(checkout.shipping) - discount);
+      const payment = await createPayment({
+        amount: total,
+        currency: "USD",
+        method: "card",
+        customerEmail: checkout.information.email,
+        shippingMethod: checkout.shipping.logisticName || checkout.shipping.method,
+        couponCode,
+        checkoutDetails: {
+          information: checkout.information,
+          shipping: checkout.shipping,
+        },
+      });
       const checkoutUrl = payment.payment?.checkoutUrl || payment.checkoutUrl;
       if (!checkoutUrl) throw new Error("Secure payment checkout is unavailable");
       window.location.assign(checkoutUrl);
@@ -76,11 +87,11 @@ export default function CheckoutPaymentPage() {
 
   if (loading) return <CheckoutLoading />;
   if (!user) {
-    return <CheckoutLayout currentStep="payment" items={items} subtotal={subtotal} discount={discount} couponCode={couponCode} shippingMethod={checkout.shipping.method}><CheckoutAuthPrompt /></CheckoutLayout>;
+    return <CheckoutLayout currentStep="payment" items={items} subtotal={subtotal} discount={discount} couponCode={couponCode} shippingMethod={checkout.shipping}><CheckoutAuthPrompt /></CheckoutLayout>;
   }
 
   return (
-    <CheckoutLayout currentStep="payment" items={items} subtotal={subtotal} discount={discount} couponCode={couponCode} shippingMethod={checkout.shipping.method}>
+    <CheckoutLayout currentStep="payment" items={items} subtotal={subtotal} discount={discount} couponCode={couponCode} shippingMethod={checkout.shipping}>
       {(cartError || error) && <Alert severity="error" sx={{ mb: 3 }}>{error || cartError}</Alert>}
       <Stack spacing={2.5}>
         <Card sx={{ bgcolor: "#ffffff", color: "var(--color-text-primary)", border: "1px solid var(--color-border)" }}>

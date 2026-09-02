@@ -16,8 +16,5 @@ BEGIN
   );
 END;
 
-IF NOT EXISTS (SELECT 1 FROM [dbo].[Coupons] WHERE [Code] = N'WELCOME10')
-BEGIN
-  INSERT INTO [dbo].[Coupons] ([Code], [DiscountPercent], [ExpiresAt], [IsActive])
-  VALUES (N'WELCOME10', 10, DATEADD(year, 100, SYSUTCDATETIME()), 1);
-END;
+-- Coupons are business data and must be created by the owner after install.
+-- No promotional code is inserted into a fresh store.

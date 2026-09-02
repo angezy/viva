@@ -2,6 +2,7 @@
 
 import { useEffect, useState } from "react";
 import { fetchOrders, fetchSession } from "../../lib/apiClient";
+import { AccountPageSkeleton } from "../../components/LoadingSkeletons";
 import styles from "../account.module.css";
 
 export default function OrdersPage() {
@@ -26,7 +27,7 @@ export default function OrdersPage() {
     load();
   }, []);
 
-  if (loading) return <div className={styles.heroTitle}>Loading orders...</div>;
+  if (loading) return <AccountPageSkeleton variant="orders" />;
   if (!authed) return <div className={styles.heroTitle}>Sign in to view your orders.</div>;
 
   return (

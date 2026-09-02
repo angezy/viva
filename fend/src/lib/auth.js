@@ -5,12 +5,12 @@ export const ADMIN_COOKIE_NAME = 'viva_admin_token';
 export const CUSTOMER_COOKIE_NAME = 'viva_customer_token';
 
 export function signToken(payload, opts = {}) {
-  return jwt.sign(payload, JWT_SECRET, { expiresIn: '2h', ...opts });
+  return jwt.sign(payload, JWT_SECRET, { expiresIn: '2h', algorithm: 'HS256', ...opts });
 }
 
 export function verifyToken(token) {
   try {
-    return jwt.verify(token, JWT_SECRET);
+    return jwt.verify(token, JWT_SECRET, { algorithms: ['HS256'] });
   } catch (e) {
     return null;
   }

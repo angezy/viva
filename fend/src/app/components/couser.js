@@ -48,12 +48,13 @@ export default function MostChosenCarousel() {
             background: "rgba(255,255,255,0.1)",
             border: "1px solid rgba(255,255,255,0.15)",
             backdropFilter: "blur(18px)",
+            height: 320,
           }}
         >
-          <Skeleton variant="rectangular" height={210} sx={{ borderRadius: "12px 12px 0 0" }} />
-          <CardContent>
-            <Skeleton variant="text" width="70%" />
-            <Skeleton variant="text" width="50%" />
+          <Skeleton variant="rectangular" height={210} sx={{ bgcolor: "rgba(255,255,255,0.14)", borderRadius: "12px 12px 0 0" }} />
+          <CardContent sx={{ flex: 1 }}>
+            <Skeleton variant="text" width="70%" sx={{ bgcolor: "rgba(255,255,255,0.14)" }} />
+            <Skeleton variant="text" width="50%" sx={{ bgcolor: "rgba(255,255,255,0.14)" }} />
           </CardContent>
         </Card>
       </Box>
@@ -116,7 +117,7 @@ export default function MostChosenCarousel() {
                       {image ? (
                         <CardMedia component="img" height="210" image={image} alt={title} sx={{ objectFit: "cover" }} />
                       ) : (
-                        <Skeleton variant="rectangular" height={210} />
+                        <Skeleton variant="rectangular" height={210} sx={{ bgcolor: "rgba(255,255,255,0.14)" }} />
                       )}
 
                       <CardContent sx={{ flexGrow: 1, display: "flex", flexDirection: "column" }}>

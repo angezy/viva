@@ -2,21 +2,28 @@
 
 import { useEffect, useMemo, useState } from "react";
 import Link from "next/link";
-import { useParams } from "next/navigation";
+import { useParams, useRouter } from "next/navigation";
 import {
+  Alert,
   Box,
   Breadcrumbs,
   Button,
   Card,
   CardContent,
   Chip,
+  CircularProgress,
   Container,
   Divider,
   Grid,
+  MenuItem,
+  Radio,
+  RadioGroup,
   Skeleton,
   Stack,
+  TextField,
   Typography,
 } from "@mui/material";
+import { Country } from "country-state-city";
 import {
   AddRounded,
   ArrowForwardRounded,
@@ -30,9 +37,13 @@ import {
   ReplayRounded,
   SecurityRounded,
   ShareRounded,
+  StarBorderRounded,
+  StarRounded,
   ZoomInRounded,
 } from "@mui/icons-material";
-import { addToCart, fetchSavedProducts, removeSavedProduct, saveProduct } from "../../lib/apiClient";
+import { addToCart, estimateCartShipping, fetchSavedProducts, removeSavedProduct, saveProduct } from "../../lib/apiClient";
+import { readCheckoutState, updateCheckoutState } from "../../checkout/components/checkoutState";
+import { hideSupplierBranding } from "../../lib/customerFacingText";
 import { toast } from "../../lib/notifications";
 import { rememberProduct } from "../../lib/recentProducts";
 
@@ -80,8 +91,84 @@ function formatMoney(value, currency = "USD") {
   }
 }
 
+function deliveryWindow(value) {
+  const window = String(value || "").trim();
+  return /^\d+\s*[-–]\s*\d+$/.test(window) ? `${window.replace(/\s*-\s*/, "–")} business days` : window || "Delivery estimate available";
+}
+
+function normalizeProductComments(value) {
+  const list = Array.isArray(value) ? value : Array.isArray(value?.list) ? value.list : [];
+
+  return list
+    .filter((entry) => entry && typeof entry === "object")
+    .map((entry, index) => {
+      const rawImages = entry.images ?? entry.commentUrls ?? entry.imageList ?? [];
+      const images = (Array.isArray(rawImages) ? rawImages : [rawImages])
+        .map(getImageValue)
+        .filter(Boolean);
+      const rating = Number(entry.rating ?? entry.score ?? entry.star ?? entry.stars);
+
+      return {
+        id: String(entry.id ?? entry.commentId ?? `comment-${index}`),
+        author: String(entry.author ?? entry.commentUser ?? entry.userName ?? entry.username ?? "Verified customer").trim() || "Verified customer",
+        text: String(entry.text ?? entry.comment ?? entry.content ?? entry.message ?? "").trim(),
+        rating: Number.isFinite(rating) ? Math.max(0, Math.min(5, rating)) : null,
+        date: String(entry.date ?? entry.commentDate ?? entry.createdAt ?? entry.createTime ?? "").trim(),
+        countryCode: String(entry.countryCode ?? entry.country ?? "").trim(),
+        flagIconUrl: getImageValue(entry.flagIconUrl ?? entry.flagUrl),
+        images: [...new Set(images)],
+      };
+    })
+    .filter((entry) => entry.text || entry.images.length);
+}
+
+function formatReviewDate(value) {
+  if (!value) return "";
+  const date = new Date(value);
+  return Number.isNaN(date.getTime()) ? value : date.toLocaleDateString();
+}
+
+function ProductReviewList({ reviews, emptyMessage, heading }) {
+  if (!reviews.length) {
+    return <Typography sx={{ color: "var(--color-text-secondary)", lineHeight: 1.8 }}>{emptyMessage}</Typography>;
+  }
+
+  return (
+    <Stack spacing={2.5} sx={{ maxWidth: 900 }}>
+      <Typography component="h2" sx={{ fontSize: 21, fontWeight: 900, letterSpacing: "-0.02em" }}>{heading}</Typography>
+      {reviews.map((review) => {
+        const meta = [review.countryCode, formatReviewDate(review.date)].filter(Boolean).join(" · ");
+        return (
+          <Box key={review.id} sx={{ pb: 2.5, borderBottom: "1px solid var(--color-border)" }}>
+            <Stack direction="row" justifyContent="space-between" alignItems="flex-start" spacing={2}>
+              <Stack direction="row" spacing={1} alignItems="center">
+                {review.flagIconUrl && <Box component="img" src={review.flagIconUrl} alt={review.countryCode ? `${review.countryCode} flag` : ""} sx={{ width: 18, height: 13, objectFit: "cover", borderRadius: 0.5 }} />}
+                <Typography sx={{ fontWeight: 850 }}>{review.author}</Typography>
+              </Stack>
+              {review.rating !== null && (
+                <Stack direction="row" spacing={0.1} aria-label={`${review.rating} out of 5 stars`}>
+                  {[1, 2, 3, 4, 5].map((star) => star <= Math.round(review.rating)
+                    ? <StarRounded key={star} sx={{ color: "var(--color-accent)", fontSize: 18 }} />
+                    : <StarBorderRounded key={star} sx={{ color: "var(--color-text-secondary)", fontSize: 18 }} />)}
+                </Stack>
+              )}
+            </Stack>
+            {meta && <Typography sx={{ mt: 0.35, color: "var(--color-text-secondary)", fontSize: 13 }}>{meta}</Typography>}
+            {review.text && <Typography sx={{ mt: 1.15, color: "var(--color-text-secondary)", lineHeight: 1.75, whiteSpace: "pre-line" }}>{review.text}</Typography>}
+            {review.images.length > 0 && (
+              <Stack direction="row" spacing={1} useFlexGap flexWrap="wrap" sx={{ mt: 1.5 }}>
+                {review.images.map((image, index) => <Box key={`${review.id}-${image}`} component="img" src={image} alt={`Review photo ${index + 1}`} sx={{ width: 76, height: 76, borderRadius: 1.5, border: "1px solid var(--color-border)", objectFit: "cover" }} />)}
+              </Stack>
+            )}
+          </Box>
+        );
+      })}
+    </Stack>
+  );
+}
+
 function normalizeProduct(product = {}) {
-  const title = product.name || product.Name || product.title || "Untitled product";
+  const title = hideSupplierBranding(product.name || product.Name || product.title, "Untitled product");
   const rawImages = Array.isArray(product.images) ? product.images : [];
   const images = [
     ...rawImages,
@@ -102,14 +189,16 @@ function normalizeProduct(product = {}) {
   const numericCompareAtPrice = Number(rawCompareAtPrice);
   const numericStock = rawStock === undefined || rawStock === null || rawStock === "" ? null : Number(rawStock);
   const price = Number.isFinite(numericPrice) ? numericPrice : 0;
+  const buyerReviews = normalizeProductComments(product.buyerReviews ?? product.BuyerReviews ?? product.productComments);
+  const reportedBuyerReviewTotal = Number(product.buyerReviewTotal ?? product.BuyerReviewTotal ?? product.reviewTotal);
 
   return {
     id: product.id ?? product.PID ?? product.ProductId ?? product.productId ?? title,
     slug: getProductSlug(product),
     title,
-    description: product.description || product.Description || "No description available.",
+    description: hideSupplierBranding(product.description || product.Description, "No description available."),
     category: product.category || product.Category || "Collection",
-    brand: product.brand || product.Brand || "Weluxo",
+    brand: hideSupplierBranding(product.brand || product.Brand, "Weluxo"),
     price,
     salePrice: Number.isFinite(Number(product.salePrice ?? product.SalePrice)) ? Number(product.salePrice ?? product.SalePrice) : price,
     compareAtPrice: Number.isFinite(numericCompareAtPrice) && numericCompareAtPrice > price ? numericCompareAtPrice : null,
@@ -117,18 +206,21 @@ function normalizeProduct(product = {}) {
     sku: product.sku || product.SKU || product.ProductCode || "",
     stock: Number.isFinite(numericStock) ? numericStock : null,
     isTrending: Boolean(product.isTrending ?? product.IsTrending ?? product.trending ?? product.Trending),
-    alt: product.alt || product.Alt || title,
+    alt: hideSupplierBranding(product.alt || product.Alt, title),
     address: product.address || product.Address || "",
     images: uniqueImages.length ? uniqueImages : [FALLBACK_IMAGE],
+    isCjProduct: Boolean(product.isCjProduct ?? product.IsCjProduct ?? product.cjPid ?? product.CjPid),
+    buyerReviews,
+    buyerReviewTotal: Number.isFinite(reportedBuyerReviewTotal) ? Math.max(buyerReviews.length, reportedBuyerReviewTotal) : buyerReviews.length,
   };
 }
 
 function ProductLoading() {
-  const skeletonColor = "rgba(43,43,43,0.08)";
+  const skeletonColor = "#eee8df";
   const panelSx = {
     bgcolor: "var(--color-surface)",
     border: "1px solid var(--color-border)",
-    borderRadius: 4,
+    borderRadius: 3,
   };
 
   return (
@@ -139,36 +231,44 @@ function ProductLoading() {
       sx={{ backgroundColor: "var(--color-background)", minHeight: "100vh", color: "var(--color-text-primary)", py: { xs: 3, md: 6 } }}
     >
       <Container maxWidth="lg">
-        <Skeleton variant="text" width={220} height={30} sx={{ bgcolor: skeletonColor }} />
+        <Skeleton variant="text" width={180} height={26} sx={{ bgcolor: skeletonColor }} />
         <Grid container spacing={5} sx={{ mt: 1 }}>
-          <Grid item xs={12} md={7}>
+          <Grid
+            size={{
+              xs: 12,
+              md: 7
+            }}>
             <Box sx={panelSx}>
               <Skeleton
                 variant="rounded"
-                sx={{ height: { xs: 320, md: 520 }, bgcolor: skeletonColor, borderRadius: 4 }}
+                sx={{ height: { xs: 300, md: 480 }, bgcolor: skeletonColor, borderRadius: 3 }}
               />
             </Box>
             <Stack direction="row" spacing={1.5} sx={{ mt: 2, overflow: "hidden" }}>
               {[0, 1, 2, 3].map((item) => (
-                <Skeleton key={item} variant="rounded" width={80} height={80} sx={{ flexShrink: 0, bgcolor: skeletonColor, borderRadius: 2 }} />
+                <Skeleton key={item} variant="rounded" width={72} height={72} sx={{ flexShrink: 0, bgcolor: skeletonColor, borderRadius: 1.5 }} />
               ))}
             </Stack>
           </Grid>
-          <Grid item xs={12} md={5}>
+          <Grid
+            size={{
+              xs: 12,
+              md: 5
+            }}>
             <Stack spacing={2.5}>
               <Stack direction="row" spacing={1}>
-                <Skeleton variant="rounded" width={92} height={28} sx={{ bgcolor: skeletonColor, borderRadius: 999 }} />
-                <Skeleton variant="rounded" width={76} height={28} sx={{ bgcolor: skeletonColor, borderRadius: 999 }} />
+                <Skeleton variant="rounded" width={84} height={24} sx={{ bgcolor: skeletonColor, borderRadius: 999 }} />
+                <Skeleton variant="rounded" width={68} height={24} sx={{ bgcolor: skeletonColor, borderRadius: 999 }} />
               </Stack>
               <Box>
-                <Skeleton variant="text" height={64} sx={{ bgcolor: skeletonColor }} />
-                <Skeleton variant="text" width="68%" height={64} sx={{ bgcolor: skeletonColor }} />
+                <Skeleton variant="text" height={48} sx={{ bgcolor: skeletonColor }} />
+                <Skeleton variant="text" width="68%" height={48} sx={{ bgcolor: skeletonColor }} />
               </Box>
-              <Skeleton variant="text" width="34%" height={48} sx={{ bgcolor: skeletonColor }} />
+              <Skeleton variant="text" width="34%" height={36} sx={{ bgcolor: skeletonColor }} />
               <Box>
-                <Skeleton variant="text" height={24} sx={{ bgcolor: skeletonColor }} />
-                <Skeleton variant="text" height={24} sx={{ bgcolor: skeletonColor }} />
-                <Skeleton variant="text" width="82%" height={24} sx={{ bgcolor: skeletonColor }} />
+                <Skeleton variant="text" height={20} sx={{ bgcolor: skeletonColor }} />
+                <Skeleton variant="text" height={20} sx={{ bgcolor: skeletonColor }} />
+                <Skeleton variant="text" width="82%" height={20} sx={{ bgcolor: skeletonColor }} />
               </Box>
               <Box sx={{ ...panelSx, p: { xs: 2, md: 2.5 } }}>
                 <Stack spacing={1.25}>
@@ -178,9 +278,9 @@ function ProductLoading() {
                   </Stack>
                   <Divider sx={{ borderColor: "var(--color-border)", my: 0.75 }} />
                   <Stack direction="row" spacing={1.5}>
-                    <Skeleton variant="rounded" width={44} height={44} sx={{ bgcolor: skeletonColor, borderRadius: 2 }} />
-                    <Skeleton variant="rounded" width={44} height={44} sx={{ bgcolor: skeletonColor, borderRadius: 2 }} />
-                    <Skeleton variant="rounded" height={44} sx={{ flex: 1, bgcolor: skeletonColor, borderRadius: 999 }} />
+                    <Skeleton variant="rounded" width={40} height={40} sx={{ bgcolor: skeletonColor, borderRadius: 1.5 }} />
+                    <Skeleton variant="rounded" width={40} height={40} sx={{ bgcolor: skeletonColor, borderRadius: 1.5 }} />
+                    <Skeleton variant="rounded" height={40} sx={{ flex: 1, bgcolor: skeletonColor, borderRadius: 999 }} />
                   </Stack>
                 </Stack>
               </Box>
@@ -189,12 +289,18 @@ function ProductLoading() {
         </Grid>
 
         <Box sx={{ mt: { xs: 6, md: 8 } }}>
-          <Skeleton variant="text" width={240} height={38} sx={{ bgcolor: skeletonColor }} />
+          <Skeleton variant="text" width={210} height={34} sx={{ bgcolor: skeletonColor }} />
           <Grid container spacing={3} sx={{ mt: 0.5 }}>
             {[0, 1, 2, 3].map((item) => (
-              <Grid item xs={12} sm={6} md={3} key={item}>
+              <Grid
+                key={item}
+                size={{
+                  xs: 12,
+                  sm: 6,
+                  md: 3
+                }}>
                 <Box sx={{ ...panelSx, overflow: "hidden" }}>
-                  <Skeleton variant="rectangular" height={180} sx={{ bgcolor: skeletonColor }} />
+                  <Skeleton variant="rectangular" height={160} sx={{ bgcolor: skeletonColor }} />
                   <Box sx={{ p: 2 }}>
                     <Skeleton variant="text" height={28} sx={{ bgcolor: skeletonColor }} />
                     <Skeleton variant="text" width="36%" sx={{ bgcolor: skeletonColor }} />
@@ -228,6 +334,7 @@ function ProductNotFound({ error }) {
 }
 
 export default function ProductPage() {
+  const router = useRouter();
   const params = useParams();
   const requestedSlug = Array.isArray(params?.slug) ? params.slug[0] : params?.slug;
   const normalizedRequestedSlug = normalizeSlug(requestedSlug);
@@ -240,6 +347,14 @@ export default function ProductPage() {
   const [saved, setSaved] = useState(false);
   const [saving, setSaving] = useState(false);
   const [activeInfoTab, setActiveInfoTab] = useState("details");
+  const initialShipping = readCheckoutState().shipping || {};
+  const [shippingCountry, setShippingCountry] = useState(initialShipping.country || "US");
+  const [shippingPostalCode, setShippingPostalCode] = useState(initialShipping.postalCode || "");
+  const [shippingOptions, setShippingOptions] = useState([]);
+  const [selectedShippingName, setSelectedShippingName] = useState("");
+  const [shippingLoading, setShippingLoading] = useState(false);
+  const [shippingError, setShippingError] = useState("");
+  const countryOptions = useMemo(() => Country.getAllCountries().map((country) => ({ code: country.isoCode, label: country.name })).sort((a, b) => a.label.localeCompare(b.label)), []);
 
   useEffect(() => {
     let active = true;
@@ -282,11 +397,16 @@ export default function ProductPage() {
   }, [product, products]);
 
   useEffect(() => {
-    setSelectedImage(0);
-    setQuantity(1);
-    setSaved(false);
-    setSaving(false);
-    setActiveInfoTab("details");
+    queueMicrotask(() => {
+      setSelectedImage(0);
+      setQuantity(1);
+      setSaved(false);
+      setSaving(false);
+      setActiveInfoTab("details");
+      setShippingOptions([]);
+      setSelectedShippingName("");
+      setShippingError("");
+    });
   }, [product?.slug]);
 
   useEffect(() => {
@@ -321,7 +441,7 @@ export default function ProductPage() {
       });
       toast.success("Added to cart", {
         description: `${product.title} is now in your cart.`,
-        action: { label: "View cart", onClick: () => { window.location.href = "/cart"; } },
+        action: { label: "View cart", onClick: () => router.push("/cart") },
         cancel: { label: "Continue shopping" },
       });
     } catch (error) {
@@ -331,6 +451,77 @@ export default function ProductPage() {
       });
     } finally {
       setAdding(false);
+    }
+  }
+
+  function invalidateShippingQuote() {
+    setShippingOptions([]);
+    setSelectedShippingName("");
+    setShippingError("");
+    const checkout = readCheckoutState();
+    if (String(checkout.shipping?.sourceProductId || "") === String(product?.id || "")) {
+      updateCheckoutState({ shipping: {
+        ...checkout.shipping,
+        method: "",
+        logisticName: "",
+        label: "",
+        window: "",
+        cost: null,
+        fromCountryCode: "",
+      } });
+    }
+  }
+
+  function changeQuantity(amount) {
+    setQuantity((value) => Math.max(1, value + amount));
+    invalidateShippingQuote();
+  }
+
+  function chooseShippingOption(option) {
+    const logisticName = option.logisticName || option.method;
+    setSelectedShippingName(logisticName);
+    const checkout = readCheckoutState();
+    updateCheckoutState({ shipping: {
+      ...checkout.shipping,
+      country: shippingCountry,
+      postalCode: shippingPostalCode,
+      method: logisticName,
+      logisticName,
+      label: hideSupplierBranding(option.label || logisticName, "Shipping service"),
+      window: option.window || "",
+      cost: Number(option.cost) || 0,
+      fromCountryCode: option.fromCountryCode || "",
+      sourceProductId: String(product.id),
+      sourceProductSlug: product.slug,
+      sourceProductTitle: product.title,
+    } });
+  }
+
+  async function handleShippingEstimate(event) {
+    event.preventDefault();
+    if (!shippingCountry || !shippingPostalCode.trim()) {
+      setShippingError("Choose a country and enter a ZIP / postal code.");
+      return;
+    }
+    setShippingLoading(true);
+    setShippingError("");
+    try {
+      const result = await estimateCartShipping({
+        productId: product.id,
+        quantity,
+        country: shippingCountry,
+        postalCode: shippingPostalCode,
+      });
+      const options = Array.isArray(result.estimates) ? result.estimates : [];
+      if (!options.length) throw new Error("No delivery service is available for this destination.");
+      setShippingOptions(options);
+      chooseShippingOption(result.selected || options[0]);
+    } catch (error) {
+      setShippingOptions([]);
+      setSelectedShippingName("");
+      setShippingError(error.message || "Unable to calculate shipping for this product.");
+    } finally {
+      setShippingLoading(false);
     }
   }
 
@@ -347,14 +538,14 @@ export default function ProductPage() {
         setSaved(true);
         toast.success("Saved for later", {
           description: `${product.title} is available from your account dashboard.`,
-          action: { label: "View saved", onClick: () => { window.location.href = "/account/saved"; } },
+          action: { label: "View saved", onClick: () => router.push("/account/saved") },
         });
       }
     } catch (error) {
       if (error.message === "unauthorized") {
         toast.info("Sign in to save products", {
           description: "Your saved products are kept with your customer account.",
-          action: { label: "Sign in", onClick: () => { window.location.href = "/signin"; } },
+          action: { label: "Sign in", onClick: () => router.push("/signin") },
         });
       } else {
         toast.error("Could not update saved products", { description: error.message || "Please try again." });
@@ -388,6 +579,7 @@ export default function ProductPage() {
   const stockLabel = product.stock === null ? "In stock" : product.stock > 0 ? `${product.stock} available` : "Out of stock";
   const infoTabs = [
     { id: "details", label: "Product details" },
+    ...(product.isCjProduct ? [{ id: "buyer-reviews", label: `Buyer reviews (${product.buyerReviewTotal})` }] : []),
     { id: "shipping", label: "Shipping & returns" },
     { id: "care", label: "Care guide" },
   ];
@@ -405,7 +597,11 @@ export default function ProductPage() {
         </Breadcrumbs>
 
         <Grid container spacing={{ xs: 4, md: 7 }} alignItems="flex-start">
-          <Grid item xs={12} md={7}>
+          <Grid
+            size={{
+              xs: 12,
+              md: 7
+            }}>
             <Box component="section" aria-label="Product gallery">
               <Card
                 sx={{
@@ -494,7 +690,11 @@ export default function ProductPage() {
             </Box>
           </Grid>
 
-          <Grid item xs={12} md={5}>
+          <Grid
+            size={{
+              xs: 12,
+              md: 5
+            }}>
             <Box component="section" aria-labelledby="product-title" sx={{ position: { md: "sticky" }, top: { md: 116 } }}>
               <Stack spacing={2.5}>
                 <Stack direction="row" alignItems="center" justifyContent="space-between" spacing={2}>
@@ -521,7 +721,7 @@ export default function ProductPage() {
                   {hasDiscount && <Typography sx={{ color: "var(--color-text-secondary)", fontSize: 18, textDecoration: "line-through" }}>{formatMoney(product.compareAtPrice, product.currency)}</Typography>}
                   {hasDiscount && <Typography sx={{ color: "var(--color-accent-dark)", fontSize: 13, fontWeight: 850 }}>Save {formatMoney(product.compareAtPrice - product.price, product.currency)}</Typography>}
                 </Stack>
-                <Typography sx={{ color: "var(--color-text-secondary)", lineHeight: 1.8, fontSize: 15 }}>
+                <Typography sx={{ color: "var(--color-text-secondary)", lineHeight: 1.8, fontSize: 15, whiteSpace: "pre-line" }}>
                   {product.description}
                 </Typography>
 
@@ -547,15 +747,46 @@ export default function ProductPage() {
                       <Divider sx={{ borderColor: "var(--color-border)" }} />
                       <Stack direction={{ xs: "column", sm: "row" }} spacing={1.25}>
                         <Stack direction="row" alignItems="center" justifyContent="space-between" sx={{ height: 48, px: 0.5, border: "1px solid var(--color-border)", borderRadius: 999, bgcolor: "var(--color-surface-muted)" }}>
-                          <Button type="button" onClick={() => setQuantity((value) => Math.max(1, value - 1))} disabled={!inStock || quantity <= 1} aria-label="Decrease quantity" sx={{ minWidth: 40, width: 40, height: 40, p: 0, color: "var(--color-text-primary)" }}><RemoveRounded fontSize="small" /></Button>
+                          <Button type="button" onClick={() => changeQuantity(-1)} disabled={!inStock || quantity <= 1} aria-label="Decrease quantity" sx={{ minWidth: 40, width: 40, height: 40, p: 0, color: "var(--color-text-primary)" }}><RemoveRounded fontSize="small" /></Button>
                           <Typography sx={{ minWidth: 28, textAlign: "center", fontSize: 14, fontWeight: 850 }}>{quantity}</Typography>
-                          <Button type="button" onClick={() => setQuantity((value) => value + 1)} disabled={!inStock} aria-label="Increase quantity" sx={{ minWidth: 40, width: 40, height: 40, p: 0, color: "var(--color-text-primary)" }}><AddRounded fontSize="small" /></Button>
+                          <Button type="button" onClick={() => changeQuantity(1)} disabled={!inStock} aria-label="Increase quantity" sx={{ minWidth: 40, width: 40, height: 40, p: 0, color: "var(--color-text-primary)" }}><AddRounded fontSize="small" /></Button>
                         </Stack>
-                        <Button fullWidth variant="contained" onClick={handleAddToCart} disabled={!inStock || adding} sx={{ minHeight: 48, px: 3, fontSize: 15, borderRadius: 999 }}>
+                        <Button fullWidth variant="contained" onClick={handleAddToCart} disabled={!inStock || adding} data-button-loading-managed="true" startIcon={adding ? <CircularProgress size={18} color="inherit" /> : undefined} sx={{ minHeight: 48, px: 3, fontSize: 15, borderRadius: 999 }}>
                           {adding ? "Adding to cart..." : inStock ? "Add to cart" : "Out of stock"}
                         </Button>
                       </Stack>
-                      <Typography sx={{ color: "var(--color-text-secondary)", fontSize: 11.5, textAlign: "center" }}>Taxes and shipping calculated at checkout.</Typography>
+                      {product.isCjProduct && (
+                        <Box component="form" onSubmit={handleShippingEstimate} sx={{ p: 1.75, border: "1px solid var(--color-border)", borderRadius: 2.5, bgcolor: "var(--color-surface-muted)" }}>
+                          <Stack spacing={1.25}>
+                            <Stack direction="row" spacing={1} alignItems="center"><LocalShippingOutlined sx={{ color: "var(--color-primary)", fontSize: 20 }} /><Typography sx={{ fontWeight: 900 }}>Live delivery options</Typography></Stack>
+                            <Box sx={{ display: "grid", gridTemplateColumns: { xs: "1fr", sm: "1fr 1fr" }, gap: 1 }}>
+                              <TextField select size="small" label="Country" value={shippingCountry} onChange={(event) => { setShippingCountry(event.target.value); invalidateShippingQuote(); }}>
+                                {countryOptions.map((country) => <MenuItem key={country.code} value={country.code}>{country.label}</MenuItem>)}
+                              </TextField>
+                              <TextField size="small" label="ZIP / postal code" value={shippingPostalCode} onChange={(event) => { setShippingPostalCode(event.target.value); invalidateShippingQuote(); }} />
+                            </Box>
+                            <Button type="submit" variant="outlined" disabled={shippingLoading} startIcon={shippingLoading ? <CircularProgress size={16} color="inherit" /> : undefined} sx={{ alignSelf: "flex-start", borderRadius: 999 }}>
+                              {shippingLoading ? "Checking..." : "Get live shipping options"}
+                            </Button>
+                            {shippingError && <Alert severity="error">{shippingError}</Alert>}
+                            {!!shippingOptions.length && (
+                              <RadioGroup value={selectedShippingName} onChange={(event) => {
+                                const option = shippingOptions.find((item) => (item.logisticName || item.method) === event.target.value);
+                                if (option) chooseShippingOption(option);
+                              }}>
+                                {shippingOptions.map((option) => (
+                                  <Box key={option.logisticName || option.method} sx={{ display: "flex", alignItems: "center", gap: 1, py: 0.75, borderBottom: "1px solid var(--color-border)" }}>
+                                    <Radio value={option.logisticName || option.method} size="small" />
+                                    <Box sx={{ flex: 1, minWidth: 0 }}><Typography sx={{ fontSize: 13, fontWeight: 800 }}>{hideSupplierBranding(option.label || option.logisticName, "Shipping service")}</Typography><Typography sx={{ color: "var(--color-text-secondary)", fontSize: 11.5 }}>{deliveryWindow(option.window)}</Typography></Box>
+                                    <Typography sx={{ fontSize: 13, fontWeight: 850 }}>{formatMoney(option.cost, option.currency || "USD")}</Typography>
+                                  </Box>
+                                ))}
+                              </RadioGroup>
+                            )}
+                          </Stack>
+                        </Box>
+                      )}
+                      <Typography sx={{ color: "var(--color-text-secondary)", fontSize: 11.5, textAlign: "center" }}>Taxes and the selected delivery service are confirmed at checkout.</Typography>
                     </Stack>
                   </CardContent>
                 </Card>
@@ -566,7 +797,7 @@ export default function ProductPage() {
                     { icon: <ReplayRounded />, title: "Easy support", copy: "Here when you need us" },
                     { icon: <LockOutlined />, title: "Order protection", copy: "Carefully packed" },
                   ].map((item) => (
-                    <Grid item xs={4} key={item.title}>
+                    <Grid key={item.title} size={4}>
                       <Stack alignItems="center" spacing={0.7} sx={{ height: "100%", px: { xs: 0.25, sm: 1 }, py: 1.25, textAlign: "center", border: "1px solid var(--color-border)", borderRadius: 2.5, bgcolor: "rgba(255,255,255,0.34)" }}>
                         <Box sx={{ color: "var(--color-primary)", lineHeight: 1 }}>{item.icon}</Box>
                         <Typography sx={{ fontSize: { xs: 10, sm: 11 }, fontWeight: 850, lineHeight: 1.2 }}>{item.title}</Typography>
@@ -590,11 +821,19 @@ export default function ProductPage() {
           </Stack>
           {activeInfoTab === "details" && (
             <Grid container spacing={{ xs: 3, md: 6 }}>
-              <Grid item xs={12} md={7}>
+              <Grid
+                size={{
+                  xs: 12,
+                  md: 7
+                }}>
                 <Typography component="h2" sx={{ fontSize: 21, fontWeight: 900, letterSpacing: "-0.02em", mb: 1.25 }}>Made for your everyday</Typography>
                 <Typography sx={{ color: "var(--color-text-secondary)", lineHeight: 1.85, whiteSpace: "pre-line" }}>{product.description}</Typography>
               </Grid>
-              <Grid item xs={12} md={5}>
+              <Grid
+                size={{
+                  xs: 12,
+                  md: 5
+                }}>
                 <Stack spacing={1.25}>
                   {[
                     ["Category", product.category],
@@ -609,6 +848,20 @@ export default function ProductPage() {
                 </Stack>
               </Grid>
             </Grid>
+          )}
+          {activeInfoTab === "buyer-reviews" && (
+            <Stack spacing={1.25}>
+              <ProductReviewList
+                heading="Buyer reviews"
+                reviews={product.buyerReviews}
+                emptyMessage="No buyer reviews are available for this product."
+              />
+              {product.buyerReviewTotal > product.buyerReviews.length && (
+                <Typography sx={{ color: "var(--color-text-secondary)", fontSize: 13 }}>
+                  Showing the first {product.buyerReviews.length} of {product.buyerReviewTotal} buyer reviews.
+                </Typography>
+              )}
+            </Stack>
           )}
           {activeInfoTab === "shipping" && (
             <Stack spacing={1.5} sx={{ maxWidth: 760 }}>
@@ -638,7 +891,13 @@ export default function ProductPage() {
             </Stack>
             <Grid container spacing={2.5}>
               {relatedProducts.map((related) => (
-                <Grid item xs={12} sm={6} md={3} key={related.id}>
+                <Grid
+                  key={related.id}
+                  size={{
+                    xs: 12,
+                    sm: 6,
+                    md: 3
+                  }}>
                   <Card component={Link} href={`/product/${related.slug}`} sx={{ height: "100%", display: "flex", flexDirection: "column", bgcolor: "var(--color-surface)", color: "var(--color-text-primary)", border: "1px solid var(--color-border)", borderRadius: 3.5, overflow: "hidden", transition: "transform 180ms ease, box-shadow 180ms ease", "&:hover": { transform: "translateY(-5px)", boxShadow: "0 20px 38px rgba(43,43,43,0.12)" } }}>
                     <Box sx={{ position: "relative", bgcolor: "var(--color-surface-muted)" }}>
                       <Box component="img" src={related.images[0]} alt={related.alt} sx={{ display: "block", width: "100%", height: 220, objectFit: "cover" }} />

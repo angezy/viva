@@ -5,7 +5,10 @@
     "dev:backend": "npx nodemon bend/server.js",
     "dev:frontend": "npm run dev --prefix fend",
     "start": "node bend/server.js",
-    "start:frontend": "npm run start --prefix fend"
+    "start:frontend": "npm run start --prefix fend",
+    "db:bootstrap": "node scripts/bootstrap_store.js",
+    "owner:bootstrap": "node scripts/bootstrap_owner.js",
+    "owner:promote": "node scripts/promote_owner.js"
   },
   "dependencies": {
     "dotenv": "^17.2.2",
@@ -13,6 +16,6 @@
     "slick-carousel": "^1.8.1"
   },
   "devDependencies": {
-    "concurrently": "^9.1.2"
+    "concurrently": "^9.2.4"
   }
 }

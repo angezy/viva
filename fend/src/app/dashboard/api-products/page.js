@@ -2,11 +2,13 @@
 
 import { useEffect, useMemo, useState } from "react"
 import {
+  Alert,
   Box,
   Button,
   Card,
   CardContent,
   CardHeader,
+  Chip,
   Divider,
   Grid,
   Skeleton,
@@ -17,7 +19,7 @@ import {
 } from "@mui/material"
 
 const API_BASE_URL = ""
-const IMPORT_CARD_HEIGHT = 300
+const IMPORT_CARD_HEIGHT = 340
 const IMPORT_THUMB_SIZE = 100
 const IMPORT_ACTIONS_HEIGHT = 56
 
@@ -28,12 +30,30 @@ function formatDate(value) {
   return date.toLocaleString()
 }
 
+function cjStatusLabel(value) {
+  const status = String(value || "not_attempted").toLowerCase()
+  if (status === "connected") return "Connected in CJ"
+  if (status === "saved") return "Saved in CJ — needs connection"
+  if (status === "disabled") return "CJ sync disabled"
+  if (status === "failed") return "CJ sync failed"
+  return "Not synced to CJ"
+}
+
+function cjStatusColor(value) {
+  const status = String(value || "not_attempted").toLowerCase()
+  if (status === "connected") return "success"
+  if (status === "saved") return "warning"
+  if (status === "failed") return "error"
+  return "default"
+}
+
 export default function ApiProductsPage() {
   const [mounted, setMounted] = useState(false)
   const [pid, setPid] = useState("") // sku/pid input
   const [salePrice, setSalePrice] = useState("")
   const [buyPrice, setBuyPrice] = useState("")
   const [submitting, setSubmitting] = useState(false)
+  const [syncingPid, setSyncingPid] = useState("")
   const [loading, setLoading] = useState(true)
   const [rows, setRows] = useState([])
   const [error, setError] = useState("")
@@ -44,9 +64,13 @@ export default function ApiProductsPage() {
     tokenPresent: false,
     tokenCached: false,
     tokenCooldownSeconds: 0,
+    storeSyncEnabled: false,
+    shopIdConfigured: false,
+    connectionLogistics: "",
   })
   const [preview, setPreview] = useState(null)
   const [lookupLoading, setLookupLoading] = useState(false)
+  const [shops, setShops] = useState({ loading: true, items: [], error: "" })
 
   const valid = useMemo(() => {
     const trimmedPid = pid.trim()
@@ -68,6 +92,9 @@ export default function ApiProductsPage() {
         tokenPresent: !!data.tokenPresent,
         tokenCached: !!data.tokenCached,
         tokenCooldownSeconds: Number(data.tokenCooldownSeconds || 0),
+        storeSyncEnabled: data.storeSyncEnabled !== false,
+        shopIdConfigured: !!data.shopIdConfigured,
+        connectionLogistics: data.connectionLogistics || "",
       })
     } catch (err) {
       setPing({ loading: false, ok: false, tokenPresent: false, tokenCached: false, tokenCooldownSeconds: 0 })
@@ -89,10 +116,25 @@ export default function ApiProductsPage() {
     }
   }
 
+  async function loadShops() {
+    try {
+      setShops((current) => ({ ...current, loading: true, error: "" }))
+      const res = await fetch(`${API_BASE_URL}/api/cj/shops`)
+      const data = await res.json().catch(() => ({}))
+      if (!res.ok) throw new Error(data?.error || "Unable to check CJ shops")
+      setShops({ loading: false, items: Array.isArray(data.shops) ? data.shops : [], error: "" })
+    } catch (err) {
+      setShops({ loading: false, items: [], error: err.message || "Unable to check CJ shops" })
+    }
+  }
+
   useEffect(() => {
-    setMounted(true)
-    runPing()
-    loadRows()
+    queueMicrotask(() => {
+      setMounted(true)
+      runPing()
+      loadRows()
+      loadShops()
+    })
   }, [])
 
   async function handleLookup(event) {
@@ -145,7 +187,12 @@ export default function ApiProductsPage() {
         }
         throw new Error(data?.error || "Import failed")
       }
-      setSnack(`Imported product ${pid.trim()}`)
+      const syncStatus = String(data.cjSync?.status || "").toLowerCase()
+      setSnack(syncStatus === "connected"
+        ? `Imported and connected ${pid.trim()} in CJ`
+        : data.cjSync?.error
+        ? `Imported locally. CJ: ${data.cjSync.error}`
+        : `Imported product ${pid.trim()}`)
       setPid("")
       setSalePrice("")
       setBuyPrice("")
@@ -153,6 +200,29 @@ export default function ApiProductsPage() {
     } catch (err) {
       setError(err.message || "Unable to import product")
     } finally {
+      setSubmitting(false)
+    }
+  }
+
+  async function handleConnect(importPid) {
+    if (!importPid || syncingPid) return
+    setSyncingPid(importPid)
+    setSubmitting(true)
+    setError("")
+    try {
+      const res = await fetch(`${API_BASE_URL}/api/cj/import/${encodeURIComponent(importPid)}/connect`, {
+        method: "POST",
+      })
+      const data = await res.json().catch(() => ({}))
+      if (!res.ok) throw new Error(data?.error || "CJ connection failed")
+      setSnack(data.cjSync?.status === "connected"
+        ? `Connected ${importPid} in CJ`
+        : `CJ saved ${importPid}, but it still needs attention: ${data.cjSync?.error || "connection not completed"}`)
+      await loadRows()
+    } catch (err) {
+      setError(err.message || "Unable to connect product in CJ")
+    } finally {
+      setSyncingPid("")
       setSubmitting(false)
     }
   }
@@ -183,7 +253,7 @@ export default function ApiProductsPage() {
     <Box sx={{ p: { xs: 2, md: 3 }, background: "#f8fafc", minHeight: "100vh" }}>
       <Stack direction="row" justifyContent="space-between" alignItems="center" sx={{ mb: 1 }}>
         <Typography variant="h5" sx={{ fontWeight: 700 }}>
-          Manage API Products (CJ Dropshipping)
+          Manage API Products
         </Typography>
         <Stack direction="row" spacing={1} alignItems="center">
           <Typography variant="caption" color={ping.ok ? "success.main" : "error.main"}>
@@ -205,15 +275,31 @@ export default function ApiProductsPage() {
         </Stack>
       </Stack>
       <Typography variant="body2" sx={{ color: "text.secondary", mb: 3 }}>
-        Enter a CJ SKU (or PID), set the selling price and record the supplier buy cost. These values feed profit and margin reporting.
+        Enter a CJ SKU (or PID), set the selling price and record the supplier buy cost. Importing saves the site product in CJ and tries to connect it to the CJ product for fulfillment.
       </Typography>
+
+      <Alert severity={ping.storeSyncEnabled ? "info" : "warning"} sx={{ mb: 3 }}>
+        {ping.storeSyncEnabled
+          ? shops.loading
+            ? "CJ store sync is enabled; checking the authorized CJ shop..."
+            : shops.error
+            ? `CJ store sync is enabled, but the shop could not be checked: ${shops.error}`
+            : shops.items.filter((shop) => shop.authorized).length === 0
+            ? "No authorized CJ shop was found. Create/authorize the API shop in CJ before syncing products."
+            : `CJ store sync is enabled for ${shops.items.filter((shop) => shop.authorized).length} authorized shop(s)${ping.shopIdConfigured ? " (configured shop selected)" : " (account API shop selected)"}. Logistics: ${ping.connectionLogistics || "not configured"}.`
+          : "CJ store sync is disabled. Enable CJ_STORE_SYNC_ENABLED on the backend to show products in CJ."}
+      </Alert>
 
       <Card sx={{ mb: 3 }}>
         <CardHeader title="Import product by SKU" subheader="Enter a CJ SKU (or PID) to fetch and import." />
         <CardContent>
           <Box component="form" onSubmit={handleSubmit}>
             <Grid container spacing={2}>
-              <Grid item xs={12} md={5}>
+              <Grid
+                size={{
+                  xs: 12,
+                  md: 5
+                }}>
                 <TextField
                   label="SKU (or PID)"
                   value={pid}
@@ -229,7 +315,11 @@ export default function ApiProductsPage() {
                   }}
                 />
               </Grid>
-              <Grid item xs={12} md={3}>
+              <Grid
+                size={{
+                  xs: 12,
+                  md: 3
+                }}>
                 <TextField
                   label="Sales price"
                   value={salePrice}
@@ -241,7 +331,11 @@ export default function ApiProductsPage() {
                   placeholder="e.g. 19.99"
                 />
               </Grid>
-              <Grid item xs={12} md={3}>
+              <Grid
+                size={{
+                  xs: 12,
+                  md: 3
+                }}>
                 <TextField
                   label="Buy price / cost"
                   value={buyPrice}
@@ -253,8 +347,17 @@ export default function ApiProductsPage() {
                   placeholder="e.g. 8.50"
                 />
               </Grid>
-              <Grid item xs={12} md={1} alignSelf="center">
-                <Stack direction="row" spacing={1} sx={{ mt: { xs: 1, md: 0 } }}>
+              <Grid
+                alignSelf="center"
+                size={{
+                  xs: 12,
+                  md: 12
+                }}>
+                <Stack
+                  direction={{ xs: "column", sm: "row" }}
+                  spacing={1}
+                  sx={{ mt: { xs: 1, md: 0 }, alignItems: { sm: "center" } }}
+                >
                   <Button
                     variant="outlined"
                     type="button"
@@ -286,7 +389,11 @@ export default function ApiProductsPage() {
               <Card variant="outlined" sx={{ mt: 2 }}>
                 <CardContent>
                   <Grid container spacing={2}>
-                    <Grid item xs={12} md={4}>
+                    <Grid
+                      size={{
+                        xs: 12,
+                        md: 4
+                      }}>
                       <Box
                         sx={{
                           width: "100%",
@@ -297,7 +404,11 @@ export default function ApiProductsPage() {
                         }}
                       />
                     </Grid>
-                    <Grid item xs={12} md={8}>
+                    <Grid
+                      size={{
+                        xs: 12,
+                        md: 8
+                      }}>
                       <Typography variant="subtitle1" sx={{ fontWeight: 700 }}>
                         {preview.name}
                       </Typography>
@@ -309,6 +420,9 @@ export default function ApiProductsPage() {
                         <Typography variant="body2">Brand: {preview.brand}</Typography>
                         <Typography variant="body2">Stock: {preview.stock}</Typography>
                       </Stack>
+                      <Typography variant="body2" color="text.secondary" sx={{ mb: 1 }}>
+                        Buyer reviews: {Number(preview.buyerReviewTotal || preview.buyerReviews?.length || 0)}
+                      </Typography>
                       <Typography variant="body2" sx={{ color: "primary.main", fontWeight: 700 }}>
                         Source price: {preview.priceText ? preview.priceText : Number(preview.price || 0).toFixed(2)}
                       </Typography>
@@ -328,7 +442,7 @@ export default function ApiProductsPage() {
       <Card>
         <CardHeader
           title="Imported products"
-          subheader={loading ? "Loading..." : `${rows.length} item(s)`}
+          subheader={loading ? <Skeleton variant="text" width={90} sx={{ display: "inline-block" }} /> : `${rows.length} item(s)`}
         />
         <Divider />
         <CardContent>
@@ -339,13 +453,13 @@ export default function ApiProductsPage() {
           ) : loading ? (
             <Stack spacing={2}>
               {Array.from({ length: 6 }).map((_, idx) => (
-                <Card key={idx} variant="outlined" sx={{ height: IMPORT_CARD_HEIGHT, width: "100%" }}>
+                <Card key={idx} variant="outlined" sx={{ height: IMPORT_CARD_HEIGHT, width: { xs: "100%", sm: "500px" }, maxWidth: "100%" }}>
                   <CardContent sx={{ height: "100%" }}>
                     <Box
                       sx={{
                         height: "100%",
                         display: "grid",
-                        gridTemplateColumns: `${IMPORT_THUMB_SIZE}px 1fr 120px`,
+                        gridTemplateColumns: { xs: "84px minmax(0, 1fr)", sm: `${IMPORT_THUMB_SIZE}px minmax(0, 1fr) 120px` },
                         gridTemplateRows: "auto 1fr auto",
                         gap: 2,
                         alignItems: "start",
@@ -378,7 +492,7 @@ export default function ApiProductsPage() {
           ) : (
             <Stack spacing={2}>
               {rows.map((row) => (
-                <Card key={row.pid} variant="outlined" sx={{ height: "340px", width: "500px", overflow: "hidden" }}>
+                <Card key={row.pid} variant="outlined" sx={{ height: "380px", width: "500px", overflow: "hidden" }}>
                   <CardContent sx={{ height: "100%" }}>
                     <Box
                       sx={{
@@ -466,7 +580,7 @@ export default function ApiProductsPage() {
                       </Box>
 
                       <Stack
-                        direction="row"
+                        direction={{ xs: "column", sm: "row" }}
                         spacing={1}
                         sx={{
                           gridColumn: "1 / -1",
@@ -475,21 +589,35 @@ export default function ApiProductsPage() {
                           minHeight: IMPORT_ACTIONS_HEIGHT,
                         }}
                       >
-                        <Button
-                          size="small"
-                          color="error"
-                          variant="outlined"
-                          type="button"
-                          disabled={submitting}
-                          onClick={() => handleDelete(row.pid)}
-                        >
-                          Delete
-                        </Button>
-                        {row.updatedAt && (
-                          <Typography variant="caption" color="text.secondary">
-                            Updated: {formatDate(row.updatedAt)}
-                          </Typography>
-                        )}
+                        <Stack direction="row" spacing={1} alignItems="center">
+                          <Button
+                            size="small"
+                            variant="outlined"
+                            type="button"
+                            disabled={submitting || syncingPid === row.pid}
+                            onClick={() => handleConnect(row.pid)}
+                          >
+                            {syncingPid === row.pid ? "Syncing..." : "Sync to CJ"}
+                          </Button>
+                          <Button
+                            size="small"
+                            color="error"
+                            variant="outlined"
+                            type="button"
+                            disabled={submitting}
+                            onClick={() => handleDelete(row.pid)}
+                          >
+                            Delete
+                          </Button>
+                        </Stack>
+                        <Stack direction="row" spacing={1} alignItems="center" sx={{ minWidth: 0 }}>
+                          <Chip size="small" color={cjStatusColor(row.cjConnectionStatus)} label={cjStatusLabel(row.cjConnectionStatus)} />
+                          {row.updatedAt && (
+                            <Typography variant="caption" color="text.secondary">
+                              Updated: {formatDate(row.updatedAt)}
+                            </Typography>
+                          )}
+                        </Stack>
                       </Stack>
                     </Box>
                   </CardContent>
@@ -507,5 +635,5 @@ export default function ApiProductsPage() {
         onClose={() => setSnack("")}
       />
     </Box>
-  )
+  );
 }

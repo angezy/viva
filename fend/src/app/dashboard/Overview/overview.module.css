@@ -32,7 +32,7 @@
 
 .eyebrow,
 .sectionKicker {
-  color: #0b6c3a;
+  color: var(--color-primary);
   font-size: 10px;
   font-weight: 850;
   letter-spacing: .16em;
@@ -44,7 +44,7 @@
 .error button {
   border: 0;
   border-radius: 9px;
-  background: #0b6c3a;
+  background: var(--color-primary);
   color: #fff;
   padding: 11px 16px;
   font: inherit;
@@ -96,7 +96,7 @@
 }
 
 .filters input:focus,
-.filters select:focus { border-color: #0b6c3a; box-shadow: 0 0 0 3px rgba(11, 108, 58, .1); }
+.filters select:focus { border-color: var(--color-primary); box-shadow: 0 0 0 3px color-mix(in srgb, var(--color-primary) 10%, transparent); }
 
 .error,
 .loading {
@@ -149,7 +149,7 @@
 }
 
 .sectionNav a:hover,
-.sectionNav a:focus-visible { color: #0b6c3a; border-color: #a9d8bd; outline: none; }
+.sectionNav a:focus-visible { color: var(--color-primary); border-color: var(--color-primary-light); outline: none; }
 
 .section {
   max-width: 1380px;
@@ -178,7 +178,7 @@
   text-decoration: none;
 }
 
-.backToTop:hover { color: #0b6c3a; }
+.backToTop:hover { color: var(--color-primary); }
 
 .chartGrid {
   display: grid;
@@ -220,7 +220,7 @@
 }
 
 .chartLink {
-  color: #0b6c3a;
+  color: var(--color-primary);
   font-size: 11px;
   font-weight: 800;
   text-decoration: none;
@@ -257,8 +257,8 @@
   cursor: pointer;
 }
 
-.trendTabs button:hover { color: #0b6c3a; }
-.trendTabs .activeTrend { background: #fff; color: #0b6c3a; box-shadow: 0 1px 4px rgba(29, 52, 92, .12); }
+.trendTabs button:hover { color: var(--color-primary); }
+.trendTabs .activeTrend { background: #fff; color: var(--color-primary); box-shadow: 0 1px 4px rgba(29, 52, 92, .12); }
 .trendPeriod { color: #7a8799; font-size: 11px; }
 
 .timeSeries {
@@ -278,8 +278,8 @@
 .timeSeriesYLabel,
 .timeSeriesXLabel { fill: #8a96a7; font-size: 10px; }
 .timeSeriesArea { stroke: none; }
-.timeSeriesLine { fill: none; stroke: #2563eb; stroke-linecap: round; stroke-linejoin: round; stroke-width: 3; }
-.timeSeriesPoint { fill: #fff; stroke: #2563eb; stroke-width: 3; }
+.timeSeriesLine { fill: none; stroke: var(--color-primary); stroke-linecap: round; stroke-linejoin: round; stroke-width: 3; }
+.timeSeriesPoint { fill: #fff; stroke: var(--color-primary); stroke-width: 3; }
 .timeSeriesPoint:hover { r: 6; }
 
 .trendSummary {
@@ -357,7 +357,7 @@
 }
 
 .barRow[href]:hover .barLabel,
-.barRow[href]:focus-visible .barLabel { color: #0b6c3a; }
+.barRow[href]:focus-visible .barLabel { color: var(--color-primary); }
 
 .barRow[href]:focus-visible { outline: 2px solid #a9d8bd; outline-offset: 4px; border-radius: 4px; }
 
@@ -407,7 +407,7 @@
 
 .legendRow > span { display: inline-flex; align-items: center; min-width: 0; gap: 7px; }
 .legendRow strong { color: #1f2d42; font-size: 11px; }
-.legendRow[href]:hover span { color: #0b6c3a; }
+.legendRow[href]:hover span { color: var(--color-primary); }
 
 .insightRow {
   display: grid;
@@ -423,12 +423,12 @@
   gap: 4px;
   min-width: 0;
   padding-left: 10px;
-  border-left: 2px solid #2563eb;
+  border-left: 2px solid var(--color-primary);
 }
 
 .inlineInsight span { overflow: hidden; color: #7a8799; font-size: 10px; text-overflow: ellipsis; white-space: nowrap; }
 .inlineInsight strong { color: #1f2d42; font-size: 13px; letter-spacing: -.02em; }
-.insightgreen { border-color: #0f9f6e; }
+.insightgreen { border-color: var(--color-success); }
 .insightamber { border-color: #d98a06; }
 .insightrose { border-color: #e05270; }
 .insightviolet { border-color: #805ad5; }
@@ -462,7 +462,7 @@
   text-decoration: none;
 }
 
-.rows a:hover strong { color: #0b6c3a; }
+.rows a:hover strong { color: var(--color-primary); }
 .rows span { display: grid; min-width: 0; gap: 3px; }
 .rows strong { overflow: hidden; font-size: 12px; text-overflow: ellipsis; white-space: nowrap; }
 .rows small { color: #7a8799; font-size: 10px; }

@@ -12,12 +12,13 @@ import {
   Button,
   Dialog,
   DialogContent,
+  Fade,
   IconButton,
   Stack,
   Typography,
 } from "@mui/material";
 import { fetchSession } from "../lib/apiClient";
-import { DEFAULT_SITE_SETTINGS, fetchSiteSettings } from "../lib/siteSettings";
+import { useSiteSettings } from "./SiteThemeProvider";
 
 const SEEN_KEY = "weluxoWelcomeOfferSeen";
 
@@ -30,7 +31,7 @@ function markOfferSeen() {
 }
 
 export default function WelcomeOfferPopup() {
-  const [settings, setSettings] = useState(DEFAULT_SITE_SETTINGS);
+  const settings = useSiteSettings();
   const [open, setOpen] = useState(false);
 
   useEffect(() => {
@@ -43,38 +44,24 @@ export default function WelcomeOfferPopup() {
         // Continue with an in-session first-visit experience.
       }
 
-      const [settingsResult, sessionResult] = await Promise.allSettled([
-        fetchSiteSettings(),
-        fetchSession(),
-      ]);
+      const [sessionResult] = await Promise.allSettled([fetchSession()]);
       if (!active) return;
 
-      const nextSettings = settingsResult.status === "fulfilled"
-        ? settingsResult.value
-        : DEFAULT_SITE_SETTINGS;
+      const nextSettings = settings;
       const session = sessionResult.status === "fulfilled" ? sessionResult.value : null;
 
       if (nextSettings.welcomePopupEnabled === false || session?.user) return;
 
       markOfferSeen();
-      setSettings(nextSettings);
       setOpen(true);
     };
 
-    const timer = window.setTimeout(showForFirstVisit, 22000);
+    const timer = window.setTimeout(showForFirstVisit, 30000);
     return () => {
       active = false;
       window.clearTimeout(timer);
     };
-  }, []);
-
-  useEffect(() => {
-    const handleSettingsUpdated = (event) => {
-      setSettings((current) => ({ ...current, ...(event.detail || {}) }));
-    };
-    window.addEventListener("site-settings-updated", handleSettingsUpdated);
-    return () => window.removeEventListener("site-settings-updated", handleSettingsUpdated);
-  }, []);
+  }, [settings]);
 
   const close = () => setOpen(false);
 
@@ -93,6 +80,8 @@ export default function WelcomeOfferPopup() {
     <Dialog
       open={open}
       onClose={close}
+      TransitionComponent={Fade}
+      transitionDuration={{ enter: 850, exit: 450 }}
       sx={{ zIndex: 1500 }}
       aria-labelledby="welcome-offer-title"
       aria-describedby="welcome-offer-description"

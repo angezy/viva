@@ -31,15 +31,15 @@ export default function ShopHeroBox() {
           mx: "auto",
           borderRadius: 4,
           overflow: "hidden",
-          boxShadow: 4,
-          minHeight: 320,
-          p: { xs: 4, md: 6 },
-          background: "linear-gradient(to right, #e0e0e0, #f5f5f5)",
+          boxShadow: "0 12px 28px rgba(43,43,43,0.08)",
+          minHeight: { xs: 240, md: 320 },
+          p: { xs: 3, md: 5 },
+          backgroundColor: "var(--color-surface-muted)",
         }}
       >
-        <Skeleton variant="text" width="60%" height={50} sx={{ mb: 2 }} />
-        <Skeleton variant="text" width="40%" height={30} sx={{ mb: 4 }} />
-        <Skeleton variant="rectangular" width={160} height={48} />
+        <Skeleton variant="text" width="60%" height={44} sx={{ mb: 1, bgcolor: "#eee8df" }} />
+        <Skeleton variant="text" width="40%" height={24} sx={{ mb: 3, bgcolor: "#eee8df" }} />
+        <Skeleton variant="rounded" width={140} height={44} sx={{ bgcolor: "#eee8df", borderRadius: 1.5 }} />
       </Box>
     );
   }
@@ -74,16 +74,16 @@ export default function ShopHeroBox() {
       >
         <Grid container sx={{ position: "relative", zIndex: 1 }}>
           <Grid
-            item
-            xs={12}
-            md={6}
             sx={{
               p: { xs: 4, md: 6 },
               display: "flex",
               flexDirection: "column",
               justifyContent: "center",
             }}
-          >
+            size={{
+              xs: 12,
+              md: 6
+            }}>
             <Typography
               variant="h3"
               component="h2"
@@ -112,7 +112,11 @@ export default function ShopHeroBox() {
               {head.Button}
             </Button>
           </Grid>
-          <Grid item xs={false} md={6} />
+          <Grid
+            size={{
+              xs: false,
+              md: 6
+            }} />
         </Grid>
       </Box>
     </Fade>

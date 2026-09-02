@@ -64,7 +64,7 @@ export default function CouponsPage() {
   }
 
   useEffect(() => {
-    loadCoupons();
+    queueMicrotask(loadCoupons);
   }, []);
 
   function updateForm(field, value) {
@@ -138,7 +138,7 @@ export default function CouponsPage() {
     <Box sx={{ p: { xs: 2, md: 4 }, maxWidth: 1280, mx: "auto" }}>
       <Stack direction={{ xs: "column", sm: "row" }} justifyContent="space-between" alignItems={{ sm: "flex-end" }} gap={2} sx={{ mb: 3 }}>
         <Box>
-          <Typography variant="overline" sx={{ color: "#0b6c3a", fontWeight: 850, letterSpacing: "0.14em" }}>Marketing tools</Typography>
+          <Typography variant="overline" sx={{ color: "var(--color-primary)", fontWeight: 850, letterSpacing: "0.14em" }}>Marketing tools</Typography>
           <Typography component="h1" sx={{ mt: 0.5, color: "#0f172a", fontSize: { xs: 28, md: 36 }, fontWeight: 900, letterSpacing: "-0.04em" }}>Coupons</Typography>
           <Typography sx={{ mt: 0.75, color: "#64748b", maxWidth: 720 }}>Create percentage discounts that customers can apply in the cart before secure checkout. Expired codes stop working automatically.</Typography>
         </Box>
@@ -151,7 +151,7 @@ export default function CouponsPage() {
       <Card sx={{ mb: 3, borderRadius: 3, border: "1px solid #e2e8f0", boxShadow: "0 8px 25px rgba(15,23,42,0.05)" }}>
         <CardContent component="form" onSubmit={createCoupon} sx={{ p: { xs: 2, md: 3 }, "&:last-child": { pb: { xs: 2, md: 3 } } }}>
           <Stack direction="row" spacing={1} alignItems="center" sx={{ mb: 0.5 }}>
-            <AddOutlinedIcon sx={{ color: "#2563eb" }} />
+            <AddOutlinedIcon sx={{ color: "var(--color-primary)" }} />
             <Typography sx={{ color: "#0f172a", fontSize: 19, fontWeight: 850 }}>Create a coupon</Typography>
           </Stack>
           <Typography sx={{ color: "#64748b", fontSize: 13, mb: 2.5 }}>Codes are case-insensitive and become active as soon as they are saved.</Typography>

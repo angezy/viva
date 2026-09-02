@@ -2,14 +2,18 @@
 
 import React, { useEffect, useRef, useState } from "react";
 import Link from "next/link";
+import { useRouter } from "next/navigation";
 import {
   AccountCircleOutlined,
+  Add,
   ArrowForwardRounded,
   Close,
+  DeleteOutline,
   ExpandMore,
   HelpOutline,
   LocalShippingOutlined,
   Menu as MenuIcon,
+  Remove,
   Search,
   ShoppingBagOutlined,
 } from "@mui/icons-material";
@@ -38,13 +42,13 @@ import {
   Tooltip,
   Typography,
 } from "@mui/material";
-import { fetchCart, fetchSession } from "../lib/apiClient";
-import { DEFAULT_SITE_SETTINGS, fetchSiteSettings } from "../lib/siteSettings";
+import { fetchCart, fetchSession, removeCartItem, updateCartItem } from "../lib/apiClient";
 import { DEFAULT_SITE_CHROME, fetchSiteChrome } from "../lib/siteChrome";
 import { endLiveChatSession } from "../lib/chatSession";
+import { useSiteSettings } from "./SiteThemeProvider";
 
 const DEFAULT_HEADER = {
-  Name: "Weluxo",
+  Name: process.env.NEXT_PUBLIC_STORE_NAME || "Your Store",
   Home: "Home",
   Blog: "Journal",
   Shop: "Shop",
@@ -59,9 +63,9 @@ const categoryLinks = [
 ];
 
 const aboutLinks = [
-  { label: "About Weluxo", href: "/aboutus" },
+  { label: `About ${process.env.NEXT_PUBLIC_STORE_NAME || "Your Store"}`, href: "/aboutus" },
   { label: "How it works", href: "/how-it-works" },
-  { label: "Why Weluxo", href: "/why-weluxo" },
+  { label: `Why ${process.env.NEXT_PUBLIC_STORE_NAME || "Your Store"}`, href: "/why-weluxo" },
   { label: "FAQ", href: "/faq" },
 ];
 
@@ -87,10 +91,11 @@ function formatPrice(value) {
 }
 
 export default function Header({ initialHeader = null, initialChrome = null, disableNav = false }) {
-  const [header, setHeader] = useState(initialHeader);
+  const router = useRouter();
+  const [header, setHeader] = useState(initialHeader || initialChrome?.header || DEFAULT_HEADER);
   const [chrome, setChrome] = useState(initialChrome);
-  const [loading, setLoading] = useState(!initialHeader);
-  const [fadeIn, setFadeIn] = useState(Boolean(initialHeader));
+  const [loading, setLoading] = useState(false);
+  const [fadeIn, setFadeIn] = useState(true);
   const [session, setSession] = useState(null);
   const [searchQuery, setSearchQuery] = useState("");
   const [mobileOpen, setMobileOpen] = useState(false);
@@ -99,6 +104,7 @@ export default function Header({ initialHeader = null, initialChrome = null, dis
   const [cartSubtotal, setCartSubtotal] = useState(0);
   const [cartLoading, setCartLoading] = useState(false);
   const [cartError, setCartError] = useState("");
+  const [cartPendingItemId, setCartPendingItemId] = useState(null);
   const [accountAnchor, setAccountAnchor] = useState(null);
   const [aboutAnchor, setAboutAnchor] = useState(null);
   const [shopAnchor, setShopAnchor] = useState(null);
@@ -106,45 +112,19 @@ export default function Header({ initialHeader = null, initialChrome = null, dis
   const aboutHoverState = useRef({ button: false, menu: false });
   const shopCloseTimer = useRef(null);
   const shopHoverState = useRef({ button: false, menu: false });
-  const [siteSettings, setSiteSettings] = useState(DEFAULT_SITE_SETTINGS);
+  const siteSettings = useSiteSettings();
 
   useEffect(() => {
-    if (initialHeader) {
-      setHeader(initialHeader);
+    queueMicrotask(() => {
+      setHeader(initialHeader || initialChrome?.header || DEFAULT_HEADER);
       setLoading(false);
       setFadeIn(true);
-      return undefined;
-    }
-
-    let active = true;
-    fetch("/api/header")
-      .then((response) => {
-        if (!response.ok) throw new Error(`HTTP ${response.status}`);
-        return response.json();
-      })
-      .then((data) => {
-        if (!active) return;
-        const apiHeader = Array.isArray(data) ? data[0] : data;
-        setHeader(apiHeader && typeof apiHeader === "object" ? apiHeader : DEFAULT_HEADER);
-        setFadeIn(true);
-      })
-      .catch((error) => {
-        console.error("Error fetching header:", error);
-        if (active) {
-          setHeader(DEFAULT_HEADER);
-          setFadeIn(true);
-        }
-      })
-      .finally(() => active && setLoading(false));
-
-    return () => {
-      active = false;
-    };
-  }, [initialHeader]);
+    });
+  }, [initialHeader, initialChrome]);
 
   useEffect(() => {
     if (initialChrome) {
-      setChrome(initialChrome);
+      queueMicrotask(() => setChrome(initialChrome));
       return undefined;
     }
 
@@ -162,11 +142,30 @@ export default function Header({ initialHeader = null, initialChrome = null, dis
   }, [initialChrome]);
 
   useEffect(() => {
-    fetchSession().then((data) => setSession(data?.user || null)).catch(() => setSession(null));
-  }, []);
+    let active = true;
+    let latestRequest = 0;
 
-  useEffect(() => {
-    fetchSiteSettings().then(setSiteSettings).catch(() => undefined);
+    const refreshSession = (event) => {
+      if (event?.detail !== undefined) {
+        latestRequest += 1;
+        setSession(event.detail || null);
+        return;
+      }
+
+      const requestId = ++latestRequest;
+      fetchSession()
+        .then((data) => active && requestId === latestRequest && setSession(data?.user || null))
+        .catch(() => active && requestId === latestRequest && setSession(null));
+    };
+
+    const handleSessionUpdated = (event) => refreshSession(event);
+    window.addEventListener("weluxo:session-updated", handleSessionUpdated);
+    refreshSession();
+
+    return () => {
+      active = false;
+      window.removeEventListener("weluxo:session-updated", handleSessionUpdated);
+    };
   }, []);
 
   useEffect(() => () => {
@@ -195,7 +194,7 @@ export default function Header({ initialHeader = null, initialChrome = null, dis
   };
   const displayCategoryLinks = Array.isArray(headerCopy.categoryLinks) ? headerCopy.categoryLinks : categoryLinks;
   const displayAboutLinks = Array.isArray(headerCopy.aboutLinks) ? headerCopy.aboutLinks : aboutLinks;
-  const brandName = siteSettings.siteName || displayHeader.Name || "Weluxo";
+  const brandName = siteSettings.siteName || displayHeader.Name || process.env.NEXT_PUBLIC_STORE_NAME || "Your Store";
   const brandLogo = siteSettings.siteLogoUrl || displayHeader.LogoUrl || "";
   const brandTagline = siteSettings.siteTagline || "Move with intent";
   const cartOpen = Boolean(cartAnchor);
@@ -281,6 +280,7 @@ export default function Header({ initialHeader = null, initialChrome = null, dis
       return;
     }
     setMobileOpen(false);
+    setCartAnchor(null);
     setAccountAnchor(null);
     setAboutAnchor(null);
     setShopAnchor(null);
@@ -291,14 +291,17 @@ export default function Header({ initialHeader = null, initialChrome = null, dis
     if (disableNav) return;
     setAccountAnchor(null);
     await endLiveChatSession();
-    window.location.assign("/api/auth/signout?role=customer");
+    await fetch("/api/auth/signout?role=customer", { method: "POST" });
+    setSession(null);
+    window.dispatchEvent(new CustomEvent("weluxo:session-updated", { detail: null }));
+    router.push("/signin");
   };
 
   const submitSearch = (event) => {
     event.preventDefault();
     if (disableNav) return;
     const query = searchQuery.trim();
-    window.location.assign(query ? `/shop?search=${encodeURIComponent(query)}` : "/shop");
+    router.push(query ? `/shop?search=${encodeURIComponent(query)}` : "/shop");
     setMobileOpen(false);
   };
 
@@ -320,6 +323,36 @@ export default function Header({ initialHeader = null, initialChrome = null, dis
     if (disableNav) return;
     setCartAnchor(event.currentTarget);
     loadCart();
+  };
+
+  const handleRemoveCartItem = async (productId) => {
+    setCartError("");
+    setCartPendingItemId(productId);
+    try {
+      const cart = await removeCartItem(productId);
+      setCartItems(cart.items || []);
+      setCartSubtotal(Number(cart.subtotal) || 0);
+    } catch (error) {
+      setCartError(error.message || "Unable to remove item from cart");
+    } finally {
+      setCartPendingItemId(null);
+    }
+  };
+
+  const handleCartQuantityChange = async (item, quantity) => {
+    if (quantity < 1) return;
+
+    setCartError("");
+    setCartPendingItemId(item.productId);
+    try {
+      const cart = await updateCartItem(item.productId, quantity);
+      setCartItems(cart.items || []);
+      setCartSubtotal(Number(cart.subtotal) || 0);
+    } catch (error) {
+      setCartError(error.message || "Unable to update cart quantity");
+    } finally {
+      setCartPendingItemId(null);
+    }
   };
 
   const logo = loading ? (
@@ -361,7 +394,7 @@ export default function Header({ initialHeader = null, initialChrome = null, dis
             </Box>
           </Box>
 
-          <Box component="form" onSubmit={submitSearch} sx={{ display: { xs: "none", md: "flex" }, alignItems: "center", flex: 1, maxWidth: 620, bgcolor: "var(--color-surface-muted)", border: "1px solid var(--color-border)", borderRadius: 999, px: 1.5, py: 0.25, transition: "border-color 160ms ease, box-shadow 160ms ease", "&:focus-within": { borderColor: "var(--color-primary)", boxShadow: "0 0 0 4px rgba(37,99,235,0.12)" } }}>
+          <Box component="form" onSubmit={submitSearch} sx={{ display: { xs: "none", md: "flex" }, alignItems: "center", flex: 1, maxWidth: 620, bgcolor: "var(--color-surface-muted)", border: "1px solid var(--color-border)", borderRadius: 999, px: 1.5, py: 0.25, transition: "border-color 160ms ease, box-shadow 160ms ease", "&:focus-within": { borderColor: "var(--color-primary)", boxShadow: "0 0 0 4px color-mix(in srgb, var(--color-primary) 12%, transparent)" } }}>
             <Search sx={{ color: "#6d8174", mr: 1 }} />
             <InputBase value={searchQuery} onChange={(event) => setSearchQuery(event.target.value)} placeholder={headerCopy.searchPlaceholder} inputProps={{ "aria-label": headerCopy.searchPlaceholder }} sx={{ flex: 1, color: "#17352a", fontSize: 14 }} />
             <Button type="submit" size="small" sx={{ ...headerLinkSx, minWidth: 0, px: 2, borderRadius: 999, color: "var(--color-primary)", fontWeight: 800, textTransform: "none" }}>{headerCopy.searchButtonLabel}</Button>
@@ -418,7 +451,7 @@ export default function Header({ initialHeader = null, initialChrome = null, dis
         <MenuItem component={Link} href="/account/orders" onClick={handleNav("/account/orders")} sx={headerMenuLinkSx}>{headerCopy.ordersLabel}</MenuItem>
         <MenuItem component={Link} href="/account/saved" onClick={handleNav("/account/saved")} sx={headerMenuLinkSx}>Saved products</MenuItem>
         <MenuItem component={Link} href="/account/support" onClick={handleNav("/account/support")} sx={headerMenuLinkSx}>{headerCopy.supportLabel}</MenuItem>
-        {session && <MenuItem component={Link} href="/api/auth/signout" onClick={handleSignOut} sx={headerMenuLinkSx}>{headerCopy.signOutLabel}</MenuItem>}
+        {session && <MenuItem component="button" onClick={handleSignOut} sx={headerMenuLinkSx}>{headerCopy.signOutLabel}</MenuItem>}
       </Menu>
 
       <Menu
@@ -442,7 +475,41 @@ export default function Header({ initialHeader = null, initialChrome = null, dis
         ) : (
           <>
             <List dense disablePadding sx={{ maxHeight: 280, overflowY: "auto" }}>
-              {cartItems.map((item) => <ListItem key={item.productId} disableGutters sx={{ py: 0.75 }}><ListItemAvatar><Avatar src={item.image || undefined} alt={item.title || "item"} variant="rounded" sx={{ width: 48, height: 48, mr: 1.25, bgcolor: "var(--color-accent-soft)", color: "var(--color-accent)" }}>{String(item.title || "W").slice(0, 1).toUpperCase()}</Avatar></ListItemAvatar><ListItemText primary={item.title || "Item"} secondary={`${headerCopy.quantityLabel} ${item.quantity} ${headerCopy.quantitySeparator} ${formatPrice(item.price)}`} primaryTypographyProps={{ fontWeight: 750, fontSize: 14, color: "var(--color-text-primary)" }} secondaryTypographyProps={{ fontSize: 12 }} /></ListItem>)}
+              {cartItems.map((item) => {
+                const quantity = Number(item.quantity) || 1;
+                const itemPending = Boolean(cartPendingItemId);
+
+                return (
+                  <ListItem key={item.productId} disableGutters sx={{ py: 0.75, alignItems: "center" }}>
+                    <ListItemAvatar>
+                      <Avatar src={item.image || undefined} alt={item.title || "item"} variant="rounded" sx={{ width: 48, height: 48, mr: 1.25, bgcolor: "var(--color-accent-soft)", color: "var(--color-accent)" }}>
+                        {String(item.title || "W").slice(0, 1).toUpperCase()}
+                      </Avatar>
+                    </ListItemAvatar>
+                    <ListItemText
+                      primary={item.title || "Item"}
+                      secondary={`${headerCopy.quantityLabel} ${quantity} ${headerCopy.quantitySeparator} ${formatPrice(item.price)}`}
+                      primaryTypographyProps={{ fontWeight: 750, fontSize: 14, color: "var(--color-text-primary)", noWrap: true }}
+                      secondaryTypographyProps={{ fontSize: 12 }}
+                      sx={{ minWidth: 0, mr: 0.5 }}
+                    />
+                    <Stack direction="row" alignItems="center" spacing={0.25} flexShrink={0}>
+                      <IconButton size="small" aria-label={`Decrease ${item.title || "item"} quantity`} onClick={() => handleCartQuantityChange(item, quantity - 1)} disabled={itemPending || quantity <= 1}>
+                        <Remove fontSize="small" />
+                      </IconButton>
+                      <Typography component="span" aria-label={`${item.title || "Item"} quantity: ${quantity}`} sx={{ minWidth: 18, textAlign: "center", fontSize: 13, fontWeight: 800 }}>
+                        {quantity}
+                      </Typography>
+                      <IconButton size="small" aria-label={`Increase ${item.title || "item"} quantity`} onClick={() => handleCartQuantityChange(item, quantity + 1)} disabled={itemPending}>
+                        <Add fontSize="small" />
+                      </IconButton>
+                      <IconButton size="small" aria-label={`Remove ${item.title || "item"} from cart`} onClick={() => handleRemoveCartItem(item.productId)} disabled={itemPending} sx={{ color: "var(--color-text-secondary)", "&:hover": { color: "error.main", bgcolor: "rgba(211, 47, 47, 0.08)" } }}>
+                        <DeleteOutline fontSize="small" />
+                      </IconButton>
+                    </Stack>
+                  </ListItem>
+                );
+              })}
             </List>
             <Divider sx={{ my: 1.5 }} />
             <Stack direction="row" alignItems="center" justifyContent="space-between"><Typography sx={{ fontWeight: 800, color: "var(--color-text-secondary)" }}>{headerCopy.subtotalLabel}</Typography><Typography sx={{ fontWeight: 900, color: "var(--color-text-primary)" }}>{formatPrice(cartSubtotal)}</Typography></Stack>

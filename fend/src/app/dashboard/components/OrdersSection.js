@@ -1,6 +1,6 @@
 "use client";
 import React, { useEffect, useState } from "react";
-import { Box, Card, CardContent, Typography, Grid, Skeleton, List, ListItem, ListItemText, Chip } from "@mui/material";
+import { Box, Card, CardContent, Typography, Skeleton, List, ListItem, ListItemText, Chip, Stack } from "@mui/material";
 
 export default function OrdersSection({ loading: parentLoading }) {
   const [loading, setLoading] = useState(parentLoading ?? true);
@@ -33,13 +33,9 @@ export default function OrdersSection({ loading: parentLoading }) {
             Recent Orders
           </Typography>
           {isLoading ? (
-            <Grid container spacing={2}>
-              {Array.from({ length: 3 }).map((_, i) => (
-                <Grid item xs={12} sm={6} md={4} key={i}>
-                  <Skeleton variant="rounded" height={72} />
-                </Grid>
-              ))}
-            </Grid>
+            <Stack spacing={0.5}>
+              {Array.from({ length: 4 }).map((_, i) => <Skeleton key={i} variant="rounded" height={56} sx={{ borderRadius: 1.5 }} />)}
+            </Stack>
           ) : (
             <List>
               {orders.map((o) => (

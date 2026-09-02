@@ -51,12 +51,16 @@ export default function ProductCarousel() {
             background: "#ffffff",
             border: "1px solid var(--color-border)",
             backdropFilter: "blur(16px)",
+            height: 430,
+            display: "flex",
+            flexDirection: "column",
           }}
         >
-          <Skeleton variant="rectangular" height={220} sx={{ borderRadius: "12px 12px 0 0" }} />
-          <CardContent>
-            <Skeleton variant="text" width="70%" />
-            <Skeleton variant="text" width="50%" />
+          <Skeleton variant="rectangular" height={220} sx={{ bgcolor: "#eee8df", borderRadius: "12px 12px 0 0" }} />
+          <CardContent sx={{ flex: 1 }}>
+            <Skeleton variant="text" width="70%" sx={{ bgcolor: "#eee8df" }} />
+            <Skeleton variant="text" width="50%" sx={{ bgcolor: "#eee8df" }} />
+            <Skeleton variant="rounded" height={38} sx={{ mt: 2, bgcolor: "#eee8df", borderRadius: 999 }} />
           </CardContent>
         </Card>
       </Box>
@@ -74,7 +78,7 @@ export default function ProductCarousel() {
       }}
     >
       <Box sx={{ textAlign: "center", mb: 4 }}>
-        <Typography variant="overline" sx={{ letterSpacing: 3, color: "primary.light" }}>
+        <Typography variant="overline" sx={{ letterSpacing: 3, color: "var(--color-primary)" }}>
           Spotlight
         </Typography>
         <Typography variant="h4" sx={{ mb: 1, fontWeight: 700 }}>
@@ -120,7 +124,7 @@ export default function ProductCarousel() {
                         sx={{ objectFit: "cover", filter: "saturate(1.1)", borderBottom: "1px solid var(--color-border)" }}
                       />
                     ) : (
-                      <Skeleton variant="rectangular" height={220} />
+                      <Skeleton variant="rectangular" height={220} sx={{ bgcolor: "#eee8df" }} />
                     )}
 
                     <CardContent sx={{ flexGrow: 1, display: "flex", flexDirection: "column" }}>

@@ -4,7 +4,7 @@ This sitemap documents the routes currently present in the `fend` Next.js app an
 
 ## Route conventions
 
-- Public site origin: `https://weluxo.com` (use `http://localhost:3000` in local development).
+- Public site origin: configure `SITE_URL`/`STORE_URL` per deployment (use `http://localhost:3000` in local development).
 - Backend origin: `http://localhost:5000` in local development.
 - Browser API calls use the frontend origin and are proxied to the backend through `/api/[...path]` using `BACKEND_URL`.
 - Dynamic segments use Next.js notation such as `[slug]`, `[categoryId]`, `[orderId]`, and `[ticketId]`.
@@ -47,8 +47,7 @@ Weluxo
 │   ├── Legacy registration /register
 │   ├── Admin sign in /signin/admin
 │   └── Admin sign up /signup/admin
-├── Admin dashboard /dashboard/*
-└── Development utility /tables
+└── Admin dashboard /dashboard/*
 ```
 
 ## Public and indexable pages
@@ -168,12 +167,6 @@ The payment UI is provider-ready but does not collect raw card details. The back
 | `/account/support` | Customer tickets | View the signed-in customer's ticket list | Customer session; `noindex` |
 | `/admin/tickets` | Admin ticket alias | Redirects to `/dashboard/tikects` | Admin-only redirect |
 
-## Development and admin utilities
-
-| URL | Page | Access/status |
-|---|---|---|
-| `/tables` | Database explorer | Admin-only server and API guard; `noindex` |
-
 ## Redirect aliases
 
 These routes exist for compatibility or discoverability but redirect to the canonical page shown below.
@@ -246,10 +239,6 @@ These Express routes are normally reached through the frontend API proxy.
 | Method | URL | Purpose |
 |---|---|---|
 | `GET` | `/api/health` | Backend health check |
-| `GET` | `/api/date` | Backend date/time data |
-| `GET` | `/api/tables` | List database tables |
-| `GET` | `/api/views` | List database views |
-| `GET` | `/api/table-values?schema=[schema]&name=[tableOrView]` | Read rows from a selected table or view |
 
 ### Authentication and customer profile
 
@@ -375,6 +364,5 @@ There are no GraphQL mutations or subscriptions in the current schema.
 
 1. Contact submission is implemented through `POST /api/support/tickets`; SendPulse notification delivery remains configuration-dependent.
 2. Stripe-hosted Checkout is integrated behind `PAYMENT_PROVIDER=stripe`, `STRIPE_SECRET_KEY`, and `APP_BASE_URL`. Checkout fails closed when those values are not configured, and orders are only marked paid after Stripe verification.
-3. Generated `GET /sitemap.xml` and `GET /robots.txt` routes are implemented. Private, admin, API, checkout, account, invoice, support, and database paths are excluded from crawling.
+3. Generated `GET /sitemap.xml` and `GET /robots.txt` routes are implemented. Private, admin, API, checkout, account, invoice, and support paths are excluded from crawling.
 4. `/dashboard/tikects` remains the current compatibility route, with `/admin/tickets` aliases redirecting to it.
-5. `/tables` now has a server-side admin guard, and `/api/tables`, `/api/views`, and `/api/table-values` also require an admin role.

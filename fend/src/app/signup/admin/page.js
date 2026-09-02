@@ -32,6 +32,10 @@ export default function AdminSignupPage() {
       });
       const data = await res.json().catch(() => ({}));
       if (!res.ok) {
+        if (res.status === 401) {
+          router.push("/signin/admin");
+          return;
+        }
         throw new Error(data.error || data.message || "Admin signup failed");
       }
       toast.success("Admin created", { duration: 1000 });
@@ -48,7 +52,7 @@ export default function AdminSignupPage() {
     <div style={{ minHeight: "100vh", display: "flex", alignItems: "center", justifyContent: "center", background: "var(--color-background)", color: "var(--color-text-primary)", padding: 24 }}>
       <div style={{ width: "100%", maxWidth: 460, background: "#ffffff", borderRadius: 16, padding: 24, border: "1px solid var(--color-border)", boxShadow: "0 20px 60px rgba(43,43,43,0.08)" }}>
         <h1 style={{ margin: 0, fontSize: 28, fontWeight: 800 }}>Admin Signup</h1>
-        <p style={{ color: "var(--color-text-secondary)", marginBottom: 16 }}>Create an admin account with dashboard access.</p>
+        <p style={{ color: "var(--color-text-secondary)", marginBottom: 16 }}>An existing administrator must be signed in to provision another admin account.</p>
         {error && (
           <div style={{ color: "#fca5a5", background: "#7f1d1d", padding: 10, borderRadius: 8, border: "1px solid #f87171", marginBottom: 12 }}>
             {error}

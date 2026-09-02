@@ -1,240 +1,229 @@
 "use client";
 
-import { useEffect, useMemo, useState } from "react";
-import { fetchSession, fetchProfile, fetchOrders, fetchSavedProducts, logoutRequest } from "../lib/apiClient";
+import Link from "next/link";
+import { useRouter } from "next/navigation";
+import { useEffect, useState } from "react";
+import { fetchOrders, fetchProfile, fetchSavedProducts, fetchSession, logoutRequest } from "../lib/apiClient";
+import { AccountPageSkeleton } from "../components/LoadingSkeletons";
 import styles from "./account.module.css";
 
-const cardGradients = [
-  "linear-gradient(135deg, #4c6fff, #5ac8fa)",
-  "linear-gradient(135deg, #ff6b9d, #ff8f70)",
-  "linear-gradient(135deg, #1ec9a6, #1da7ff)",
-  "linear-gradient(135deg, #f97316, #facc15)",
-];
+function displayName(profile, user) {
+  return profile?.name || profile?.username || user?.name || user?.username || "there";
+}
+
+function formatDate(value) {
+  if (!value) return "—";
+  const date = new Date(value);
+  return Number.isNaN(date.getTime())
+    ? "—"
+    : date.toLocaleDateString("en-US", { month: "short", day: "numeric", year: "numeric" });
+}
+
+function formatMoney(value) {
+  return new Intl.NumberFormat("en-US", {
+    style: "currency",
+    currency: "USD",
+  }).format(Number(value) || 0);
+}
+
+function statusClass(status) {
+  const normalized = String(status || "processing").toLowerCase();
+  if (normalized.includes("deliver")) return styles.statusDelivered;
+  if (normalized.includes("cancel")) return styles.statusCancelled;
+  if (normalized.includes("ship")) return styles.statusShipped;
+  return styles.statusProcessing;
+}
+
+function productCount(order) {
+  return Array.isArray(order?.items)
+    ? order.items.reduce((total, item) => total + (Number(item.quantity) || 1), 0)
+    : 0;
+}
 
 export default function AccountPage() {
+  const router = useRouter();
   const [user, setUser] = useState(null);
   const [profile, setProfile] = useState(null);
   const [orders, setOrders] = useState([]);
   const [savedProducts, setSavedProducts] = useState([]);
   const [loading, setLoading] = useState(true);
+  const [error, setError] = useState("");
 
   useEffect(() => {
+    let active = true;
+
     async function load() {
       setLoading(true);
-      const session = await fetchSession();
-      if (!session) {
-        setUser(null);
-        setLoading(false);
-        return;
+      setError("");
+      try {
+        const session = await fetchSession();
+        if (!session) return;
+
+        if (active) {
+          setUser(session.user);
+          setProfile(session.user);
+        }
+
+        const [prof, ord, saved] = await Promise.all([
+          fetchProfile(),
+          fetchOrders(),
+          fetchSavedProducts().catch(() => ({ items: [] })),
+        ]);
+
+        if (!active) return;
+        setUser(session.user);
+        setProfile(prof || session.user);
+        setOrders(Array.isArray(ord?.orders) ? ord.orders : []);
+        setSavedProducts(Array.isArray(saved?.items) ? saved.items : []);
+      } catch (_loadError) {
+        if (active) setError("We couldn't load your account right now. Please refresh and try again.");
+      } finally {
+        if (active) setLoading(false);
       }
-      setUser(session.user);
-      const [prof, ord, saved] = await Promise.all([
-        fetchProfile(),
-        fetchOrders(),
-        fetchSavedProducts().catch(() => ({ items: [] })),
-      ]);
-      setProfile(prof || session.user);
-      setOrders(ord.orders || []);
-      setSavedProducts(saved.items || []);
-      setLoading(false);
     }
+
     load();
+    return () => {
+      active = false;
+    };
   }, []);
 
-  const totals = useMemo(() => {
-    const totalSpent = orders.reduce((sum, o) => sum + (Number(o.total) || 0), 0);
-    const delivered = orders.filter((o) => o.status === "Delivered").length;
-    const pending = orders.length - delivered;
-    return { totalSpent, delivered, pending };
-  }, [orders]);
-
-  const monthlyBars = useMemo(() => {
-    const months = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug"];
-    if (!orders.length) {
-      return months.map((m) => ({ label: m, value: Math.round(Math.random() * 120 + 40) }));
-    }
-    return months.map((m, idx) => {
-      const sample = orders[idx % orders.length];
-      const val = sample?.total || Math.random() * 120 + 40;
-      return { label: m, value: Math.round(val) };
-    });
-  }, [orders]);
-
-  const handleLogout = async () => {
+  async function handleLogout() {
     await logoutRequest();
-    location.href = "/signin";
-  };
+    window.dispatchEvent(new CustomEvent("weluxo:session-updated", { detail: null }));
+    router.push("/signin");
+  }
 
   if (loading) {
-    return (
-      <div>
-        <div className={styles.hero}>
-          <div>
-            <div className={styles.heroTitle}>Loading your account...</div>
-            <div className={styles.heroSub}>Please wait a moment.</div>
-          </div>
-        </div>
-      </div>
-    );
+    return <AccountPageSkeleton />;
   }
 
   if (!user) {
     return (
-      <div>
-        <div className={styles.hero}>
-          <div>
-            <div className={styles.heroTitle}>Member sign in</div>
-            <div className={styles.heroSub}>Access your profile, order history, and saved cart.</div>
-          </div>
-          <button className={styles.primaryBtn} onClick={() => (location.href = "/signin")}>Go to sign in</button>
+      <section className={styles.stateCard}>
+        <div className={styles.stateIcon} aria-hidden="true">↗</div>
+        <div>
+          <p className={styles.eyebrow}>CUSTOMER ACCOUNT</p>
+          <h2>Sign in to view your account</h2>
+          <p>Access your orders, saved products, and account details in one place.</p>
         </div>
-      </div>
+        <Link className={styles.primaryBtn} href="/signin">Sign in</Link>
+      </section>
     );
   }
 
-  const cardData = [
-    { title: "Orders placed", value: orders.length || 0, badge: "History" },
-    { title: "Delivered", value: totals.delivered, badge: "Completed" },
-    { title: "Pending / processing", value: totals.pending, badge: "In progress" },
-    { title: "Total spent", value: `$${totals.totalSpent.toFixed(2)}`, badge: "All time" },
-    { title: "Saved products", value: savedProducts.length, badge: "For later" },
-  ];
-
-  const segments = [
-    { label: "Registered user", value: profile?.role || "user", color: "#60a5fa" },
-    { label: "Email", value: profile?.email || "-", color: "#22c55e" },
-    { label: "Last login", value: profile?.lastLogin ? new Date(profile.lastLogin).toLocaleString() : "n/a", color: "#f97316" },
-    { label: "Member since", value: profile?.createdAt ? new Date(profile.createdAt).toLocaleDateString() : "n/a", color: "#a855f7" },
-  ];
+  const name = displayName(profile, user);
+  const firstName = name.split(" ")[0];
+  const recentOrders = orders.slice(0, 4);
 
   return (
-    <div>
-      <div className={styles.hero}>
+    <div className={styles.overviewPage}>
+      {error && <div className={styles.savedError} role="alert">{error}</div>}
+
+      <section className={styles.welcomePanel}>
         <div>
-          <div className={styles.heroTitle}>Hi, welcome back!</div>
-          <div className={styles.heroSub}>Your personal dashboard and order overview.</div>
+          <p className={styles.eyebrow}>ACCOUNT OVERVIEW</p>
+          <h2>Welcome back, {firstName}</h2>
+          <p>Manage your orders, saved products, and personal details.</p>
         </div>
-        <div className={styles.linkRow}>
-          <button className={styles.primaryBtn} onClick={handleLogout}>Sign out</button>
-          <button className={styles.ghostBtn} onClick={() => (location.href = "/account/support")}>Support</button>
-          <button className={styles.ghostBtn} onClick={() => (location.href = "/account/saved")}>Saved products</button>
-          <button className={styles.ghostBtn} onClick={() => (location.href = "/shop")}>Shop</button>
+        <div className={styles.welcomeActions}>
+          <Link className={styles.primaryBtn} href="/shop">Continue shopping</Link>
+          <button className={styles.ghostBtn} type="button" onClick={handleLogout}>Sign out</button>
         </div>
-      </div>
+      </section>
 
-      <section className={styles.grid}>
-        {cardData.map((card, idx) => (
-          <article
-            key={card.title}
-            className={styles.card}
-            style={{ background: cardGradients[idx % cardGradients.length] }}
-          >
-            <div className={styles.wave} />
-            <h3>{card.title}</h3>
-            <div className={styles.valueRow}>
-              <span className={styles.value}>{card.value}</span>
-              <span className={styles.badge}>{card.badge}</span>
+      <section className={styles.quickLinks} aria-label="Account shortcuts">
+        <Link className={styles.quickLink} href="/account/orders">
+          <span className={styles.quickIcon} aria-hidden="true">01</span>
+          <span><strong>Orders</strong><small>{orders.length ? `${orders.length} total` : "No orders yet"}</small></span>
+          <span className={styles.quickArrow} aria-hidden="true">→</span>
+        </Link>
+        <Link className={styles.quickLink} href="/account/saved">
+          <span className={styles.quickIcon} aria-hidden="true">02</span>
+          <span><strong>Saved products</strong><small>{savedProducts.length ? `${savedProducts.length} saved` : "Save for later"}</small></span>
+          <span className={styles.quickArrow} aria-hidden="true">→</span>
+        </Link>
+        <Link className={styles.quickLink} href="/account/profile">
+          <span className={styles.quickIcon} aria-hidden="true">03</span>
+          <span><strong>Profile details</strong><small>View your information</small></span>
+          <span className={styles.quickArrow} aria-hidden="true">→</span>
+        </Link>
+      </section>
+
+      <section className={styles.panel} aria-labelledby="recent-orders-title">
+        <div className={styles.sectionHeader}>
+          <div>
+            <p className={styles.eyebrow}>ORDER HISTORY</p>
+            <h2 id="recent-orders-title">Recent orders</h2>
+          </div>
+          <Link className={styles.textLink} href="/account/orders">View all orders <span aria-hidden="true">→</span></Link>
+        </div>
+
+        {recentOrders.length === 0 ? (
+          <div className={styles.emptyState}>
+            <div>
+              <h3>Your order history is empty</h3>
+              <p>When you place an order, you’ll find the details and delivery status here.</p>
             </div>
-          </article>
-        ))}
-      </section>
-
-      <section className={styles.panelGrid}>
-        <article className={styles.panel} id="profile">
-          <div className={styles.panelHeader}>
-            <div className={styles.panelTitle}>Spending by month</div>
-            <span style={{ color: "#64748b", fontWeight: 600, fontSize: 13 }}>Recent activity</span>
+            <Link className={styles.secondaryBtn} href="/shop">Browse products</Link>
           </div>
-          <div className={styles.chart}>
-            {monthlyBars.map((item) => (
-              <div key={item.label} style={{ flex: 1 }}>
-                <div
-                  className={styles.bar}
-                  style={{ height: `${Math.min(100, item.value / 2)}%` }}
-                >
-                  <span className={styles.barValue}>${item.value}</span>
-                </div>
-                <div className={styles.barLabel}>{item.label}</div>
-              </div>
-            ))}
-          </div>
-        </article>
-
-        <article className={styles.panel} id="orders">
-          <div className={styles.panelHeader}>
-            <div className={styles.panelTitle}>Account overview</div>
-            <span style={{ color: "#64748b", fontWeight: 600, fontSize: 13 }}>Profile</span>
-          </div>
-          <ul className={styles.legendList}>
-            {segments.map((seg) => (
-              <li key={seg.label} className={styles.legendItem}>
-                <div className={styles.legendLeft}>
-                  <span className={styles.dot} style={{ background: seg.color }} />
-                  <span>{seg.label}</span>
-                </div>
-                <strong style={{ color: "var(--color-text-primary)" }}>{seg.value}</strong>
-              </li>
-            ))}
-          </ul>
-        </article>
-      </section>
-
-      <section className={styles.panel} style={{ marginTop: 14 }}>
-        <div className={styles.panelHeader}>
-          <div className={styles.panelTitle}>Saved products</div>
-          <button className={styles.ghostBtn} onClick={() => (location.href = "/account/saved")}>View all</button>
-        </div>
-        {savedProducts.length === 0 ? (
-          <div style={{ color: "#475569" }}>You have no saved products yet. Use the heart on a product to keep it here.</div>
         ) : (
-          <div className={styles.savedPreview}>
-            {savedProducts.slice(0, 4).map((item) => (
-              <a key={item.id} className={styles.savedPreviewItem} href={`/product/${item.id}`}>
-                <img src={item.images?.[0] || item.img || item.image || "https://placehold.co/96x96?text=Weluxo"} alt={item.alt || item.name || "Saved product"} />
-                <span>
-                  <strong>{item.name || item.title || "Weluxo product"}</strong>
-                  <small>${Number(item.price || 0).toFixed(2)}</small>
-                </span>
-              </a>
-            ))}
-          </div>
-        )}
-      </section>
-
-      <section className={styles.panel} style={{ marginTop: 14 }}>
-        <div className={styles.panelHeader}>
-          <div className={styles.panelTitle}>Recent orders</div>
-          <span style={{ color: "#64748b", fontWeight: 600, fontSize: 13 }}>{orders.length} total</span>
-        </div>
-        {orders.length === 0 ? (
-          <div style={{ color: "#475569" }}>No orders yet. Your purchases will appear here.</div>
-        ) : (
-          <div className={styles.orders}>
-            {orders.map((order) => (
-              <div key={order.id} className={styles.orderCard}>
-                <div className={styles.orderHeader}>
+          <div className={styles.orderList}>
+            <div className={`${styles.orderRow} ${styles.orderRowHeader}`} aria-hidden="true">
+              <span>Order</span><span>Date</span><span>Status</span><span>Total</span><span />
+            </div>
+            {recentOrders.map((order) => (
+              <div className={styles.orderRow} key={order.id}>
+                <div className={styles.orderCell}>
+                  <span className={styles.mobileCellLabel}>Order</span>
                   <strong>#{order.id}</strong>
-                  <span className={styles.pill} style={{ background: order.status === "Delivered" ? "#dcfce7" : "#fef9c3" }}>
-                    {order.status}
-                  </span>
+                  <small>{productCount(order)} {productCount(order) === 1 ? "item" : "items"}</small>
                 </div>
-                <div style={{ color: "#475569", marginBottom: 6 }}>
-                  Placed: {order.placedAt ? new Date(order.placedAt).toLocaleString() : "-"}
+                <div className={styles.orderCell}>
+                  <span className={styles.mobileCellLabel}>Date</span>
+                  <span>{formatDate(order.placedAt)}</span>
                 </div>
-                <div style={{ fontWeight: 700, color: "var(--color-text-primary)", marginBottom: 8 }}>
-                  Total: ${order.total?.toFixed ? order.total.toFixed(2) : order.total}
+                <div className={styles.orderCell}>
+                  <span className={styles.mobileCellLabel}>Status</span>
+                  <span className={`${styles.statusPill} ${statusClass(order.status)}`}>{order.status || "Processing"}</span>
                 </div>
-                <div style={{ color: "#475569", fontSize: 13 }}>
-                  {order.items?.map((item, idx) => (
-                    <div key={`${order.id}-${idx}`}>
-                      {item.quantity} x {item.title} – ${item.price}
-                    </div>
-                  ))}
+                <div className={styles.orderCell}>
+                  <span className={styles.mobileCellLabel}>Total</span>
+                  <strong>{formatMoney(order.total)}</strong>
+                </div>
+                <div className={styles.orderAction}>
+                  <Link className={styles.textLink} href={`/invoice/${encodeURIComponent(order.id)}`}>View order <span aria-hidden="true">→</span></Link>
                 </div>
               </div>
             ))}
           </div>
         )}
+      </section>
+
+      <section className={styles.infoGrid}>
+        <article className={styles.infoCard}>
+          <div className={styles.sectionHeaderCompact}>
+            <div>
+              <p className={styles.eyebrow}>ACCOUNT DETAILS</p>
+              <h2>Contact information</h2>
+            </div>
+            <Link className={styles.textLink} href="/account/settings">Edit</Link>
+          </div>
+          <dl className={styles.detailList}>
+            <div><dt>Name</dt><dd>{profile?.name || profile?.username || "Member"}</dd></div>
+            <div><dt>Email</dt><dd>{profile?.email || user?.email || "—"}</dd></div>
+            <div><dt>Member since</dt><dd>{formatDate(profile?.createdAt)}</dd></div>
+          </dl>
+        </article>
+        <article className={`${styles.infoCard} ${styles.helpCard}`}>
+          <p className={styles.eyebrow}>NEED A HAND?</p>
+          <h2>We’re here to help.</h2>
+          <p>Find answers, contact support, or check the delivery status of an order.</p>
+          <div className={styles.helpLinks}>
+            <Link className={styles.textLink} href="/account/support">Contact support <span aria-hidden="true">→</span></Link>
+            <Link className={styles.textLink} href="/account/tracking">Track an order <span aria-hidden="true">→</span></Link>
+          </div>
+        </article>
       </section>
     </div>
   );

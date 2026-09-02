@@ -56,6 +56,8 @@ export default function UsersPage() {
   const [createAdminOpen, setCreateAdminOpen] = useState(false);
   const [adminForm, setAdminForm] = useState({ username: "", email: "", password: "" });
   const [creatingAdmin, setCreatingAdmin] = useState(false);
+  const [currentRole, setCurrentRole] = useState("");
+  const canManageStaff = currentRole === "owner";
 
   const fetchUsers = async () => {
     setLoading(true);
@@ -73,7 +75,11 @@ export default function UsersPage() {
   };
 
   useEffect(() => {
-    fetchUsers();
+    queueMicrotask(fetchUsers);
+    fetch("/api/session/validate?role=admin", { credentials: "include", cache: "no-store" })
+      .then((res) => res.ok ? res.json() : null)
+      .then((data) => setCurrentRole(String(data?.user?.role || "").toLowerCase()))
+      .catch(() => setCurrentRole(""));
   }, []);
 
   const handleCreateAdmin = async (event) => {
@@ -118,9 +124,7 @@ export default function UsersPage() {
           {!loading && (
             <Chip label={`${users.length} total`} color="primary" variant="outlined" size="small" />
           )}
-          <Button variant="contained" onClick={() => setCreateAdminOpen(true)}>
-            Create admin
-          </Button>
+          {canManageStaff && <Button variant="contained" onClick={() => setCreateAdminOpen(true)}>Create admin</Button>}
         </Stack>
       </Stack>
 
@@ -148,9 +152,14 @@ export default function UsersPage() {
             {loading
               ? rowsToRender.map((_, idx) => (
                   <TableRow key={`sk-${idx}`}>
-                    <TableCell colSpan={7}>
-                      <Skeleton variant="rounded" height={32} />
+                    <TableCell>
+                      <Stack direction="row" spacing={1.25} alignItems="center">
+                        <Skeleton variant="circular" width={36} height={36} />
+                        <Skeleton variant="text" width={110} />
+                      </Stack>
                     </TableCell>
+                    {Array.from({ length: 5 }, (_, cell) => <TableCell key={cell}><Skeleton variant="text" width={cell === 1 ? "72%" : "58%"} /></TableCell>)}
+                    <TableCell align="right"><Skeleton variant="rounded" width={72} height={30} sx={{ borderRadius: 1.5 }} /></TableCell>
                   </TableRow>
                 ))
               : users.map((user) => (
@@ -179,8 +188,8 @@ export default function UsersPage() {
                       <Chip
                         label={user.role || "user"}
                         size="small"
-                        color={user.role === "admin" ? "primary" : "default"}
-                        variant={user.role === "admin" ? "filled" : "outlined"}
+                        color={user.role === "owner" ? "warning" : user.role === "admin" ? "primary" : "default"}
+                        variant={user.role === "owner" || user.role === "admin" ? "filled" : "outlined"}
                       />
                     </TableCell>
                     <TableCell>{formatDate(user.createdAt)}</TableCell>
@@ -200,7 +209,7 @@ export default function UsersPage() {
                         onClick={() => {
                           setSelected(user);
                           setEdit({
-                            role: user.role || "user",
+                            role: user.role || "customer",
                             banned: !!user.banned,
                             country: user.country || "",
                             state: user.state || "",
@@ -307,7 +316,11 @@ export default function UsersPage() {
               <Divider />
 
               <Grid container spacing={2}>
-                <Grid item xs={12} sm={6}>
+                <Grid
+                  size={{
+                    xs: 12,
+                    sm: 6
+                  }}>
                   <MuiStack spacing={0.5}>
                     <Typography variant="body2" color="text.secondary">
                       Email
@@ -315,24 +328,34 @@ export default function UsersPage() {
                     <Typography variant="body1">{display(selected.email)}</Typography>
                   </MuiStack>
                 </Grid>
-                <Grid item xs={12} sm={6}>
+                <Grid
+                  size={{
+                    xs: 12,
+                    sm: 6
+                  }}>
                   <MuiStack spacing={0.5}>
                     <Typography variant="body2" color="text.secondary">
                       Role
                     </Typography>
                     <Select
                       size="small"
-                      value={edit?.role || "user"}
+                      value={edit?.role || "customer"}
                       onChange={(e) => setEdit((prev) => ({ ...prev, role: e.target.value }))}
+                      disabled={!canManageStaff}
                       fullWidth
                     >
-                      <MenuItem value="user">User</MenuItem>
+                      <MenuItem value="customer">Customer</MenuItem>
                       <MenuItem value="admin">Admin</MenuItem>
+                      <MenuItem value="owner">Owner</MenuItem>
                     </Select>
                   </MuiStack>
                 </Grid>
 
-                <Grid item xs={12} sm={6}>
+                <Grid
+                  size={{
+                    xs: 12,
+                    sm: 6
+                  }}>
                   <MuiStack spacing={0.5}>
                     <Typography variant="body2" color="text.secondary">
                       Country / State
@@ -343,6 +366,7 @@ export default function UsersPage() {
                         placeholder="Country"
                         value={edit?.country || ""}
                         onChange={(e) => setEdit((prev) => ({ ...prev, country: e.target.value }))}
+                        disabled={!canManageStaff}
                         fullWidth
                       />
                       <TextField
@@ -350,12 +374,17 @@ export default function UsersPage() {
                         placeholder="State"
                         value={edit?.state || ""}
                         onChange={(e) => setEdit((prev) => ({ ...prev, state: e.target.value }))}
+                        disabled={!canManageStaff}
                         fullWidth
                       />
                     </Stack>
                   </MuiStack>
                 </Grid>
-                <Grid item xs={12} sm={6}>
+                <Grid
+                  size={{
+                    xs: 12,
+                    sm: 6
+                  }}>
                   <MuiStack spacing={0.5}>
                     <Typography variant="body2" color="text.secondary">
                       City / ZIP
@@ -366,6 +395,7 @@ export default function UsersPage() {
                         placeholder="City"
                         value={edit?.city || ""}
                         onChange={(e) => setEdit((prev) => ({ ...prev, city: e.target.value }))}
+                        disabled={!canManageStaff}
                         fullWidth
                       />
                       <TextField
@@ -373,13 +403,14 @@ export default function UsersPage() {
                         placeholder="ZIP"
                         value={edit?.zip || ""}
                         onChange={(e) => setEdit((prev) => ({ ...prev, zip: e.target.value }))}
+                        disabled={!canManageStaff}
                         fullWidth
                       />
                     </Stack>
                   </MuiStack>
                 </Grid>
 
-                <Grid item xs={12}>
+                <Grid size={12}>
                   <MuiStack spacing={0.5}>
                     <Typography variant="body2" color="text.secondary">
                       Address
@@ -389,12 +420,17 @@ export default function UsersPage() {
                       placeholder="Address"
                       value={edit?.address || ""}
                       onChange={(e) => setEdit((prev) => ({ ...prev, address: e.target.value }))}
+                      disabled={!canManageStaff}
                       fullWidth
                     />
                   </MuiStack>
                 </Grid>
 
-                <Grid item xs={12} sm={6}>
+                <Grid
+                  size={{
+                    xs: 12,
+                    sm: 6
+                  }}>
                   <MuiStack spacing={0.5}>
                     <Typography variant="body2" color="text.secondary">
                       Created At
@@ -402,7 +438,11 @@ export default function UsersPage() {
                     <Typography variant="body1">{formatDate(selected.createdAt)}</Typography>
                   </MuiStack>
                 </Grid>
-                <Grid item xs={12} sm={6}>
+                <Grid
+                  size={{
+                    xs: 12,
+                    sm: 6
+                  }}>
                   <MuiStack spacing={0.5}>
                     <Typography variant="body2" color="text.secondary">
                       Last Login
@@ -411,19 +451,28 @@ export default function UsersPage() {
                   </MuiStack>
                 </Grid>
 
-                <Grid item xs={12} sm={6}>
+                <Grid
+                  size={{
+                    xs: 12,
+                    sm: 6
+                  }}>
                   <FormControlLabel
                     control={
                       <Switch
                         checked={!!edit?.banned}
                         onChange={(e) => setEdit((prev) => ({ ...prev, banned: e.target.checked }))}
+                        disabled={!canManageStaff}
                       />
                     }
                     label={edit?.banned ? "Banned" : "Active"}
                   />
                 </Grid>
 
-                <Grid item xs={12} sm={6}>
+                <Grid
+                  size={{
+                    xs: 12,
+                    sm: 6
+                  }}>
                   <MuiStack spacing={0.5}>
                     <Typography variant="body2" color="text.secondary">
                       Signup IP
@@ -431,7 +480,11 @@ export default function UsersPage() {
                     <Typography variant="body1">{display(selected.signupIp)}</Typography>
                   </MuiStack>
                 </Grid>
-                <Grid item xs={12} sm={6}>
+                <Grid
+                  size={{
+                    xs: 12,
+                    sm: 6
+                  }}>
                   <MuiStack spacing={0.5}>
                     <Typography variant="body2" color="text.secondary">
                       Last IP
@@ -440,7 +493,7 @@ export default function UsersPage() {
                   </MuiStack>
                 </Grid>
 
-                <Grid item xs={12}>
+                <Grid size={12}>
                   <MuiStack spacing={0.5}>
                     <Typography variant="body2" color="text.secondary">
                       Orders
@@ -453,7 +506,7 @@ export default function UsersPage() {
           ) : null}
         </DialogContent>
         <DialogActions>
-          <Button
+          {canManageStaff && <Button
             color="error"
             disabled={deleting}
             onClick={async () => {
@@ -480,9 +533,9 @@ export default function UsersPage() {
             }}
           >
             {deleting ? "Deleting..." : "Delete"}
-          </Button>
+          </Button>}
           <Button onClick={() => setSelected(null)}>Close</Button>
-          <Button
+          {canManageStaff && <Button
             variant="contained"
             disabled={saving}
             onClick={async () => {
@@ -509,7 +562,7 @@ export default function UsersPage() {
             }}
           >
             {saving ? "Saving..." : "Save changes"}
-          </Button>
+          </Button>}
         </DialogActions>
       </Dialog>
     </Box>

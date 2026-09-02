@@ -3,6 +3,7 @@
 import Link from "next/link";
 import { useCallback, useEffect, useMemo, useState } from "react";
 import styles from "./overview.module.css";
+import PageSkeleton from "../../components/LoadingSkeletons";
 
 const RANGE_OPTIONS = [
   ["today", "Today"],
@@ -28,9 +29,9 @@ const SECTION_TITLES = {
 };
 
 const COLORS = {
-  blue: "#2563eb",
+  blue: "var(--color-primary)",
   sky: "#0ea5e9",
-  green: "#0f9f6e",
+  green: "var(--color-success)",
   amber: "#d98a06",
   rose: "#e05270",
   violet: "#805ad5",
@@ -294,7 +295,7 @@ export default function Overview() {
   const [filters, setFilters] = useState({ range: "last7", from: "", to: "", currency: "USD", country: "", orderStatus: "" });
   const [data, setData] = useState(null);
   const [trendMetric, setTrendMetric] = useState("revenue");
-  const [loading, setLoading] = useState(false);
+  const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
   const [errorCode, setErrorCode] = useState("");
 
@@ -327,7 +328,7 @@ export default function Overview() {
     }
   }, [query]);
 
-  useEffect(() => { loadOverview(); }, [loadOverview]);
+  useEffect(() => { queueMicrotask(loadOverview); }, [loadOverview]);
 
   const setFilter = (key) => (event) => setFilters(current => ({ ...current, [key]: event.target.value }));
   const currency = filters.currency || "USD";
@@ -338,6 +339,8 @@ export default function Overview() {
       .forEach(([key, value]) => { if (value) target.set(key, value); });
     return `${path}?${target.toString()}`;
   };
+
+  if (loading && !data) return <PageSkeleton variant="dashboard" />;
 
   return (
     <main className={styles.page} id="top">
@@ -358,12 +361,10 @@ export default function Overview() {
         {filters.range === "custom" && <label>To<input type="date" value={filters.to} onChange={setFilter("to")} /></label>}
         <label>Currency<input value={filters.currency} maxLength={3} onChange={setFilter("currency")} placeholder="USD" /></label>
         <label>Country<input value={filters.country} maxLength={2} onChange={setFilter("country")} placeholder="All" /></label>
-        <label>Order status<select value={filters.orderStatus} onChange={setFilter("orderStatus")}><option value="">All</option><option>Pending</option><option>Processing</option><option>Completed</option><option>Cancelled</option></select></label>
+        <label>Order status<select value={filters.orderStatus} onChange={setFilter("orderStatus")}><option value="">All</option><option>Pending</option><option>Processing</option><option>Completed</option><option>Shipped</option><option>Delivered</option><option>Cancelled</option></select></label>
       </section>
 
       {error && <div className={styles.error}><strong>{errorCode === "CANONICAL_SCHEMA_NOT_READY" ? "Database upgrade required." : "Dashboard unavailable."}</strong> {error}<button type="button" onClick={loadOverview}>Try again</button></div>}
-      {loading && !data && <div className={styles.loading}>Calculating current metrics from the database...</div>}
-
       {data && <>
         <div className={styles.timestamp}>
           Updated {new Date(data.generatedAt).toLocaleString()} <span aria-hidden="true">&middot;</span> {new Date(data.range.start).toLocaleDateString()} - {new Date(new Date(data.range.endExclusive).getTime() - 1).toLocaleDateString()}
@@ -402,6 +403,7 @@ export default function Overview() {
           <ChartPanel title="Profit profile" subtitle="Revenue, cost, and profit shown on one scale for the selected period." href={drill("/dashboard/finance", { view: "profit" })}>
             <BarChart items={[
               { label: "Gross sales", value: data.finance.grossSales, display: money(data.finance.grossSales, currency), color: COLORS.blue },
+              { label: "Refunds", value: data.sales.refundAmount, display: money(data.sales.refundAmount, currency), color: COLORS.rose },
               { label: "COGS", value: data.finance.cogs, display: money(data.finance.cogs, currency), color: COLORS.amber },
               { label: "Operating expenses", value: data.finance.operatingExpenses, display: money(data.finance.operatingExpenses, currency), color: COLORS.rose },
               { label: "Net profit", value: data.finance.netProfit, display: money(data.finance.netProfit, currency), color: COLORS.green }
@@ -432,8 +434,8 @@ export default function Overview() {
           </ChartPanel>
           <ChartPanel title="Inventory risk" subtitle="Variants that may interrupt availability." href={drill("/dashboard/products", { stock: "low" })}>
             <BarChart items={[
-              { label: "Low stock", value: data.products.lowStockProducts, color: COLORS.amber, href: drill("/dashboard/products", { stock: "low" }) },
-              { label: "Out of stock", value: data.products.outOfStockProducts, color: COLORS.rose, href: drill("/dashboard/products", { stock: "out" }) }
+              { label: "Low-stock variants", value: data.products.lowStockProducts, color: COLORS.amber, href: drill("/dashboard/products", { stock: "low" }) },
+              { label: "Out-of-stock variants", value: data.products.outOfStockProducts, color: COLORS.rose, href: drill("/dashboard/products", { stock: "out" }) }
             ]} />
             <div className={styles.insightRow}>
               <InlineInsight label="Inventory cost" value={money(data.products.inventoryCost, currency)} tone="amber" />
@@ -455,9 +457,9 @@ export default function Overview() {
               { label: "Awaiting payment", value: data.fulfillment.awaitingPayment, color: COLORS.amber, href: drill("/dashboard/orders", { paymentStatus: "Pending" }) },
               { label: "Awaiting fulfillment", value: data.fulfillment.awaitingFulfillment, color: COLORS.amber, href: drill("/dashboard/orders", { fulfillmentStatus: "Unfulfilled" }) },
               { label: "Processing", value: data.fulfillment.processing, color: COLORS.blue, href: drill("/dashboard/orders", { orderStatus: "Processing" }) },
-              { label: "Shipped", value: data.fulfillment.shipped, color: COLORS.violet, href: drill("/dashboard/orders", { shipmentStatus: "Shipped" }) },
-              { label: "Delivered", value: data.fulfillment.delivered, color: COLORS.green, href: drill("/dashboard/orders", { shipmentStatus: "Delivered" }) },
-              { label: "Shipping exceptions", value: data.fulfillment.shippingExceptions, color: COLORS.rose, href: drill("/dashboard/orders", { shipmentStatus: "Exception" }) }
+              { label: "Shipped", value: data.fulfillment.shipped, color: COLORS.violet, href: drill("/dashboard/orders", { fulfillmentStatus: "Shipped" }) },
+              { label: "Delivered", value: data.fulfillment.delivered, color: COLORS.green, href: drill("/dashboard/orders", { fulfillmentStatus: "Delivered" }) },
+              { label: "Shipping exceptions", value: data.fulfillment.shippingExceptions, color: COLORS.rose, href: drill("/dashboard/orders", { fulfillmentStatus: "Exception" }) }
             ]} />
           </ChartPanel>
         </Section>

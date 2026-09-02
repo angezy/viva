@@ -2,9 +2,10 @@
 
 import { useEffect, useState } from "react";
 import Link from "next/link";
+import { useRouter } from "next/navigation";
 import { Alert, Box, Button, Card, CardContent, Checkbox, FormControlLabel, Stack, TextField, Typography } from "@mui/material";
 import CheckoutLayout, { CheckoutLoading } from "../components/CheckoutLayout";
-import { readCheckoutState, updateCheckoutState } from "../components/checkoutState";
+import { readCheckoutState, reconcileCheckoutIdentity, updateCheckoutState } from "../components/checkoutState";
 import { useCheckoutData } from "../components/useCheckoutData";
 import { toast } from "../../lib/notifications";
 
@@ -17,13 +18,14 @@ const fieldSx = {
 };
 
 export default function CheckoutInformationPage() {
+  const router = useRouter();
   const { user, items, subtotal, discount, couponCode, loading, error: cartError } = useCheckoutData();
   const [form, setForm] = useState(readCheckoutState().information);
   const [error, setError] = useState("");
 
   useEffect(() => {
-    const saved = readCheckoutState().information;
-    setForm((current) => ({ ...saved, email: saved.email || user?.email || current.email }));
+    const saved = reconcileCheckoutIdentity(readCheckoutState(), user).information;
+    queueMicrotask(() => setForm((current) => ({ ...current, ...saved, email: saved.email || user?.email || current.email })));
   }, [user]);
 
   const update = (field) => (event) => setForm((current) => ({ ...current, [field]: event.target.value }));
@@ -36,14 +38,21 @@ export default function CheckoutInformationPage() {
       toast.warning("Information required", { description: "Enter an email address and contact phone to continue." });
       return;
     }
-    updateCheckoutState({ information: { ...form, email: form.email.trim(), phone: form.phone.trim() } });
-    window.location.href = "/checkout/shipping";
+    updateCheckoutState({
+      information: {
+        ...form,
+        email: form.email.trim(),
+        phone: form.phone.trim(),
+        ownerEmail: user?.guest ? "" : String(user?.email || "").trim().toLowerCase(),
+      },
+    });
+    router.push("/checkout/shipping");
   }
 
   if (loading) return <CheckoutLoading />;
 
   return (
-    <CheckoutLayout currentStep="information" items={items} subtotal={subtotal} discount={discount} couponCode={couponCode} shippingMethod={readCheckoutState().shipping.method}>
+    <CheckoutLayout currentStep="information" items={items} subtotal={subtotal} discount={discount} couponCode={couponCode} shippingMethod={readCheckoutState().shipping}>
       {(cartError || error) && <Alert severity="error" sx={{ mb: 3 }}>{error || cartError}</Alert>}
       <Card sx={{ bgcolor: "#ffffff", color: "var(--color-text-primary)", border: "1px solid var(--color-border)" }}>
         <CardContent sx={{ p: { xs: 3, md: 4 } }}>

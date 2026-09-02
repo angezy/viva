@@ -3,6 +3,8 @@
 import { useEffect, useMemo, useState } from "react";
 import Link from "next/link";
 import { fetchOrderById, fetchOrders, fetchSession } from "../../lib/apiClient";
+import { hideSupplierBranding } from "../../lib/customerFacingText";
+import { AccountPageSkeleton } from "../../components/LoadingSkeletons";
 import styles from "./tracking.module.css";
 
 const STEPS = ["Order confirmed", "Packed", "Shipped", "In transit", "Out for delivery", "Delivered"];
@@ -26,8 +28,8 @@ function formatDateTime(value) {
 function getStepIndex(tracking, order) {
   if (Number.isFinite(Number(tracking?.progressIndex))) return Number(tracking.progressIndex);
   const status = String(order?.status || "processing").toLowerCase();
-  if (status.includes("deliver")) return 5;
   if (status.includes("out for")) return 4;
+  if (status.includes("deliver")) return 5;
   if (status.includes("transit")) return 3;
   if (status.includes("ship")) return 2;
   if (status.includes("pack")) return 1;
@@ -57,6 +59,27 @@ export default function AccountTrackingPage() {
       .finally(() => active && setLoading(false));
     return () => { active = false; };
   }, []);
+
+  // Keep the visible journey current while the customer leaves the tracking
+  // page open. The backend refreshes the CJ order/tracking status and applies
+  // the next monotonic storefront stage on each lookup.
+  useEffect(() => {
+    if (!order?.id) return undefined;
+    let active = true;
+    const refresh = async () => {
+      try {
+        const result = await fetchOrderById(order.id);
+        if (active && result?.order) setOrder(result.order);
+      } catch (_error) {
+        // Keep the last known status visible during a temporary provider error.
+      }
+    };
+    const timer = window.setInterval(refresh, 60_000);
+    return () => {
+      active = false;
+      window.clearInterval(timer);
+    };
+  }, [order?.id]);
 
   const progressIndex = useMemo(() => getStepIndex(order?.tracking, order), [order]);
 
@@ -91,7 +114,7 @@ export default function AccountTrackingPage() {
   };
 
   if (loading) {
-    return <div className={styles.loadingState}>Preparing your order view…</div>;
+    return <AccountPageSkeleton variant="orders" />;
   }
 
   return (
@@ -145,7 +168,7 @@ export default function AccountTrackingPage() {
 
           <div className={styles.summaryGrid}>
             <div><span>Estimated arrival</span><strong>{formatDate(order.tracking?.estimatedDelivery)}</strong><small>Based on your delivery method</small></div>
-            <div><span>Carrier</span><strong>{order.tracking?.carrier || "Assigned at dispatch"}</strong><small>{order.tracking?.trackingNumber ? `Tracking ${order.tracking.trackingNumber}` : "Tracking number appears after dispatch"}</small></div>
+            <div><span>Carrier</span><strong>{hideSupplierBranding(order.tracking?.carrier, "Assigned at dispatch")}</strong><small>{order.tracking?.trackingNumber ? `Tracking ${order.tracking.trackingNumber}` : "Tracking number appears after dispatch"}</small></div>
             <div><span>Delivering to</span><strong>{order.shippingAddress?.city || "Your address"}</strong><small>{order.shippingAddress?.country || "Destination confirmed at checkout"}</small></div>
           </div>
 
@@ -166,7 +189,7 @@ export default function AccountTrackingPage() {
 
           <div className={styles.timelineCard}>
             <div className={styles.cardHeader}><div><div className={styles.sectionKicker}>LIVE UPDATES</div><h3>Delivery timeline</h3></div><span className={styles.location}>{order.tracking?.currentLocation || "Order processing"}</span></div>
-            <div className={styles.timeline}>{(order.tracking?.events || []).map((event, index) => <div className={`${styles.timelineEvent} ${index === 0 ? styles.timelineLatest : ""}`} key={`${event.eventAt || event.createdAt}-${index}`}><div className={styles.timelineRail}><span /></div><div><strong>{event.title || event.status}</strong><p>{event.description || "Your order has been updated."}</p><small>{formatDateTime(event.eventAt || event.createdAt)}{event.location ? ` · ${event.location}` : ""}</small></div></div>)}</div>
+            <div className={styles.timeline}>{(order.tracking?.events || []).map((event, index) => <div className={`${styles.timelineEvent} ${index === 0 ? styles.timelineLatest : ""}`} key={`${event.eventAt || event.createdAt}-${index}`}><div className={styles.timelineRail}><span /></div><div><strong>{hideSupplierBranding(event.title || event.status, "Order update")}</strong><p>{hideSupplierBranding(event.description, "Your order has been updated.")}</p><small>{formatDateTime(event.eventAt || event.createdAt)}{event.location ? ` · ${event.location}` : ""}</small></div></div>)}</div>
           </div>
         </section>
       )}

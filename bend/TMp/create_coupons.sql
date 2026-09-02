@@ -16,12 +16,6 @@ BEGIN
     );
 END;
 
-IF NOT EXISTS (SELECT 1 FROM dbo.Coupons WHERE Code = N'WELCOME10')
-BEGIN
-    INSERT INTO dbo.Coupons (Code, DiscountPercent, ExpiresAt, IsActive)
-    VALUES (N'WELCOME10', 10, DATEADD(year, 100, SYSUTCDATETIME()), 1);
-END;
-
 IF OBJECT_ID('dbo.CouponRedemptions', 'U') IS NULL
 BEGIN
     CREATE TABLE dbo.CouponRedemptions (

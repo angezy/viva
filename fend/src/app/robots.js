@@ -16,7 +16,6 @@ export default async function robots() {
           "/checkout/",
           "/invoice/",
           "/support/",
-          "/tables",
           "/signin",
           "/signup",
           "/register",

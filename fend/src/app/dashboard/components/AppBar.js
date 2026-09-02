@@ -2,10 +2,11 @@
 
 import React from 'react'
 
-export default function AppBar({ onToggleSidebar, onSignOut, siteName = 'Weluxo' }) {
+export default function AppBar({ onToggleSidebar, onSignOut, siteName = 'Your Store', role = 'owner' }) {
   return (
     <header style={{
       height: 64,
+      flexShrink: 0,
       background: '#ffffff',
       color: '#0f172a',
       display: 'flex',
@@ -38,14 +39,14 @@ export default function AppBar({ onToggleSidebar, onSignOut, siteName = 'Weluxo'
         </span>
       </button>
 
-      <div style={{ fontWeight: 700 }}>{siteName} Admin</div>
+      <div style={{ fontWeight: 700 }}>{siteName} {role === 'admin' ? 'Operator' : 'Owner'} Dashboard</div>
 
       <div style={{ marginLeft: 'auto', display: 'flex', alignItems: 'center', gap: 12 }}>
         <button
           onClick={onSignOut}
           style={{
-            background: '#0b6c3a',
-            border: '1px solid #0b6c3a',
+            background: 'var(--color-primary)',
+            border: '1px solid var(--color-primary)',
             color: '#fff',
             padding: '6px 12px',
             borderRadius: 8,

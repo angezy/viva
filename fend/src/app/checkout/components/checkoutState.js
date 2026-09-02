@@ -6,6 +6,7 @@ export const defaultCheckoutState = {
     phone: "",
     subscribe: false,
     guest: true,
+    ownerEmail: "",
   },
   shipping: {
     fullName: "",
@@ -15,7 +16,13 @@ export const defaultCheckoutState = {
     region: "",
     country: "",
     postalCode: "",
-    method: "standard",
+    method: "",
+    logisticName: "",
+    label: "",
+    window: "",
+    cost: null,
+    fromCountryCode: "",
+    ownerEmail: "",
   },
   payment: {
     method: "card",
@@ -61,16 +68,98 @@ export function updateCheckoutState(patch) {
   return nextState;
 }
 
+export function reconcileCheckoutIdentity(state = readCheckoutState(), user) {
+  const accountEmail = user?.guest ? "" : String(user?.email || "").trim().toLowerCase();
+  if (!accountEmail) return state;
+
+  const information = state?.information || {};
+  const savedEmail = String(information.email || "").trim().toLowerCase();
+  const savedOwnerEmail = String(information.ownerEmail || "").trim().toLowerCase();
+  const belongsToAnotherAccount = savedOwnerEmail
+    ? savedOwnerEmail !== accountEmail
+    : Boolean(savedEmail && savedEmail !== accountEmail);
+  const email = belongsToAnotherAccount || !savedEmail ? accountEmail : information.email;
+
+  return {
+    ...state,
+    information: {
+      ...information,
+      email,
+      ownerEmail: accountEmail,
+    },
+    shipping: belongsToAnotherAccount
+      ? { ...defaultCheckoutState.shipping, method: state?.shipping?.method || defaultCheckoutState.shipping.method, ownerEmail: accountEmail }
+      : { ...(state?.shipping || defaultCheckoutState.shipping), ownerEmail: accountEmail },
+  };
+}
+
+function blank(value) {
+  return !String(value || "").trim();
+}
+
+function defaultShippingAddress(addresses) {
+  const shipping = Array.isArray(addresses) ? addresses.filter((address) => address?.addressType === "shipping") : [];
+  return shipping.find((address) => address.isDefault) || shipping[0] || null;
+}
+
+// Server data fills only blank checkout fields so an in-progress edit is never
+// overwritten. The account identity is recorded with the temporary browser state
+// to prevent one signed-in customer seeing another customer's local details.
+export function hydrateCheckoutFromAccount(state = readCheckoutState(), user, accountDetails) {
+  const previousOwnerEmail = String(state?.information?.ownerEmail || "").trim().toLowerCase();
+  const checkout = reconcileCheckoutIdentity(state, user);
+  const accountEmail = user?.guest ? "" : String(user?.email || "").trim().toLowerCase();
+  if (!accountEmail) return checkout;
+
+  const savedAddress = defaultShippingAddress(accountDetails?.addresses);
+  const savedFullName = savedAddress ? [savedAddress.firstName, savedAddress.lastName].filter(Boolean).join(" ") : "";
+  const profilePhone = String(accountDetails?.profile?.phone || savedAddress?.phone || "").trim();
+  const currentShipping = checkout.shipping || defaultCheckoutState.shipping;
+  const shipping = {
+    ...currentShipping,
+    fullName: blank(currentShipping.fullName) ? savedFullName : currentShipping.fullName,
+    addressLine1: blank(currentShipping.addressLine1) ? (savedAddress?.addressLine1 || "") : currentShipping.addressLine1,
+    addressLine2: blank(currentShipping.addressLine2) ? (savedAddress?.addressLine2 || "") : currentShipping.addressLine2,
+    city: blank(currentShipping.city) ? (savedAddress?.city || "") : currentShipping.city,
+    region: blank(currentShipping.region) ? (savedAddress?.stateProvince || "") : currentShipping.region,
+    country: blank(currentShipping.country) ? (savedAddress?.country || "") : currentShipping.country,
+    postalCode: blank(currentShipping.postalCode) ? (savedAddress?.postalCode || "") : currentShipping.postalCode,
+    ownerEmail: accountEmail,
+  };
+
+  return {
+    ...checkout,
+    information: {
+      ...checkout.information,
+      email: accountEmail,
+      phone: blank(checkout.information?.phone) ? profilePhone : checkout.information.phone,
+      subscribe: previousOwnerEmail === accountEmail
+        ? Boolean(checkout.information?.subscribe)
+        : Boolean(accountDetails?.preferences?.emailMarketing),
+      ownerEmail: accountEmail,
+    },
+    shipping,
+  };
+}
+
 export function clearCheckoutState() {
   if (typeof window !== "undefined") window.localStorage.removeItem(CHECKOUT_STORAGE_KEY);
 }
 
-export function shippingCost(method) {
-  return method === "express" ? 19.99 : 0;
+export function shippingCost(shipping) {
+  if (shipping && typeof shipping === "object") {
+    const amount = Number(shipping.cost);
+    return Number.isFinite(amount) && amount >= 0 ? amount : 0;
+  }
+  return shipping === "express" ? 19.99 : 0;
 }
 
-export function shippingLabel(method) {
-  return method === "express" ? "Express Shipping" : "Standard Shipping";
+export function shippingLabel(shipping) {
+  if (shipping && typeof shipping === "object") {
+    return String(shipping.label || shipping.logisticName || shipping.method || "Shipping");
+  }
+  if (!shipping) return "Shipping";
+  return shipping === "express" ? "Express Shipping" : shipping === "standard" ? "Standard Shipping" : String(shipping);
 }
 
 export function isInformationComplete(state = readCheckoutState()) {
@@ -79,7 +168,7 @@ export function isInformationComplete(state = readCheckoutState()) {
 
 export function isShippingComplete(state = readCheckoutState()) {
   const shipping = state?.shipping || {};
-  return ["fullName", "addressLine1", "city", "region", "country", "postalCode"]
+  return ["fullName", "addressLine1", "city", "region", "country", "postalCode", "method"]
     .every((field) => Boolean(String(shipping[field] || "").trim()));
 }
 
@@ -97,6 +186,7 @@ export function canAccessCheckoutStep(state = readCheckoutState(), step) {
   return false;
 }
 
-export function shippingWindow(method) {
-  return method === "express" ? "3–7 business days" : "7–15 business days";
+export function shippingWindow(shipping) {
+  if (shipping && typeof shipping === "object") return String(shipping.window || "Delivery estimate pending");
+  return shipping === "express" ? "3–7 business days" : shipping === "standard" ? "7–15 business days" : "Delivery estimate pending";
 }

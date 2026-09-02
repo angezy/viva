@@ -15,7 +15,7 @@ const googleSignInMessages = {
 };
 
 export default function SignInPage() {
-  const [email, setEmail] = useState('user@example.com');
+  const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
@@ -24,12 +24,12 @@ export default function SignInPage() {
   useEffect(() => {
     try {
       const s = localStorage.getItem('signinEmail')
-      if (s) setEmail(s)
+      if (s) queueMicrotask(() => setEmail(s))
     } catch (e) {}
 
     const googleError = new URLSearchParams(window.location.search).get("error");
     if (googleError) {
-      setError(googleSignInMessages[googleError] || googleSignInMessages.google_signin_failed);
+      queueMicrotask(() => setError(googleSignInMessages[googleError] || googleSignInMessages.google_signin_failed));
       window.history.replaceState({}, document.title, window.location.pathname);
     }
   }, [])
@@ -37,7 +37,7 @@ export default function SignInPage() {
   function handleGoogleSignIn() {
     setError('');
     setLoading(true);
-    window.location.assign('/api/auth/google');
+    router.push('/api/auth/google');
   }
 
   async function handleSubmit(e) {
@@ -47,7 +47,8 @@ export default function SignInPage() {
     try {
       await loginRequest(email, password, "user");
       try { localStorage.setItem('signinEmail', email) } catch (e) {}
-      await fetchSession(); // prime session cache
+      const session = await fetchSession();
+      window.dispatchEvent(new CustomEvent("weluxo:session-updated", { detail: session?.user || null }));
       toast.success('Logged in!', { description: 'Redirecting to your panel...', duration: 700 });
       setTimeout(() => router.push('/account'), 700);
     } catch (err) {
@@ -122,7 +123,7 @@ export default function SignInPage() {
             </label>
 
             <div style={{ display: 'flex', justifyContent: 'flex-end', marginTop: -4 }}>
-              <Link href="/forgot-password" style={{ color: '#0f766e', fontSize: 13, fontWeight: 700, textDecoration: 'none' }}>
+              <Link href="/forgot-password" style={{ color: 'var(--color-primary)', fontSize: 13, fontWeight: 700, textDecoration: 'none' }}>
                 Forgot password?
               </Link>
             </div>
@@ -138,7 +139,7 @@ export default function SignInPage() {
                 type="submit"
                 disabled={loading}
                 style={{
-                  background: '#0ea5a4',
+                  background: 'var(--color-primary)',
                   color: 'white',
                   padding: '10px 16px',
                   borderRadius: 8,
@@ -154,7 +155,7 @@ export default function SignInPage() {
                 <button type="button" onClick={() => { setEmail(''); setPassword(''); setError('') }} style={{ background: 'transparent', border: 'none', color: '#475569', cursor: 'pointer' }}>
                   Clear
                 </button>
-                <button type="button" onClick={() => router.push('/signup')} style={{ background: 'transparent', border: 'none', color: '#0ea5a4', cursor: 'pointer' }}>
+                <button type="button" onClick={() => router.push('/signup')} style={{ background: 'transparent', border: 'none', color: 'var(--color-primary)', cursor: 'pointer' }}>
                   Create account
                 </button>
               </div>

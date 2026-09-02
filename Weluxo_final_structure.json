@@ -3415,7 +3415,7 @@
           "computed": false,
           "primaryKey": false,
           "unique": false,
-          "purpose": "Business attribute used by Supplier master records including CJdropshipping as one integration..",
+          "purpose": "Business attribute used by supplier master records.",
           "internalOnly": false
         },
         {
@@ -3427,7 +3427,7 @@
           "computed": false,
           "primaryKey": false,
           "unique": false,
-          "purpose": "Business attribute used by Supplier master records including CJdropshipping as one integration..",
+          "purpose": "Business attribute used by supplier master records.",
           "internalOnly": false
         },
         {
@@ -3451,7 +3451,7 @@
           "computed": false,
           "primaryKey": false,
           "unique": false,
-          "purpose": "Business attribute used by Supplier master records including CJdropshipping as one integration..",
+          "purpose": "Business attribute used by supplier master records.",
           "internalOnly": false
         },
         {
@@ -3463,7 +3463,7 @@
           "computed": false,
           "primaryKey": false,
           "unique": false,
-          "purpose": "Business attribute used by Supplier master records including CJdropshipping as one integration..",
+          "purpose": "Business attribute used by supplier master records.",
           "internalOnly": false
         },
         {
@@ -3475,7 +3475,7 @@
           "computed": false,
           "primaryKey": false,
           "unique": false,
-          "purpose": "Business attribute used by Supplier master records including CJdropshipping as one integration..",
+          "purpose": "Business attribute used by supplier master records.",
           "internalOnly": false
         },
         {
@@ -3527,7 +3527,7 @@
           "internalOnly": false
         }
       ],
-      "purpose": "Supplier master records including CJdropshipping as one integration.",
+      "purpose": "Supplier master records for integrated fulfillment partners.",
       "consumers": "Storefront or commerce admin, commerce API and dashboard metrics",
       "indexes": [],
       "foreignKeys": []

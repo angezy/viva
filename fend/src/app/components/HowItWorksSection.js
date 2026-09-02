@@ -174,7 +174,7 @@ export default function HowItWorksSection({ initialContent = null, onEdit = {}, 
 
   useEffect(() => {
     if (initialContent) {
-      setContent(initialContent);
+      queueMicrotask(() => setContent(initialContent));
       return;
     }
     let mounted = true;
@@ -241,13 +241,13 @@ export default function HowItWorksSection({ initialContent = null, onEdit = {}, 
               <Label>{overview.eyebrow}</Label>
               <Typography id="process-overview-title" component="h2" sx={{ fontWeight: 820, letterSpacing: "-0.04em", fontSize: { xs: "2rem", md: "3rem" }, lineHeight: 1.05 }}>{overview.title}</Typography>
             </Box>
-            <Typography sx={{ color: "#6a7b70", fontSize: 12, letterSpacing: "0.1em", fontWeight: 800 }}>01 — 05 / THE JOURNEY</Typography>
+            <Typography sx={{ color: "var(--color-text-secondary)", fontSize: 12, letterSpacing: "0.1em", fontWeight: 800 }}>01 — 05 / THE JOURNEY</Typography>
           </Box>
-          <Box component="ol" sx={{ display: "flex", overflowX: "auto", listStyle: "none", p: 0, m: 0, pb: 1, "&::-webkit-scrollbar": { height: 6 }, "&::-webkit-scrollbar-thumb": { bgcolor: "#b7cfbc", borderRadius: 4 } }}>
+          <Box component="ol" sx={{ display: "flex", overflowX: "auto", listStyle: "none", p: 0, m: 0, pb: 1, "&::-webkit-scrollbar": { height: 6 }, "&::-webkit-scrollbar-thumb": { bgcolor: "var(--color-primary-light)", borderRadius: 4 } }}>
             {overviewSteps.map((step, index) => (
-              <Box component="li" key={`${step.label}-${index}`} sx={{ minWidth: { xs: 135, md: "auto" }, flex: 1, display: "flex", flexDirection: "column", alignItems: "center", position: "relative", textAlign: "center", "&:not(:last-child)::after": { content: '""', position: "absolute", top: 20, left: "calc(50% + 22px)", right: "calc(-50% + 22px)", height: 2, bgcolor: "#b7cfbc" } }}>
+              <Box component="li" key={`${step.label}-${index}`} sx={{ minWidth: { xs: 135, md: "auto" }, flex: 1, display: "flex", flexDirection: "column", alignItems: "center", position: "relative", textAlign: "center", "&:not(:last-child)::after": { content: '""', position: "absolute", top: 20, left: "calc(50% + 22px)", right: "calc(-50% + 22px)", height: 2, bgcolor: "var(--color-primary-light)" } }}>
                 <Box sx={{ position: "relative", zIndex: 1, width: 42, height: 42, borderRadius: "50%", display: "grid", placeItems: "center", bgcolor: "var(--color-primary)", color: "#ffffff", fontSize: 12, fontWeight: 850, boxShadow: "0 0 0 5px var(--color-primary-soft)", mb: 1.5 }}>{step.number}</Box>
-                <Typography sx={{ fontWeight: 800, whiteSpace: "nowrap", color: "#173a2b" }}>{step.label}</Typography>
+                <Typography sx={{ fontWeight: 800, whiteSpace: "nowrap", color: "var(--color-text-primary)" }}>{step.label}</Typography>
               </Box>
             ))}
           </Box>
@@ -269,9 +269,14 @@ export default function HowItWorksSection({ initialContent = null, onEdit = {}, 
                     {items.length > 0 && (
                       <Grid container spacing={1} sx={{ mt: 1, mb: 3 }}>
                         {items.map((item, itemIndex) => (
-                          <Grid item xs={12} sm={6} key={`${item}-${itemIndex}`}>
-                            <Typography sx={{ display: "flex", gap: 1, color: "#3f5d4b", fontWeight: 650, fontSize: 14, lineHeight: 1.45 }}>
-                              <CheckCircleOutlineIcon sx={{ color: "#3e785e", fontSize: 20, flexShrink: 0 }} />{item}
+                          <Grid
+                            key={`${item}-${itemIndex}`}
+                            size={{
+                              xs: 12,
+                              sm: 6
+                            }}>
+                            <Typography sx={{ display: "flex", gap: 1, color: "var(--color-text-secondary)", fontWeight: 650, fontSize: 14, lineHeight: 1.45 }}>
+                              <CheckCircleOutlineIcon sx={{ color: "var(--color-primary)", fontSize: 20, flexShrink: 0 }} />{item}
                             </Typography>
                           </Grid>
                         ))}
@@ -289,15 +294,23 @@ export default function HowItWorksSection({ initialContent = null, onEdit = {}, 
         <Box component="section" aria-labelledby="support-title" sx={{ bgcolor: "var(--color-accent-soft)", color: "var(--color-text-primary)", border: "1px solid var(--color-border)", borderRadius: { xs: 3, md: 5 }, p: { xs: 3, md: 6 }, my: { xs: 8, md: 12 }, position: "relative" }}>
           <EditButton onClick={onEdit.support} editable={editable} />
           <Grid container spacing={{ xs: 4, md: 8 }} alignItems="center">
-            <Grid item xs={12} md={5}>
+            <Grid
+              size={{
+                xs: 12,
+                md: 5
+              }}>
               <Label light>{support.eyebrow}</Label>
               <Typography id="support-title" component="h2" sx={{ fontWeight: 820, letterSpacing: "-0.045em", fontSize: { xs: "2.3rem", md: "3.4rem" }, lineHeight: 1.02, mb: 2 }}>{support.title}</Typography>
               <Paragraphs text={support.copy} light />
             </Grid>
-            <Grid item xs={12} md={7}>
+            <Grid
+              size={{
+                xs: 12,
+                md: 7
+              }}>
               <Stack divider={<Divider flexItem sx={{ borderColor: "var(--color-border)" }} />}>
                 {supportLinks.map((link, index) => (
-                  <Button key={`${link.label}-${index}`} component={Link} href={link.url || "/contact"} endIcon={<ArrowForwardIcon />} sx={{ color: "#d5f0db", justifyContent: "space-between", textTransform: "none", fontWeight: 750, py: 1.7, px: 0, fontSize: { xs: "1rem", md: "1.1rem" } }}>
+                  <Button key={`${link.label}-${index}`} component={Link} href={link.url || "/contact"} endIcon={<ArrowForwardIcon />} sx={{ color: "var(--color-primary-soft)", justifyContent: "space-between", textTransform: "none", fontWeight: 750, py: 1.7, px: 0, fontSize: { xs: "1rem", md: "1.1rem" } }}>
                     {link.label}
                   </Button>
                 ))}
@@ -316,12 +329,18 @@ export default function HowItWorksSection({ initialContent = null, onEdit = {}, 
             {principles.map((principle, index) => {
               const Icon = [ExploreOutlinedIcon, AutoAwesomeOutlinedIcon, ShoppingBagOutlinedIcon, PublicOutlinedIcon][index % 4];
               return (
-                <Grid item xs={12} sm={6} md={3} key={`${principle.title}-${index}`}>
+                <Grid
+                  key={`${principle.title}-${index}`}
+                  size={{
+                    xs: 12,
+                    sm: 6,
+                    md: 3
+                  }}>
                   <Card sx={{ height: "100%", borderRadius: 3, bgcolor: index % 2 ? "#ffffff" : "var(--color-surface-muted)", border: "1px solid var(--color-border)", boxShadow: "none" }}>
                     <CardContent sx={{ p: 3 }}>
-                      <Icon sx={{ color: "#3e785e", fontSize: 30, mb: 5 }} />
+                      <Icon sx={{ color: "var(--color-primary)", fontSize: 30, mb: 5 }} />
                       <Typography component="h3" sx={{ fontWeight: 800, mb: 1 }}>{principle.title}</Typography>
-                      <Typography sx={{ color: "#607267", lineHeight: 1.65, fontSize: 14 }}>{principle.copy}</Typography>
+                      <Typography sx={{ color: "var(--color-text-secondary)", lineHeight: 1.65, fontSize: 14 }}>{principle.copy}</Typography>
                     </CardContent>
                   </Card>
                 </Grid>
@@ -336,23 +355,23 @@ export default function HowItWorksSection({ initialContent = null, onEdit = {}, 
           <Typography id="faq-title" component="h2" sx={{ fontWeight: 820, letterSpacing: "-0.045em", fontSize: { xs: "2.25rem", md: "3.5rem" }, lineHeight: 1.02, mb: 4 }}>{faq.title}</Typography>
           <Box>
             {faqItems.map((item, index) => (
-              <Accordion key={`${item.question}-${index}`} expanded={expandedFaq === index} onChange={() => setExpandedFaq(expandedFaq === index ? -1 : index)} disableGutters elevation={0} sx={{ bgcolor: "transparent", borderTop: "1px solid #d7e3d8", "&:last-child": { borderBottom: "1px solid #d7e3d8" }, "&::before": { display: "none" } }}>
+              <Accordion key={`${item.question}-${index}`} expanded={expandedFaq === index} onChange={() => setExpandedFaq(expandedFaq === index ? -1 : index)} disableGutters elevation={0} sx={{ bgcolor: "transparent", borderTop: "1px solid var(--color-border)", "&:last-child": { borderBottom: "1px solid var(--color-border)" }, "&::before": { display: "none" } }}>
                 <AccordionSummary expandIcon={<ChevronRightIcon />} aria-controls={`faq-panel-${index}`} id={`faq-header-${index}`} sx={{ px: 0, py: 1.2, minHeight: 64, "& .MuiAccordionSummary-content": { my: 0 } }}>
                   <Typography component="h3" sx={{ fontWeight: 750 }}>{item.question}</Typography>
                 </AccordionSummary>
                 <AccordionDetails id={`faq-panel-${index}`} sx={{ px: 0, pt: 0, pb: 2.5 }}>
-                  <Typography sx={{ color: "#5b6d62", lineHeight: 1.8, maxWidth: 760 }}>{item.answer}</Typography>
+                  <Typography sx={{ color: "var(--color-text-secondary)", lineHeight: 1.8, maxWidth: 760 }}>{item.answer}</Typography>
                 </AccordionDetails>
               </Accordion>
             ))}
           </Box>
         </Box>
 
-        <Box component="section" aria-labelledby="final-cta-title" sx={{ bgcolor: "#dcebe0", borderRadius: { xs: 3, md: 5 }, p: { xs: 3, md: 7 }, textAlign: "center", position: "relative", mb: { xs: 5, md: 8 } }}>
+        <Box component="section" aria-labelledby="final-cta-title" sx={{ bgcolor: "var(--color-primary-soft)", borderRadius: { xs: 3, md: 5 }, p: { xs: 3, md: 7 }, textAlign: "center", position: "relative", mb: { xs: 5, md: 8 } }}>
           <EditButton onClick={onEdit.finalCta} editable={editable} />
           <Label>{finalCta.eyebrow}</Label>
           <Typography id="final-cta-title" component="h2" sx={{ fontWeight: 850, letterSpacing: "-0.05em", fontSize: { xs: "2.7rem", md: "4.4rem" }, lineHeight: 0.98, mb: 2 }}>{finalCta.title}</Typography>
-          <Typography sx={{ color: "#52645a", lineHeight: 1.8, maxWidth: 560, mx: "auto", mb: 3 }}>{finalCta.copy}</Typography>
+          <Typography sx={{ color: "var(--color-text-secondary)", lineHeight: 1.8, maxWidth: 560, mx: "auto", mb: 3 }}>{finalCta.copy}</Typography>
           <Stack direction={{ xs: "column", sm: "row" }} spacing={1.25} justifyContent="center" alignItems="stretch">
             <ActionButton href={finalCta.primaryUrl}>{finalCta.primaryCta}</ActionButton>
             <ActionButton href={finalCta.secondaryUrl} variant="outlined">{finalCta.secondaryCta}</ActionButton>

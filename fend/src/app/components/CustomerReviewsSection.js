@@ -74,22 +74,38 @@ export default function CustomerReviewsSection() {
 
         <Box component="form" onSubmit={submitReview}>
           <Grid container spacing={2}>
-            <Grid item xs={12} sm={6}>
+            <Grid
+              size={{
+                xs: 12,
+                sm: 6
+              }}>
               <TextField label="Your name" value={form.name} onChange={updateField("name")} required fullWidth />
             </Grid>
-            <Grid item xs={12} sm={6}>
+            <Grid
+              size={{
+                xs: 12,
+                sm: 6
+              }}>
               <TextField label="Email (optional)" type="email" value={form.email} onChange={updateField("email")} fullWidth />
             </Grid>
-            <Grid item xs={12} sm={6}>
+            <Grid
+              size={{
+                xs: 12,
+                sm: 6
+              }}>
               <TextField label="Review title" value={form.title} onChange={updateField("title")} fullWidth />
             </Grid>
-            <Grid item xs={12} sm={6}>
+            <Grid
+              size={{
+                xs: 12,
+                sm: 6
+              }}>
               <Stack direction="row" spacing={1} alignItems="center" sx={{ height: "100%", minHeight: 56 }}>
                 <Typography sx={{ color: "var(--color-text-secondary)", whiteSpace: "nowrap" }}>Your rating</Typography>
                 <Rating value={Number(form.rating)} onChange={(_, value) => setForm((current) => ({ ...current, rating: value || 5 }))} />
               </Stack>
             </Grid>
-            <Grid item xs={12}>
+            <Grid size={12}>
               <TextField
                 label="Tell us about your experience"
                 value={form.text}
@@ -101,7 +117,7 @@ export default function CustomerReviewsSection() {
                 inputProps={{ minLength: 10, maxLength: 2000 }}
               />
             </Grid>
-            <Grid item xs={12}>
+            <Grid size={12}>
               <Button
                 type="submit"
                 variant="contained"

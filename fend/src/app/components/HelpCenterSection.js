@@ -77,7 +77,7 @@ export default function HelpCenterSection({ initialContent = null, onEdit = {}, 
 
   useEffect(() => {
     if (initialContent) {
-      setContent(initialContent);
+      queueMicrotask(() => setContent(initialContent));
       return;
     }
     let mounted = true;
@@ -150,7 +150,13 @@ export default function HelpCenterSection({ initialContent = null, onEdit = {}, 
             {(Array.isArray(quickActions.cards) ? quickActions.cards : []).map((card, index) => {
               const Icon = quickActionIcons[index % quickActionIcons.length];
               return (
-                <Grid item xs={12} sm={6} md={index === 4 ? 12 : 3} key={`${card.title}-${index}`}>
+                <Grid
+                  key={`${card.title}-${index}`}
+                  size={{
+                    xs: 12,
+                    sm: 6,
+                    md: index === 4 ? 12 : 3
+                  }}>
                   <Card sx={{ height: "100%", borderRadius: 3, border: "1px solid var(--color-border)", bgcolor: index % 2 ? "var(--color-accent-soft)" : "#ffffff", boxShadow: "none", transition: "transform 180ms ease, box-shadow 180ms ease", "&:hover": { transform: "translateY(-4px)", boxShadow: "0 14px 30px rgba(43,43,43,0.08)" } }}>
                     <CardContent sx={{ p: 3, height: "100%", display: "flex", flexDirection: "column" }}>
                       <Icon sx={{ color: "var(--color-accent)", fontSize: 30, mb: 3 }} />
@@ -182,7 +188,12 @@ export default function HelpCenterSection({ initialContent = null, onEdit = {}, 
                   {category.articles.length > 0 ? (
                     <Grid container spacing={1.25}>
                       {category.articles.map((article, articleIndex) => (
-                        <Grid item xs={12} sm={6} key={`${article}-${articleIndex}`}>
+                        <Grid
+                          key={`${article}-${articleIndex}`}
+                          size={{
+                            xs: 12,
+                            sm: 6
+                          }}>
                           <Box component="a" href={faqItems.some((item) => String(item.question || "").trim().toLowerCase() === String(article || "").trim().toLowerCase()) ? `#${faqAnchorId(article)}` : "#help-faq-title"} onClick={(event) => openFaqAnswer(event, article)} sx={{ display: "block", width: "100%", textAlign: "left", border: "1px solid var(--color-border)", bgcolor: "#ffffff", color: "var(--color-text-primary)", borderRadius: 2, p: 1.75, cursor: "pointer", font: "inherit", textDecoration: "none", transition: "border-color 160ms ease, color 160ms ease", "&:hover": { borderColor: "var(--color-primary)", color: "var(--color-primary)" } }}>
                             {article}
                           </Box>

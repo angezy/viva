@@ -4,6 +4,7 @@ import { notFound } from "next/navigation";
 import Image from "next/image";
 import path from "path";
 import { promises as fs } from "fs";
+import { sanitizeCmsHtml } from "../../lib/contentSanitizer";
 
 async function readBlog() {
   const dataPath = path.join(process.cwd(), "data", "blog.json");
@@ -26,7 +27,7 @@ export default async function BlogDetail({ params }) {
 
   if (!match) return notFound();
 
-  const safeBody = match.body || "<p>No content yet.</p>";
+  const safeBody = sanitizeCmsHtml(match.body || "<p>No content yet.</p>");
 
   return (
     <div style={{ maxWidth: 960, margin: "0 auto", padding: "24px 16px 48px" }}>
@@ -36,7 +37,7 @@ export default async function BlogDetail({ params }) {
         <div style={{ color: "var(--color-text-secondary)", fontSize: 16 }}>{match.excerpt}</div>
         <div style={{ display: "flex", gap: 8, flexWrap: "wrap" }}>
           {(match.tags || []).map((t) => (
-            <span key={t} style={{ background: "#e0e7ff", color: "#1d4ed8", padding: "4px 8px", borderRadius: 12, fontSize: 12 }}>
+            <span key={t} style={{ background: "var(--color-primary-soft)", color: "var(--color-primary-dark)", padding: "4px 8px", borderRadius: 12, fontSize: 12 }}>
               {t}
             </span>
           ))}

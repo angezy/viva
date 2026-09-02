@@ -3,32 +3,41 @@
 import { useEffect, useRef, useState } from "react";
 import { Badge, Box, Button, IconButton, Paper, Stack, TextField, Tooltip, Typography } from "@mui/material";
 import CloseRoundedIcon from "@mui/icons-material/CloseRounded";
+import RestartAltRoundedIcon from "@mui/icons-material/RestartAltRounded";
 import SendRoundedIcon from "@mui/icons-material/SendRounded";
 import SupportAgentOutlinedIcon from "@mui/icons-material/SupportAgentOutlined";
-import { DEFAULT_SITE_SETTINGS, fetchSiteSettings } from "../lib/siteSettings";
-import { loadSessionChatMessages, saveSessionChatMessages } from "../lib/chatSession";
+import { useSiteSettings } from "./SiteThemeProvider";
+import { clearLiveChatSession, loadSessionChatMessages, saveSessionChatMessages } from "../lib/chatSession";
 
+const DEFAULT_CHAT_STORE_NAME = process.env.NEXT_PUBLIC_STORE_NAME || "Your Store";
 const DEFAULT_CONFIG = {
   enabled: true,
-  title: "Weluxo AI Concierge",
-  subtitle: "Answers from the Weluxo help library",
-  greeting: "Hi - I'm the Weluxo AI Concierge. What can I help you find today?",
+  title: `${DEFAULT_CHAT_STORE_NAME} AI Concierge`,
+  subtitle: `Answers from the ${DEFAULT_CHAT_STORE_NAME} help library`,
+  greeting: `Hi - I'm the ${DEFAULT_CHAT_STORE_NAME} AI Concierge. What can I help you find today?`,
   placeholder: "Ask about orders, shipping...",
   triggerLabel: "Open live chat",
   thinking: "Thinking...",
   error: "I'm temporarily unavailable. Please try again.",
 };
 
-function getConversationId() {
+function createConversationId() {
   if (typeof window === "undefined") return "";
   try {
-    const saved = window.sessionStorage.getItem("weluxoChatConversationId");
-    if (saved) return saved;
     const generated = window.crypto?.randomUUID?.() || `${Date.now()}-${Math.random().toString(36).slice(2)}-${Math.random().toString(36).slice(2)}`;
     window.sessionStorage.setItem("weluxoChatConversationId", generated);
     return generated;
   } catch (_error) {
     return `${Date.now()}-${Math.random().toString(36).slice(2)}-${Math.random().toString(36).slice(2)}`;
+  }
+}
+
+function getConversationId() {
+  if (typeof window === "undefined") return "";
+  try {
+    return window.sessionStorage.getItem("weluxoChatConversationId") || createConversationId();
+  } catch (_error) {
+    return createConversationId();
   }
 }
 
@@ -46,6 +55,10 @@ function greetingMessage(text) {
   return { role: "assistant", text, system: true };
 }
 
+function cleanVisitorValue(value, max) {
+  return String(value || "").trim().replace(/\s+/g, " ").slice(0, max);
+}
+
 function lastSeenAgentStorageKey(conversationId) {
   return `weluxoChatLastSeenAgentId:${conversationId}`;
 }
@@ -59,16 +72,25 @@ function getLastSeenAgentId(conversationId) {
   }
 }
 
+function getStoredConversationToken() {
+  if (typeof window === "undefined") return "";
+  try { return window.sessionStorage.getItem("weluxoChatConversationToken") || ""; } catch (_error) { return ""; }
+}
+
 export default function HelpChatWidget({ floating = true, initialOpen = false, triggerLabel }) {
+  const siteSettings = useSiteSettings();
   const messagesContainerRef = useRef(null);
   const [open, setOpen] = useState(initialOpen);
   const [input, setInput] = useState("");
   const [sending, setSending] = useState(false);
   const [config, setConfig] = useState(DEFAULT_CONFIG);
-  const [conversationId] = useState(getConversationId);
+  const [conversationId, setConversationId] = useState(getConversationId);
+  const [conversationToken, setConversationToken] = useState(getStoredConversationToken);
   const [visitor, setVisitor] = useState(getStoredVisitor);
-  const [started, setStarted] = useState(() => Boolean(getStoredVisitor().name && getStoredVisitor().email));
-  const [startError, setStartError] = useState("");
+  const [signedIn, setSignedIn] = useState(false);
+  const [visitorChecked, setVisitorChecked] = useState(false);
+  const [visitorError, setVisitorError] = useState("");
+  const [started, setStarted] = useState(() => Boolean(getStoredConversationToken()));
   const [starting, setStarting] = useState(false);
   const [humanSupportEnabled, setHumanSupportEnabled] = useState(() => {
     if (typeof window === "undefined") return false;
@@ -87,11 +109,11 @@ export default function HelpChatWidget({ floating = true, initialOpen = false, t
     let active = true;
     Promise.all([
       fetch("/api/chat/config").then((response) => (response.ok ? response.json() : null)),
-      fetchSiteSettings().catch(() => DEFAULT_SITE_SETTINGS),
     ])
-      .then(([data, site]) => {
+      .then(([data]) => {
         if (!active) return;
         const configured = data || {};
+        const site = siteSettings;
         const nextConfig = {
           ...DEFAULT_CONFIG,
           ...configured,
@@ -109,6 +131,26 @@ export default function HelpChatWidget({ floating = true, initialOpen = false, t
       })
       .catch(() => undefined);
     return () => { active = false; };
+  }, [siteSettings]);
+
+  useEffect(() => {
+    let active = true;
+    fetch("/api/session", { credentials: "include", cache: "no-store" })
+      .then((response) => (response.ok ? response.json() : null))
+      .then((data) => {
+        if (!active) return;
+        const account = data?.user;
+        if (account) {
+          setSignedIn(true);
+          setVisitor((current) => ({
+            name: cleanVisitorValue(account.name || account.username || current.name, 200),
+            email: cleanVisitorValue(account.email || current.email, 255).toLowerCase(),
+          }));
+        }
+      })
+      .catch(() => undefined)
+      .finally(() => { if (active) setVisitorChecked(true); });
+    return () => { active = false; };
   }, []);
 
   useEffect(() => {
@@ -123,19 +165,23 @@ export default function HelpChatWidget({ floating = true, initialOpen = false, t
     const loadHistory = async () => {
       setHistoryLoaded(false);
       try {
-        const response = await fetch(`/api/chat/messages?conversationId=${encodeURIComponent(conversationId)}`, { cache: "no-store" });
+        const response = await fetch(`/api/chat/messages?conversationId=${encodeURIComponent(conversationId)}`, {
+          cache: "no-store",
+          headers: { "X-Chat-Session-Token": conversationToken },
+        });
         const data = await response.json().catch(() => ({}));
         if (!active || !response.ok || !Array.isArray(data.messages)) return;
         const history = data.messages
-          .filter((message) => message?.text && (message.senderType === "customer" || message.senderType === "agent"))
+          .filter((message) => message?.text && (message.senderType === "customer" || message.senderType === "assistant" || message.senderType === "agent"))
           .map((message) => ({
             role: message.senderType === "customer" ? "user" : "assistant",
+            senderType: message.senderType,
             text: message.text,
             messageId: message.id,
             createdAt: message.createdAt,
           }));
         const newestMessageId = Math.max(0, ...history.map((message) => Number(message.messageId) || 0));
-        const agentMessages = history.filter((message) => message.role === "assistant");
+        const agentMessages = history.filter((message) => message.senderType === "agent");
         const newestAgentId = Math.max(0, ...agentMessages.map((message) => Number(message.messageId) || 0));
         const lastSeenAgentId = getLastSeenAgentId(conversationId);
         if (history.length) {
@@ -153,7 +199,7 @@ export default function HelpChatWidget({ floating = true, initialOpen = false, t
 
     loadHistory();
     return () => { active = false; };
-  }, [conversationId, started]);
+  }, [conversationId, conversationToken, started]);
 
   useEffect(() => {
     if (!humanSupportEnabled || !conversationId || !historyLoaded) return undefined;
@@ -164,7 +210,10 @@ export default function HelpChatWidget({ floating = true, initialOpen = false, t
       if (requestInFlight) return;
       requestInFlight = true;
       try {
-        const response = await fetch(`/api/chat/replies?conversationId=${encodeURIComponent(conversationId)}&afterId=${lastReplyId}`, { cache: "no-store" });
+        const response = await fetch(`/api/chat/replies?conversationId=${encodeURIComponent(conversationId)}&afterId=${lastReplyId}`, {
+          cache: "no-store",
+          headers: { "X-Chat-Session-Token": conversationToken },
+        });
         const data = await response.json().catch(() => ({}));
         if (!active || !response.ok || !Array.isArray(data.messages) || data.messages.length === 0) return;
         const replies = data.messages.filter((message) => message?.text).map((message) => ({ role: "assistant", text: message.text, messageId: message.id }));
@@ -190,7 +239,7 @@ export default function HelpChatWidget({ floating = true, initialOpen = false, t
       active = false;
       window.clearInterval(interval);
     };
-  }, [conversationId, historyLoaded, humanSupportEnabled, lastReplyId]);
+  }, [conversationId, conversationToken, historyLoaded, humanSupportEnabled, lastReplyId]);
 
   useEffect(() => {
     if (!open || !started || !messagesContainerRef.current) return undefined;
@@ -210,72 +259,129 @@ export default function HelpChatWidget({ floating = true, initialOpen = false, t
     }
   }
 
-  async function startChat(event) {
-    event?.preventDefault();
+  function resetExpiredChatSession() {
+    clearLiveChatSession();
+    const nextConversationId = createConversationId();
+    setConversationId(nextConversationId);
+    setConversationToken("");
+    setStarted(false);
+    setHumanSupportEnabled(false);
+    setLastReplyId(0);
+    setLatestAgentId(0);
+    setUnreadCount(0);
+    setHistoryLoaded(false);
+    setMessages([greetingMessage(config.greeting)]);
+    return nextConversationId;
+  }
+
+  function startNewAIChat() {
+    if (sending || starting) return;
+    resetExpiredChatSession();
+    setConfig((current) => ({
+      ...current,
+      title: current.title.endsWith(" Support") ? `${current.title.slice(0, -" Support".length)} AI Concierge` : current.title,
+      subtitle: current.subtitle === "A team member will reply from Telegram" ? `Answers from the ${siteSettings.siteName} help library` : current.subtitle,
+    }));
+  }
+
+  function updateVisitor(field, value) {
+    setVisitor((current) => ({ ...current, [field]: value }));
+    setVisitorError("");
+  }
+
+  function validGuestDetails() {
+    return Boolean(visitor.name.trim()) && /^\S+@\S+\.\S+$/.test(visitor.email.trim());
+  }
+
+  async function startChat({ fresh = false } = {}) {
+    const targetConversationId = fresh ? resetExpiredChatSession() : conversationId;
+    const targetConversationToken = fresh ? "" : conversationToken;
     const name = visitor.name.trim();
     const email = visitor.email.trim().toLowerCase();
-    setStartError("");
-    if (!name) {
-      setStartError("Please enter your name.");
-      return;
-    }
-    if (!/^\S+@\S+\.\S+$/.test(email)) {
-      setStartError("Please enter a valid email address.");
-      return;
-    }
-
+    if (!name || !/^\S+@\S+\.\S+$/.test(email)) throw new Error("Please enter your name and a valid email address before starting the chat.");
     setStarting(true);
     try {
       const response = await fetch("/api/chat/start", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ conversationId, name, email }),
+        body: JSON.stringify({ conversationId: targetConversationId, conversationToken: targetConversationToken, name, email }),
       });
       const data = await response.json().catch(() => ({}));
       if (!response.ok) throw new Error(data.error || "Unable to start live chat");
       const savedVisitor = { name: data.visitor?.name || name, email: data.visitor?.email || email };
+      setConversationId(targetConversationId);
+      setConversationToken(data.conversationToken);
       setVisitor(savedVisitor);
       setStarted(true);
-      setHumanSupportEnabled(Boolean(data.humanSupport));
-      setMessages([greetingMessage(config.greeting)]);
+      setHumanSupportEnabled(false);
+      setMessages((current) => current.length ? current : [greetingMessage(config.greeting)]);
       setLastReplyId(0);
       setLatestAgentId(0);
       setUnreadCount(0);
       setHistoryLoaded(false);
       try {
         window.sessionStorage.setItem("weluxoChatVisitor", JSON.stringify(savedVisitor));
-        window.sessionStorage.setItem("weluxoChatHumanSupport", String(Boolean(data.humanSupport)));
+        window.sessionStorage.setItem("weluxoChatHumanSupport", "false");
+        window.sessionStorage.setItem("weluxoChatConversationToken", data.conversationToken);
       } catch (_storageError) {
         // Session storage is optional.
       }
+      return { conversationId: targetConversationId, conversationToken: data.conversationToken };
     } catch (error) {
-      setStartError(error.message || "Unable to start live chat");
+      throw error;
     } finally {
       setStarting(false);
     }
+  }
+
+  async function ensureStarted() {
+    if (started && conversationToken) return { conversationId, conversationToken };
+    const session = await startChat();
+    if (!session?.conversationToken) throw new Error("Unable to start chat");
+    return session;
+  }
+
+  async function submitChatRequest(payload) {
+    let session = await ensureStarted();
+    const send = async () => {
+      const response = await fetch("/api/chat", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ ...payload, conversationId: session.conversationId, conversationToken: session.conversationToken }),
+      });
+      return { response, data: await response.json().catch(() => ({})) };
+    };
+
+    let result = await send();
+    let restarted = false;
+    if (result.response.status === 403 && /chat session proof/i.test(result.data?.error || "")) {
+      session = await startChat({ fresh: true });
+      result = await send();
+      restarted = true;
+    }
+    return { ...result, restarted };
   }
 
   async function sendMessage(event) {
     event?.preventDefault();
     const message = input.trim();
     if (!message || sending) return;
+    if (!signedIn && !validGuestDetails()) {
+      setVisitorError("Please enter your name and a valid email address before sending a message.");
+      return;
+    }
     setInput("");
     setMessages((current) => [...current, { role: "user", text: message }]);
     setSending(true);
     try {
-      const response = await fetch("/api/chat", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ message, conversationId, name: visitor.name, email: visitor.email }),
-      });
-      const data = await response.json().catch(() => ({}));
+      const { response, data, restarted } = await submitChatRequest({ message, name: visitor.name, email: visitor.email, handoffActive: humanSupportEnabled });
       if (!response.ok) throw new Error(data.error || config.error);
       if (data.humanSupport) {
         setHumanSupportEnabled(true);
         setConfig((current) => ({ ...current, title: `${current.title.replace(/ AI Concierge$/, "")} Support`, subtitle: "A team member will reply from Telegram" }));
         try { window.sessionStorage.setItem("weluxoChatHumanSupport", "true"); } catch (_storageError) {}
       }
-      setMessages((current) => [...current, { role: "assistant", text: data.reply || config.error }]);
+      setMessages((current) => [...current, ...(restarted ? [{ role: "user", text: message }] : []), { role: "assistant", text: data.reply || config.error }]);
     } catch (error) {
       setMessages((current) => [...current, { role: "assistant", text: error.message || config.error }]);
     } finally {
@@ -295,7 +401,7 @@ export default function HelpChatWidget({ floating = true, initialOpen = false, t
         floating ? (
           <Tooltip title={triggerLabel || config.triggerLabel} placement="left">
             <Badge badgeContent={unreadCount} color="error" max={9} overlap="circular" sx={{ position: "fixed", right: { xs: 14, md: 28 }, bottom: { xs: 16, md: 24 }, zIndex: 1300 }}>
-              <IconButton type="button" onClick={() => setOpen(true)} aria-label={triggerLabel || config.triggerLabel} sx={{ width: 48, height: 48, bgcolor: "var(--color-primary)", color: "#ffffff", boxShadow: "0 12px 28px rgba(37,99,235,0.28)", "&:hover": { bgcolor: "var(--color-primary-dark)" } }}>
+              <IconButton type="button" onClick={() => setOpen(true)} aria-label={triggerLabel || config.triggerLabel} sx={{ width: 48, height: 48, bgcolor: "var(--color-primary)", color: "#ffffff", boxShadow: "0 12px 28px color-mix(in srgb, var(--color-primary) 28%, transparent)", "&:hover": { bgcolor: "var(--color-primary-dark)" } }}>
                 <SupportAgentOutlinedIcon />
               </IconButton>
             </Badge>
@@ -312,23 +418,16 @@ export default function HelpChatWidget({ floating = true, initialOpen = false, t
         <Paper elevation={12} sx={{ ...panelSx, overflow: "hidden", borderRadius: 3, border: "1px solid var(--color-border)" }}>
           <Box sx={{ bgcolor: "var(--color-primary)", color: "#ffffff", px: 2, py: 1.5, display: "flex", justifyContent: "space-between", alignItems: "center" }}>
             <Box><Typography sx={{ fontWeight: 850, fontSize: 15 }}>{config.title}</Typography><Typography sx={{ color: "#dbe8ff", fontSize: 11 }}>{config.subtitle}</Typography></Box>
-            <IconButton size="small" aria-label="Close chat" onClick={() => setOpen(false)} sx={{ color: "white" }}><CloseRoundedIcon fontSize="small" /></IconButton>
+            <Stack direction="row" spacing={0.25}>
+              {humanSupportEnabled && (
+                <Tooltip title="Start a new AI chat">
+                  <IconButton size="small" aria-label="Start a new AI chat" onClick={startNewAIChat} sx={{ color: "white" }}><RestartAltRoundedIcon fontSize="small" /></IconButton>
+                </Tooltip>
+              )}
+              <IconButton size="small" aria-label="Close chat" onClick={() => setOpen(false)} sx={{ color: "white" }}><CloseRoundedIcon fontSize="small" /></IconButton>
+            </Stack>
           </Box>
-          {!started ? (
-            <Box component="form" onSubmit={startChat} sx={{ p: 2, bgcolor: "var(--color-background)" }}>
-              <Typography sx={{ color: "var(--color-text-primary)", fontWeight: 800, mb: 0.5 }}>Before we start</Typography>
-              <Typography sx={{ color: "var(--color-text-secondary)", fontSize: 12, lineHeight: 1.5, mb: 1.5 }}>Share your name and email so our support team can reply to you.</Typography>
-              <Stack spacing={1.25}>
-                <TextField size="small" label="Your name" value={visitor.name} onChange={(event) => { setVisitor((current) => ({ ...current, name: event.target.value })); setStartError(""); }} required autoComplete="name" />
-                <TextField size="small" label="Email address" type="email" value={visitor.email} onChange={(event) => { setVisitor((current) => ({ ...current, email: event.target.value })); setStartError(""); }} required autoComplete="email" />
-                {startError && <Typography role="alert" sx={{ color: "#b42318", fontSize: 12 }}>{startError}</Typography>}
-                <Button type="submit" variant="contained" disabled={starting} sx={{ bgcolor: "var(--color-primary)", borderRadius: 999, textTransform: "none", fontWeight: 800 }}>
-                  {starting ? "Starting chat..." : "Start live chat"}
-                </Button>
-              </Stack>
-            </Box>
-          ) : (
-            <>
+          <>
               {unreadCount > 0 && (
                 <Box role="status" sx={{ px: 1.5, py: 1, bgcolor: "#b42318", color: "#ffffff", display: "flex", alignItems: "center", justifyContent: "space-between", gap: 1 }}>
                   <Typography sx={{ fontSize: 12, fontWeight: 800 }}>
@@ -347,12 +446,21 @@ export default function HelpChatWidget({ floating = true, initialOpen = false, t
                 ))}
                 {sending && <Typography sx={{ color: "var(--color-text-secondary)", fontSize: 12 }}>{config.thinking}</Typography>}
               </Stack>
+              {visitorChecked && !signedIn && (
+                <Box sx={{ px: 1.5, py: 1.25, bgcolor: "#ffffff", borderTop: "1px solid var(--color-border)" }}>
+                  <Typography sx={{ fontSize: 12, fontWeight: 800, mb: 0.75 }}>Before we begin, please share your name and email.</Typography>
+                  <Stack direction={{ xs: "column", sm: "row" }} spacing={1}>
+                    <TextField size="small" required fullWidth label="Your name" value={visitor.name} onChange={(event) => updateVisitor("name", event.target.value)} autoComplete="name" />
+                    <TextField size="small" required fullWidth type="email" label="Email address" value={visitor.email} onChange={(event) => updateVisitor("email", event.target.value)} autoComplete="email" />
+                  </Stack>
+                  {visitorError && <Typography role="alert" sx={{ mt: 0.75, color: "#b42318", fontSize: 12 }}>{visitorError}</Typography>}
+                </Box>
+              )}
               <Box component="form" onSubmit={sendMessage} sx={{ display: "flex", gap: 1, p: 1.25, bgcolor: "#ffffff", borderTop: "1px solid var(--color-border)" }}>
                 <TextField size="small" fullWidth value={input} onChange={(event) => setInput(event.target.value)} placeholder={config.placeholder} aria-label={config.placeholder} />
                 <IconButton type="submit" aria-label="Send message" disabled={!input.trim() || sending} sx={{ bgcolor: "var(--color-accent)", color: "var(--color-text-primary)", borderRadius: 2, "&:hover": { bgcolor: "var(--color-accent-dark)" } }}><SendRoundedIcon fontSize="small" /></IconButton>
               </Box>
             </>
-          )}
         </Paper>
       )}
     </Box>

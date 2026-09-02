@@ -10,6 +10,7 @@ import {
 } from "@mui/material";
 import CategoryProductGrid from "./CategoryProductGrid";
 import { getSiteSettingsServer, siteUrlFor } from "../../lib/siteSettingsServer";
+import { hideSupplierBranding } from "../../lib/customerFacingText";
 
 export const dynamic = "force-dynamic";
 
@@ -44,7 +45,7 @@ function getImage(product) {
 
 function normalizeProduct(product = {}) {
   const category = product.category || product.Category || "Collection";
-  const title = product.name || product.Name || product.title || "Untitled product";
+  const title = hideSupplierBranding(product.name || product.Name || product.title, "Untitled product");
   const price = Number(product.price ?? product.Price ?? 0);
 
   return {
@@ -52,11 +53,11 @@ function normalizeProduct(product = {}) {
     slug: getProductSlug(product),
     title,
     category,
-    brand: product.brand || product.Brand || "Weluxo",
-    description: product.description || product.Description || "No description available.",
+    brand: hideSupplierBranding(product.brand || product.Brand, "Weluxo"),
+    description: hideSupplierBranding(product.description || product.Description, "No description available."),
     image: getImage(product),
     price: Number.isFinite(price) ? price : 0,
-    alt: product.alt || product.Alt || title,
+    alt: hideSupplierBranding(product.alt || product.Alt, title),
   };
 }
 
@@ -146,7 +147,7 @@ export default async function CategoryPage({ params }) {
             border: "1px solid var(--color-border)",
           }}
         >
-          <Typography variant="overline" sx={{ letterSpacing: 3, color: "primary.light" }}>
+          <Typography variant="overline" sx={{ letterSpacing: 3, color: "var(--color-primary)" }}>
             Weluxo collection
           </Typography>
           <Typography variant="h1" sx={{ fontWeight: 900, fontSize: { xs: "2.5rem", md: "4rem" }, mb: 1 }}>

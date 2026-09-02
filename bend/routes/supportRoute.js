@@ -4,10 +4,12 @@ const path = require("path");
 const fs = require("fs");
 const crypto = require("crypto");
 const sql = require("mssql");
-const jwt = require("jsonwebtoken");
+const sanitize = require("sanitize-html");
 const { getPool } = require("../utils/dbConnection");
+const { scanUploadedFiles, validateUploadedFiles } = require("../utils/fileSecurity");
 const { sendSupportTicketEmail } = require("../utils/sendpulse");
-const { ADMIN_AUTH_COOKIE_NAME, CUSTOMER_AUTH_COOKIE_NAME } = require("../utils/cookieOptions");
+const { authenticateRequest, requireSession } = require("../utils/sessionSecurity");
+const { hasPermission, isStaffRole, requirePermission } = require("../utils/rbac");
 
 const router = express.Router();
 const statuses = ["New", "Open", "In Progress", "Waiting for Customer", "Resolved", "Closed"];
@@ -21,39 +23,38 @@ function normalizeResult(result) {
   return Array.isArray(result.recordset) ? result.recordset : [];
 }
 
-function getToken(req, sessionType = "customer") {
-  const authorization = req.headers?.authorization || "";
-  if (authorization.toLowerCase().startsWith("bearer ")) return authorization.slice(7).trim();
-  const cookieName = sessionType === "admin" ? ADMIN_AUTH_COOKIE_NAME : CUSTOMER_AUTH_COOKIE_NAME;
-  return req.cookies?.[cookieName] || null;
+async function optionalAuth(req, _res, next) {
+  const auth = await authenticateRequest(req, "customer");
+  if (auth) req.user = { id: Number(auth.decoded.sub), email: auth.decoded.email, role: "customer", jti: auth.decoded.jti };
+  next();
 }
 
-function attachUser(req, sessionType = "customer") {
-  const token = getToken(req, sessionType);
-  if (!token || !process.env.JWT_SECRET) return null;
-  try {
-    const decoded = jwt.verify(token, process.env.JWT_SECRET);
-    req.user = { id: Number(decoded.sub), email: decoded.email, role: decoded.role || "user" };
-    return req.user;
-  } catch (_error) {
-    return null;
+const requireAuth = requireSession("customer", "user");
+const requireAdmin = requirePermission("tickets.read", "user");
+const requireTicketUpdate = requirePermission("tickets.update", "user");
+
+async function requireCustomerOrStaffReply(req, res, next) {
+  const staff = await authenticateRequest(req, "admin");
+  if (staff) {
+    const user = { id: Number(staff.decoded.sub), email: staff.decoded.email, role: staff.decoded.role, jti: staff.decoded.jti };
+    if (hasPermission(user.role, "tickets.reply")) {
+      req.user = user;
+      return next();
+    }
+    return res.status(403).json({ error: "You do not have permission to reply to tickets", code: "FORBIDDEN" });
   }
+  return requireAuth(req, res, next);
 }
 
-function optionalAuth(req, _res, next) {
-  attachUser(req, "customer");
-  next();
-}
-
-function requireAuth(req, res, next) {
-  if (!attachUser(req, "customer")) return res.status(401).json({ error: "Customer sign-in required" });
-  if (String(req.user.role).toLowerCase() === "admin") return res.status(403).json({ error: "Customer sign-in required" });
-  next();
-}
-
-function requireAdmin(req, res, next) {
-  if (!attachUser(req, "admin")) return res.status(401).json({ error: "Authentication required" });
-  if (String(req.user.role).toLowerCase() !== "admin") return res.status(403).json({ error: "Administrator access required" });
+async function requireAnySupportAuth(req, res, next) {
+  const admin = await authenticateRequest(req, "admin");
+  if (admin && !hasPermission(admin.decoded.role, "tickets.read")) {
+    return res.status(403).json({ error: "You do not have permission to view support tickets", code: "FORBIDDEN" });
+  }
+  const customer = admin ? null : await authenticateRequest(req, "customer");
+  const auth = admin || customer;
+  if (!auth) return res.status(401).json({ error: "Invalid, expired, or revoked session" });
+  req.user = { id: Number(auth.decoded.sub), email: auth.decoded.email, role: auth.decoded.role, jti: auth.decoded.jti };
   next();
 }
 
@@ -67,16 +68,13 @@ function asJson(value, fallback) {
 }
 
 function sanitizeHtml(value) {
-  return String(value || "")
-    .replace(/<script[\s\S]*?<\/script>/gi, "")
-    .replace(/<style[\s\S]*?<\/style>/gi, "")
-    .replace(/<iframe[\s\S]*?<\/iframe>/gi, "")
-    .replace(/<object[\s\S]*?<\/object>/gi, "")
-    .replace(/<embed[^>]*>/gi, "")
-    .replace(/\son[a-z]+\s*=\s*(?:"[^"]*"|'[^']*'|[^\s>]+)/gi, "")
-    .replace(/(?:javascript|vbscript|data)\s*:/gi, "")
-    .trim()
-    .slice(0, 500000);
+  return sanitize(String(value || "").slice(0, 500000), {
+    allowedTags: ["p", "br", "strong", "em", "u", "s", "blockquote", "pre", "code", "h2", "h3", "h4", "ul", "ol", "li", "a"],
+    allowedAttributes: { a: ["href", "title", "target", "rel"] },
+    allowedSchemes: ["http", "https", "mailto"],
+    allowProtocolRelative: false,
+    transformTags: { a: sanitize.simpleTransform("a", { rel: "noopener noreferrer" }, true) },
+  }).trim();
 }
 
 function toPlainText(html) {
@@ -141,59 +139,13 @@ async function ensureSupportTables() {
   if (!supportSchemaPromise) {
     supportSchemaPromise = (async () => {
       const pool = await getPool();
-      await pool.request().batch(`
-        IF OBJECT_ID(N'[dbo].[tickets]', N'U') IS NULL
-        BEGIN
-          CREATE TABLE [dbo].[tickets] (
-            [id] INT IDENTITY(1,1) NOT NULL CONSTRAINT PK_tickets PRIMARY KEY,
-            [ticket_number] NVARCHAR(40) NOT NULL,
-            [user_id] INT NULL,
-            [order_id] NVARCHAR(100) NULL,
-            [category] NVARCHAR(60) NOT NULL,
-            [priority] NVARCHAR(20) NOT NULL CONSTRAINT DF_tickets_priority DEFAULT N'Normal',
-            [status] NVARCHAR(40) NOT NULL CONSTRAINT DF_tickets_status DEFAULT N'New',
-            [subject] NVARCHAR(240) NOT NULL,
-            [customer_name] NVARCHAR(200) NOT NULL,
-            [customer_email] NVARCHAR(255) NOT NULL,
-            [assigned_agent_id] INT NULL,
-            [tags] NVARCHAR(MAX) NULL,
-            [created_at] DATETIME2(3) NOT NULL CONSTRAINT DF_tickets_created_at DEFAULT SYSUTCDATETIME(),
-            [updated_at] DATETIME2(3) NOT NULL CONSTRAINT DF_tickets_updated_at DEFAULT SYSUTCDATETIME()
-          );
-        END;
-        IF NOT EXISTS (SELECT 1 FROM sys.indexes WHERE name = N'UX_tickets_ticket_number' AND object_id = OBJECT_ID(N'[dbo].[tickets]'))
-          CREATE UNIQUE INDEX UX_tickets_ticket_number ON [dbo].[tickets]([ticket_number]);
-        IF NOT EXISTS (SELECT 1 FROM sys.indexes WHERE name = N'IX_tickets_user_id' AND object_id = OBJECT_ID(N'[dbo].[tickets]'))
-          CREATE INDEX IX_tickets_user_id ON [dbo].[tickets]([user_id], [updated_at] DESC);
-        IF OBJECT_ID(N'[dbo].[ticket_messages]', N'U') IS NULL
-        BEGIN
-          CREATE TABLE [dbo].[ticket_messages] (
-            [id] INT IDENTITY(1,1) NOT NULL CONSTRAINT PK_ticket_messages PRIMARY KEY,
-            [ticket_id] INT NOT NULL,
-            [sender_id] INT NULL,
-            [sender_type] NVARCHAR(20) NOT NULL,
-            [visibility] NVARCHAR(20) NOT NULL CONSTRAINT DF_ticket_messages_visibility DEFAULT N'public',
-            [content_html] NVARCHAR(MAX) NOT NULL,
-            [content_text] NVARCHAR(MAX) NOT NULL,
-            [attachments] NVARCHAR(MAX) NULL,
-            [created_at] DATETIME2(3) NOT NULL CONSTRAINT DF_ticket_messages_created_at DEFAULT SYSUTCDATETIME()
-          );
-          CREATE INDEX IX_ticket_messages_ticket_id ON [dbo].[ticket_messages]([ticket_id], [created_at]);
-        END;
-        IF OBJECT_ID(N'[dbo].[ticket_events]', N'U') IS NULL
-        BEGIN
-          CREATE TABLE [dbo].[ticket_events] (
-            [id] INT IDENTITY(1,1) NOT NULL CONSTRAINT PK_ticket_events PRIMARY KEY,
-            [ticket_id] INT NOT NULL,
-            [actor_id] INT NULL,
-            [action] NVARCHAR(80) NOT NULL,
-            [old_value] NVARCHAR(MAX) NULL,
-            [new_value] NVARCHAR(MAX) NULL,
-            [created_at] DATETIME2(3) NOT NULL CONSTRAINT DF_ticket_events_created_at DEFAULT SYSUTCDATETIME()
-          );
-          CREATE INDEX IX_ticket_events_ticket_id ON [dbo].[ticket_events]([ticket_id], [created_at]);
-        END;
+      const result = await pool.request().query(`
+        SELECT CASE WHEN OBJECT_ID(N'dbo.tickets', N'U') IS NOT NULL
+                          AND OBJECT_ID(N'dbo.ticket_messages', N'U') IS NOT NULL
+                          AND OBJECT_ID(N'dbo.ticket_events', N'U') IS NOT NULL
+                    THEN 1 ELSE 0 END AS ready;
       `);
+      if (normalizeResult(result)[0]?.ready !== 1) throw new Error("Support schema is missing; apply migration 009");
       return true;
     })().catch((error) => {
       supportSchemaPromise = null;
@@ -203,8 +155,10 @@ async function ensureSupportTables() {
   return supportSchemaPromise;
 }
 
-const uploadDirectory = path.join(__dirname, "..", "public", "uploads", "support");
+const uploadDirectory = path.join(__dirname, "..", "private_uploads", "support");
+const quarantineDirectory = path.join(__dirname, "..", "private_uploads", "quarantine");
 fs.mkdirSync(uploadDirectory, { recursive: true });
+fs.mkdirSync(quarantineDirectory, { recursive: true });
 const allowedMimeTypes = new Set([
   "application/pdf",
   "image/jpeg",
@@ -215,7 +169,7 @@ const allowedMimeTypes = new Set([
 ]);
 const upload = multer({
   storage: multer.diskStorage({
-    destination: (_req, _file, callback) => callback(null, uploadDirectory),
+    destination: (_req, _file, callback) => callback(null, quarantineDirectory),
     filename: (_req, file, callback) => {
       const extension = path.extname(file.originalname).toLowerCase().replace(/[^a-z0-9.]/g, "");
       callback(null, `${Date.now()}-${crypto.randomBytes(8).toString("hex")}${extension}`);
@@ -226,19 +180,59 @@ const upload = multer({
 });
 
 function handleUploads(req, res, next) {
-  upload.array("attachments", 5)(req, res, (error) => {
-    if (error) return res.status(400).json({ error: error.code === "LIMIT_FILE_SIZE" ? "Each attachment must be 10 MB or smaller" : "Invalid attachment" });
-    next();
+  upload.array("attachments", 5)(req, res, async (error) => {
+    try {
+      if (error) {
+        await cleanupUploadedFiles(req);
+        return res.status(400).json({ error: error.code === "LIMIT_FILE_SIZE" ? "Each attachment must be 10 MB or smaller" : "Invalid attachment" });
+      }
+      if (!(await validateUploadedFiles(req.files || [], "support"))) {
+        await cleanupUploadedFiles(req);
+        return res.status(400).json({ error: "Attachment content does not match an allowed file type" });
+      }
+      const scan = await scanUploadedFiles(req.files || []);
+      if (!scan.clean) {
+        await cleanupUploadedFiles(req);
+        return res.status(scan.unavailable ? 503 : 422).json({ error: scan.unavailable ? "Attachment scanning is temporarily unavailable" : "Attachment was rejected by malware scanning" });
+      }
+      for (const result of scan.results) {
+        const releasedPath = path.join(uploadDirectory, path.basename(result.file.filename));
+        await fs.promises.rename(result.file.path, releasedPath);
+        result.file.path = releasedPath;
+        result.file.scanResult = result;
+      }
+      next();
+    } catch (uploadError) {
+      await cleanupUploadedFiles(req);
+      console.error("Support attachment processing failed:", uploadError?.message || uploadError);
+      return res.status(503).json({ error: "Attachment processing is temporarily unavailable" });
+    }
   });
 }
 
-function uploadedAttachments(req) {
-  return (req.files || []).map((file) => ({
-    name: file.originalname,
-    type: file.mimetype,
-    size: file.size,
-    url: `/api/uploads/support/${file.filename}`,
-  }));
+async function cleanupUploadedFiles(req) {
+  await Promise.all((req.files || []).map((file) => fs.promises.unlink(file.path).catch(() => {})));
+}
+
+async function uploadedAttachments(req, ticketId, requestFactory) {
+  const attachments = [];
+  for (const file of req.files || []) {
+    await requestFactory()
+      .input("UploadTicketId", sql.Int, ticketId)
+      .input("UploadOwnerId", sql.Int, req.user && Number.isFinite(Number(req.user.id)) ? Number(req.user.id) : null)
+      .input("UploadStorageName", sql.NVarChar(255), file.filename)
+      .input("UploadOriginalName", sql.NVarChar(255), String(file.originalname || "attachment").slice(0, 255))
+      .input("UploadMediaType", sql.NVarChar(160), file.mimetype)
+      .input("UploadSize", sql.BigInt, Number(file.size) || 0)
+      .input("UploadSha256", sql.Char(64), file.scanResult?.sha256)
+      .input("UploadScanner", sql.NVarChar(80), file.scanResult?.scanner || null)
+      .input("UploadDetail", sql.NVarChar(400), String(file.scanResult?.detail || "clean").slice(0, 400))
+      .query(`INSERT INTO [Security].[UploadObjects]
+        ([ticket_id], [owner_user_id], [storage_name], [original_name], [media_type], [size_bytes], [sha256], [scan_status], [scanner], [scan_detail], [scanned_at], [released_at])
+        VALUES (@UploadTicketId, @UploadOwnerId, @UploadStorageName, @UploadOriginalName, @UploadMediaType, @UploadSize, @UploadSha256, N'Clean', @UploadScanner, @UploadDetail, SYSUTCDATETIME(), SYSUTCDATETIME())`);
+    attachments.push({ name: file.originalname, type: file.mimetype, size: file.size, url: `/api/support/tickets/${ticketId}/attachments/${file.filename}` });
+  }
+  return attachments;
 }
 
 function cleanString(value, max) {
@@ -259,7 +253,7 @@ async function getAdminEmailRecipients(pool) {
     const result = await pool.request().query(`
       SELECT TOP 1 Email
       FROM User_tbl
-      WHERE LOWER(ISNULL(Role, N'user')) = N'admin'
+      WHERE LOWER(ISNULL(Role, N'user')) IN (N'admin', N'owner')
         AND NULLIF(LTRIM(RTRIM(Email)), N'') IS NOT NULL
         AND LastLogin IS NOT NULL
       ORDER BY LastLogin DESC, UserID DESC
@@ -318,7 +312,7 @@ async function loadTicket(pool, ticketId, includeInternal = false) {
 }
 
 async function userCanAccessTicket(pool, ticketId, user) {
-  if (String(user?.role || "").toLowerCase() === "admin") return true;
+  if (isStaffRole(user?.role)) return true;
   const result = await pool.request().input("TicketId", sql.Int, ticketId).query("SELECT TOP 1 user_id, customer_email FROM [dbo].[tickets] WHERE id = @TicketId");
   const row = normalizeResult(result)[0];
   if (!row) return false;
@@ -398,11 +392,13 @@ router.get("/api/support/tickets", requireAuth, async (req, res) => {
 
 router.post("/api/support/tickets", optionalAuth, handleUploads, async (req, res) => {
   const input = validateTicketBody(req.body || {});
-  if (input.error) return res.status(400).json({ error: input.error });
+  if (input.error) {
+    await cleanupUploadedFiles(req);
+    return res.status(400).json({ error: input.error });
+  }
   try {
     await ensureSupportTables();
     const pool = await getPool();
-    const attachments = uploadedAttachments(req);
     const ticketNumber = makeTicketNumber();
     const transaction = new sql.Transaction(pool);
     await transaction.begin();
@@ -418,6 +414,7 @@ router.post("/api/support/tickets", optionalAuth, handleUploads, async (req, res
         .input("CustomerEmail", sql.NVarChar(255), input.customerEmail);
       const ticketResult = await ticketRequest.query(`INSERT INTO [dbo].[tickets] (ticket_number, user_id, order_id, category, priority, subject, customer_name, customer_email) OUTPUT INSERTED.id VALUES (@TicketNumber, @UserId, @OrderId, @Category, @Priority, @Subject, @CustomerName, @CustomerEmail)`);
       const ticketId = normalizeResult(ticketResult)[0].id;
+      const attachments = await uploadedAttachments(req, ticketId, () => transaction.request());
       await transaction.request()
         .input("MessageTicketId", sql.Int, ticketId)
         .input("SenderId", sql.Int, req.user && Number.isFinite(Number(req.user.id)) ? Number(req.user.id) : null)
@@ -435,6 +432,7 @@ router.post("/api/support/tickets", optionalAuth, handleUploads, async (req, res
       throw error;
     }
   } catch (error) {
+    await cleanupUploadedFiles(req);
     console.error("POST /api/support/tickets", error);
     res.status(500).json({ error: "Unable to create support ticket" });
   }
@@ -447,7 +445,7 @@ router.get("/api/support/tickets/:ticketId", requireAuth, async (req, res) => {
     await ensureSupportTables();
     const pool = await getPool();
     if (!(await userCanAccessTicket(pool, ticketId, req.user))) return res.status(403).json({ error: "You do not have access to this ticket" });
-    const ticket = await loadTicket(pool, ticketId, String(req.user.role).toLowerCase() === "admin");
+    const ticket = await loadTicket(pool, ticketId, isStaffRole(req.user.role));
     if (!ticket) return res.status(404).json({ error: "Ticket not found" });
     res.json({ ticket });
   } catch (error) {
@@ -456,34 +454,69 @@ router.get("/api/support/tickets/:ticketId", requireAuth, async (req, res) => {
   }
 });
 
-router.post("/api/support/tickets/:ticketId/messages", requireAuth, handleUploads, async (req, res) => {
+router.get("/api/support/tickets/:ticketId/attachments/:filename", requireAnySupportAuth, async (req, res) => {
+  const ticketId = Number(req.params.ticketId);
+  const filename = String(req.params.filename || "");
+  if (!Number.isInteger(ticketId) || ticketId < 1 || !/^\d{10,}-[a-f0-9]{16}\.(?:pdf|jpe?g|png|webp|txt|docx)$/i.test(filename)) {
+    return res.status(400).json({ error: "Invalid attachment path" });
+  }
+  try {
+    const pool = await getPool();
+    if (!(await userCanAccessTicket(pool, ticketId, req.user))) return res.status(403).json({ error: "You do not have access to this attachment" });
+    const uploadResult = await pool.request()
+      .input("TicketId", sql.Int, ticketId)
+      .input("StorageName", sql.NVarChar(255), filename)
+      .query("SELECT TOP 1 [original_name] FROM [Security].[UploadObjects] WHERE [ticket_id] = @TicketId AND [storage_name] = @StorageName AND [scan_status] IN (N'Clean', N'Migrated') AND [deleted_at] IS NULL");
+    const uploadObject = normalizeResult(uploadResult)[0];
+    if (!uploadObject) return res.status(404).json({ error: "Attachment not found" });
+    const absolute = path.resolve(uploadDirectory, filename);
+    if (path.dirname(absolute) !== path.resolve(uploadDirectory)) return res.status(400).json({ error: "Invalid attachment path" });
+    return res.download(absolute, path.basename(uploadObject.original_name || filename), { dotfiles: "deny", headers: { "X-Content-Type-Options": "nosniff", "Cache-Control": "private, no-store" } }, (error) => {
+      if (error && !res.headersSent) res.status(error.code === "ENOENT" ? 404 : 500).json({ error: error.code === "ENOENT" ? "Attachment not found" : "Unable to download attachment" });
+    });
+  } catch (error) {
+    console.error("GET support attachment", error?.message || error);
+    return res.status(500).json({ error: "Unable to download attachment" });
+  }
+});
+
+router.post("/api/support/tickets/:ticketId/messages", requireCustomerOrStaffReply, handleUploads, async (req, res) => {
   const ticketId = Number(req.params.ticketId);
   const contentHtml = sanitizeHtml(req.body?.contentHtml || req.body?.message || "");
   const contentText = cleanString(req.body?.contentText, 500000) || toPlainText(contentHtml);
-  if (!Number.isInteger(ticketId) || ticketId < 1) return res.status(400).json({ error: "Invalid ticket id" });
-  if (!contentText) return res.status(400).json({ error: "Message is required" });
+  if (!Number.isInteger(ticketId) || ticketId < 1) { await cleanupUploadedFiles(req); return res.status(400).json({ error: "Invalid ticket id" }); }
+  if (!contentText) { await cleanupUploadedFiles(req); return res.status(400).json({ error: "Message is required" }); }
   try {
     await ensureSupportTables();
     const pool = await getPool();
-    if (!(await userCanAccessTicket(pool, ticketId, req.user))) return res.status(403).json({ error: "You do not have access to this ticket" });
-    const isAdmin = String(req.user.role).toLowerCase() === "admin";
+    if (!(await userCanAccessTicket(pool, ticketId, req.user))) { await cleanupUploadedFiles(req); return res.status(403).json({ error: "You do not have access to this ticket" }); }
+    const isAdmin = isStaffRole(req.user.role);
     const visibility = isAdmin && req.body?.visibility === "internal" ? "internal" : "public";
     const senderType = isAdmin ? (req.body?.senderType === "ai" ? "ai" : "agent") : "customer";
-    const attachments = uploadedAttachments(req);
-    await pool.request()
-      .input("TicketId", sql.Int, ticketId)
-      .input("SenderId", sql.Int, Number(req.user.id))
-      .input("SenderType", sql.NVarChar(20), senderType)
-      .input("Visibility", sql.NVarChar(20), visibility)
-      .input("ContentHtml", sql.NVarChar(sql.MAX), contentHtml)
-      .input("ContentText", sql.NVarChar(sql.MAX), contentText)
-      .input("Attachments", sql.NVarChar(sql.MAX), JSON.stringify(attachments))
-      .query("INSERT INTO [dbo].[ticket_messages] (ticket_id, sender_id, sender_type, visibility, content_html, content_text, attachments) VALUES (@TicketId, @SenderId, @SenderType, @Visibility, @ContentHtml, @ContentText, @Attachments); UPDATE [dbo].[tickets] SET updated_at = SYSUTCDATETIME() WHERE id = @TicketId");
-    await addEvent(pool.request(), ticketId, req.user.id, visibility === "internal" ? "internal_note_added" : "message_added", null, senderType);
+    const transaction = new sql.Transaction(pool);
+    await transaction.begin();
+    try {
+      const attachments = await uploadedAttachments(req, ticketId, () => transaction.request());
+      await transaction.request()
+        .input("TicketId", sql.Int, ticketId)
+        .input("SenderId", sql.Int, Number(req.user.id))
+        .input("SenderType", sql.NVarChar(20), senderType)
+        .input("Visibility", sql.NVarChar(20), visibility)
+        .input("ContentHtml", sql.NVarChar(sql.MAX), contentHtml)
+        .input("ContentText", sql.NVarChar(sql.MAX), contentText)
+        .input("Attachments", sql.NVarChar(sql.MAX), JSON.stringify(attachments))
+        .query("INSERT INTO [dbo].[ticket_messages] (ticket_id, sender_id, sender_type, visibility, content_html, content_text, attachments) VALUES (@TicketId, @SenderId, @SenderType, @Visibility, @ContentHtml, @ContentText, @Attachments); UPDATE [dbo].[tickets] SET updated_at = SYSUTCDATETIME() WHERE id = @TicketId");
+      await addEvent(transaction.request(), ticketId, req.user.id, visibility === "internal" ? "internal_note_added" : "message_added", null, senderType);
+      await transaction.commit();
+    } catch (error) {
+      await transaction.rollback().catch(() => {});
+      throw error;
+    }
     const ticket = await loadTicket(pool, ticketId, isAdmin);
     await notifyTicketEvent(pool, ticket, visibility === "internal" ? "internal_note_added" : "message_added");
     res.status(201).json({ ticket });
   } catch (error) {
+    await cleanupUploadedFiles(req);
     console.error("POST /api/support/tickets/:ticketId/messages", error);
     res.status(500).json({ error: "Unable to send ticket message" });
   }
@@ -538,7 +571,7 @@ router.get("/api/support/admin/tickets/:ticketId", requireAdmin, async (req, res
   }
 });
 
-router.patch("/api/support/admin/tickets/:ticketId", requireAdmin, async (req, res) => {
+router.patch("/api/support/admin/tickets/:ticketId", requireTicketUpdate, async (req, res) => {
   const ticketId = Number(req.params.ticketId);
   if (!Number.isInteger(ticketId) || ticketId < 1) return res.status(400).json({ error: "Invalid ticket id" });
   try {

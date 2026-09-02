@@ -6,13 +6,15 @@ export default async function LegalStructuredData({ content, slug }) {
   const title = content?.hero?.title || `${site.siteName} Policy`;
   const description = content?.seo?.description || content?.hero?.intro || `${site.siteName} customer information.`;
   const faqItems = Array.isArray(content?.faq?.items) ? content.faq.items : [];
-  const pageUrl = `https://weluxo.com/${slug}`;
+  const pageUrl = siteUrlFor(site, `/${slug}`);
+  const organizationId = `${siteUrl}/#organization`;
+  const websiteId = `${siteUrl}/#website`;
   const graph = [
     {
       "@type": "Organization",
-      "@id": "https://weluxo.com/#organization",
+      "@id": organizationId,
       name: site.siteName,
-      url: "https://weluxo.com",
+      url: siteUrl,
     },
     {
       "@type": "WebPage",
@@ -20,7 +22,7 @@ export default async function LegalStructuredData({ content, slug }) {
       url: pageUrl,
       name: title,
       description,
-      isPartOf: { "@id": "https://weluxo.com/#website" },
+      isPartOf: { "@id": websiteId },
     },
   ];
 
@@ -38,10 +40,10 @@ export default async function LegalStructuredData({ content, slug }) {
 
   graph.push({
     "@type": "WebSite",
-    "@id": "https://weluxo.com/#website",
-    url: "https://weluxo.com",
+    "@id": websiteId,
+    url: siteUrl,
     name: site.siteName,
-    publisher: { "@id": "https://weluxo.com/#organization" },
+    publisher: { "@id": organizationId },
   });
 
   return <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: JSON.stringify({ "@context": "https://schema.org", "@graph": graph }) }} />;

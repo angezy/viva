@@ -19,6 +19,7 @@ import EditIcon from "@mui/icons-material/Edit";
 import Link from "next/link";
 import ResumeShoppingSection from "./ResumeShoppingSection";
 import CustomerReviewsSection from "./CustomerReviewsSection";
+import { ProductGridSkeleton } from "./LoadingSkeletons";
 
 const API_BASE_URL = "";
 
@@ -37,6 +38,25 @@ function resolveImage(value) {
     return resolveImage(candidate);
   }
   return "";
+}
+
+function slugify(value) {
+  return String(value || "")
+    .normalize("NFKD")
+    .replace(/[\u0300-\u036f]/g, "")
+    .toLowerCase()
+    .trim()
+    .replace(/[^a-z0-9]+/g, "-")
+    .replace(/^-+|-+$/g, "");
+}
+
+function productHref(product, title) {
+  const explicitSlug = product.slug || product.Slug || product.handle || product.Handle;
+  const normalizedSlug = String(explicitSlug || "")
+    .replace(/^\/product\//, "")
+    .replace(/^\//, "")
+    .replace(/\/$/, "");
+  return `/product/${encodeURIComponent(slugify(normalizedSlug || title))}`;
 }
 
 const FALLBACK = {
@@ -117,11 +137,12 @@ const FALLBACK = {
 export default function HeroSection({ initialContent = null, onEdit = {} }) {
   const [content, setContent] = useState(initialContent);
   const [productsFromDb, setProductsFromDb] = useState(null);
+  const [productsLoading, setProductsLoading] = useState(true);
 
   // Keep local state in sync with provided content (dashboard view)
   useEffect(() => {
     if (initialContent) {
-      setContent(initialContent);
+      queueMicrotask(() => setContent(initialContent));
     }
   }, [initialContent]);
 
@@ -145,6 +166,7 @@ export default function HeroSection({ initialContent = null, onEdit = {} }) {
   // Load products from backend DB for live site
   useEffect(() => {
     let mounted = true;
+    queueMicrotask(() => setProductsLoading(true));
     fetch("/api/shop")
       .then((res) => (res.ok ? res.json() : Promise.reject()))
       .then((data) => {
@@ -154,6 +176,9 @@ export default function HeroSection({ initialContent = null, onEdit = {} }) {
       })
       .catch(() => {
         if (mounted) setProductsFromDb(null);
+      })
+      .finally(() => {
+        if (mounted) setProductsLoading(false);
       });
     return () => {
       mounted = false;
@@ -246,7 +271,12 @@ export default function HeroSection({ initialContent = null, onEdit = {} }) {
           flexWrap: "wrap",
         }}
       >
-          <Grid item xs={12} md={6} sx={{ display: "flex", justifyContent: "center" }}>
+          <Grid
+            sx={{ display: "flex", justifyContent: "center" }}
+            size={{
+              xs: 12,
+              md: 6
+            }}>
             <Card
               sx={{
                 height: "100%",
@@ -266,7 +296,7 @@ export default function HeroSection({ initialContent = null, onEdit = {} }) {
                 sx={{ objectFit: "cover" }}
               />
               <CardContent>
-                <Typography variant="overline" color="primary.light">
+                <Typography variant="overline" sx={{ color: "var(--color-primary)" }}>
                   {firstCard.subtitle}
                 </Typography>
                 <Typography variant="h5" sx={{ fontWeight: 800 }}>
@@ -276,7 +306,12 @@ export default function HeroSection({ initialContent = null, onEdit = {} }) {
             </Card>
           </Grid>
 
-          <Grid item xs={12} md={6} sx={{ display: "flex", justifyContent: "center" }}>
+          <Grid
+            sx={{ display: "flex", justifyContent: "center" }}
+            size={{
+              xs: 12,
+              md: 6
+            }}>
             <Card
               sx={{
                 height: "100%",
@@ -322,7 +357,7 @@ export default function HeroSection({ initialContent = null, onEdit = {} }) {
                   fontWeight: 700,
                   textTransform: "none",
                   borderRadius: 2,
-                  ":hover": { bgcolor: "#1d4ed8" },
+                  ":hover": { bgcolor: "var(--color-primary-dark)" },
                 }}
               >
                 {secondCard.cta || "Shop now"}
@@ -371,7 +406,7 @@ export default function HeroSection({ initialContent = null, onEdit = {} }) {
                   bgcolor: "var(--color-primary)",
                   borderRadius: 2,
                   textTransform: "none",
-                  ":hover": { bgcolor: "#1d4ed8" },
+                  ":hover": { bgcolor: "var(--color-primary-dark)" },
                 }}
               >
                 {trainingBlock.cta || "See specs"}
@@ -403,24 +438,27 @@ export default function HeroSection({ initialContent = null, onEdit = {} }) {
           <Typography variant="h6" sx={{ fontWeight: 800, mb: 2 }}>
             {productsSection.title}
           </Typography>
-          <Grid container spacing={2} justifyContent="center">
-            {products.length === 0 && (
-              <Grid item xs={12}>
-                <Box
-                  sx={{
-                    borderRadius: 2,
-                    p: 3,
-                    bgcolor: "#ffffff",
-                    border: "1px dashed var(--color-border)",
-                    textAlign: "center",
-                    color: "var(--color-text-secondary)",
-                  }}
-                >
-                  No products found. Add products in the dashboard to see them here.
-                </Box>
-              </Grid>
-            )}
-            {products.map((item, idx) => {
+          {productsLoading ? (
+            <ProductGridSkeleton count={4} cardHeight={500} imageHeight={220} columns={4} gridSpacing={2} variant="home" />
+          ) : (
+            <Grid container spacing={2} justifyContent="center">
+              {products.length === 0 && (
+                <Grid size={12}>
+                  <Box
+                    sx={{
+                      borderRadius: 2,
+                      p: 3,
+                      bgcolor: "#ffffff",
+                      border: "1px dashed var(--color-border)",
+                      textAlign: "center",
+                      color: "var(--color-text-secondary)",
+                    }}
+                  >
+                    No products found. Add products in the dashboard to see them here.
+                  </Box>
+                </Grid>
+              )}
+              {products.map((item, idx) => {
               const title = item.title || item.name || `Product ${idx + 1}`;
               const rawImages = Array.isArray(item.images) ? item.images : [];
               const gallery = rawImages.map(resolveImage).filter(Boolean);
@@ -439,94 +477,113 @@ export default function HeroSection({ initialContent = null, onEdit = {} }) {
                   ? rawPrice
                   : "";
               const alt = item.alt || item.name || title;
-              return (
-                <Grid item xs={12} sm={6} md={3} key={title} sx={{ display: "flex", justifyContent: "center" }}>
-                  <Card
-                    sx={{
-                      width: "100%",
-                      minWidth: 0,
-                      maxWidth: 300,
-                      height: 500,
-                      borderRadius: 2.5,
-                      overflow: "hidden",
-                      bgcolor: "#ffffff",
-                      border: "1px solid var(--color-border)",
-                      position: "relative",
-                      display: "flex",
-                      flexDirection: "column",
-                    }}
-                  >
-                    <CardMedia
-                      component="img"
-                      height="220"
-                      image={img || "https://placehold.co/400x300?text=Product"}
-                      alt={alt}
-                      sx={{ objectFit: "cover" }}
-                    />
-                    <CardContent sx={{ flexGrow: 1, display: "flex", flexDirection: "column" }}>
-                      <Typography
-                        sx={{
-                          fontWeight: 700,
-                          color: "var(--color-text-primary)",
-                          fontSize: "0.85rem",
-                          lineHeight: 1.25,
-                          display: "-webkit-box",
-                          WebkitLineClamp: 2,
-                          WebkitBoxOrient: "vertical",
-                          overflow: "hidden",
-                          textOverflow: "ellipsis",
-                          whiteSpace: "normal",
-                          mb: 1,
-                        }}
-                      >
-                        {title}
-                      </Typography>
-                      <Typography sx={{ color: "var(--color-text-secondary)", fontSize: "0.85rem", mb: 1 }}>
-                        {price}
-                      </Typography>
-                      <Box sx={{ mt: "auto" }}>
-                        <Button
-                          variant="contained"
-                          size="small"
-                          href="/cart"
-                          sx={{ mt: 1.5, borderRadius: 1.5, textTransform: "none" }}
-                        >
-                          Add to cart
-                        </Button>
-                      </Box>
-                      {gallery.length > 1 && (
-                        <Box
+              const href = productHref(item, title);
+                return (
+                  <Grid
+                    key={title}
+                    sx={{ display: "flex", justifyContent: "center" }}
+                    size={{
+                      xs: 12,
+                      sm: 6,
+                      md: 3
+                    }}>
+                    <Card
+                      sx={{
+                        width: "100%",
+                        minWidth: 0,
+                        maxWidth: 300,
+                        height: 500,
+                        borderRadius: 2.5,
+                        overflow: "hidden",
+                        bgcolor: "#ffffff",
+                        border: "1px solid var(--color-border)",
+                        position: "relative",
+                        display: "flex",
+                        flexDirection: "column",
+                        cursor: "pointer",
+                        transition: "transform 180ms ease, box-shadow 180ms ease",
+                        "&:hover": { transform: "translateY(-3px)", boxShadow: "0 14px 30px rgba(43,43,43,0.12)" },
+                      }}
+                    >
+                      <Box
+                        component={Link}
+                        href={href}
+                        aria-label={`View ${title}`}
+                        sx={{ position: "absolute", inset: 0, zIndex: 1 }}
+                      />
+                      <CardMedia
+                        component="img"
+                        height="220"
+                        image={img || "https://placehold.co/400x300?text=Product"}
+                        alt={alt}
+                        sx={{ objectFit: "cover", position: "relative", zIndex: 2, pointerEvents: "none" }}
+                      />
+                      <CardContent sx={{ flexGrow: 1, display: "flex", flexDirection: "column", position: "relative", zIndex: 2, pointerEvents: "none" }}>
+                        <Typography
                           sx={{
-                            display: "flex",
-                            gap: 1,
-                            mt: 1.5,
-                            overflowX: "auto",
-                            pb: 1,
+                            fontWeight: 700,
+                            color: "var(--color-text-primary)",
+                            fontSize: "0.85rem",
+                            lineHeight: 1.25,
+                            display: "-webkit-box",
+                            WebkitLineClamp: 2,
+                            WebkitBoxOrient: "vertical",
+                            overflow: "hidden",
+                            textOverflow: "ellipsis",
+                            whiteSpace: "normal",
+                            mb: 1,
                           }}
                         >
-                          {gallery.map((thumb, tIdx) => (
-                            <Box
-                              key={`${title}-thumb-${tIdx}`}
-                              component="img"
-                              src={thumb}
-                              alt={`${title} ${tIdx + 1}`}
-                              sx={{
-                                width: 56,
-                                height: 56,
-                                objectFit: "cover",
-                                borderRadius: 1,
-                                border: "1px solid var(--color-border)",
-                              }}
-                            />
-                          ))}
+                          {title}
+                        </Typography>
+                        <Typography sx={{ color: "var(--color-text-secondary)", fontSize: "0.85rem", mb: 1 }}>
+                          {price}
+                        </Typography>
+                        <Box sx={{ mt: "auto" }}>
+                          <Button
+                            variant="contained"
+                            size="small"
+                            href="/cart"
+                            sx={{ mt: 1.5, borderRadius: 1.5, textTransform: "none", pointerEvents: "auto", position: "relative", zIndex: 3 }}
+                          >
+                            Add to cart
+                          </Button>
                         </Box>
-                      )}
-                    </CardContent>
-                  </Card>
-                </Grid>
-              );
-            })}
-          </Grid>
+                        {gallery.length > 1 && (
+                          <Box
+                            sx={{
+                              display: "flex",
+                              gap: 1,
+                              mt: 1.5,
+                              overflowX: "auto",
+                              pb: 1,
+                            }}
+                          >
+                            {gallery.map((thumb, tIdx) => (
+                              <Box
+                                key={`${title}-thumb-${tIdx}`}
+                                component="img"
+                                src={thumb}
+                                alt={`${title} ${tIdx + 1}`}
+                                sx={{
+                                  width: 56,
+                                  height: 56,
+                                  objectFit: "cover",
+                                  borderRadius: 1,
+                                  border: "1px solid var(--color-border)",
+                                  pointerEvents: "none",
+                                }}
+                              />
+                            ))}
+                          </Box>
+                        )}
+                      </CardContent>
+                    </Card>
+                  </Grid>
+                );
+              })}
+            </Grid>
+          )}
         </Box>
 
         <Box sx={{ mb: 5 }}>
@@ -540,7 +597,14 @@ export default function HeroSection({ initialContent = null, onEdit = {} }) {
             {actionShots.map((shot, idx) => {
               const isVideo = !!shot.video || (shot.src && (shot.src.endsWith(".mp4") || shot.src.endsWith(".webm")));
               return (
-                <Grid item xs={12} sm={6} md={3} key={`${shot.video || shot.src || "action"}-${idx}`} sx={{ display: "flex", justifyContent: "center" }}>
+                <Grid
+                  key={`${shot.video || shot.src || "action"}-${idx}`}
+                  sx={{ display: "flex", justifyContent: "center" }}
+                  size={{
+                    xs: 12,
+                    sm: 6,
+                    md: 3
+                  }}>
                   <Box
                     sx={{
                       height: 220,
@@ -609,7 +673,12 @@ export default function HeroSection({ initialContent = null, onEdit = {} }) {
         </Box>
 
         <Grid container spacing={3} alignItems="stretch" justifyContent="center" sx={{ mb: 4 }}>
-          <Grid item xs={12} md={12} sx={{ display: "flex", justifyContent: "center" }}>
+          <Grid
+            sx={{ display: "flex", justifyContent: "center" }}
+            size={{
+              xs: 12,
+              md: 12
+            }}>
             <Card
               sx={{
                 height: "100%",
@@ -675,7 +744,14 @@ export default function HeroSection({ initialContent = null, onEdit = {} }) {
           </Typography>
           <Grid container spacing={2} justifyContent="center">
             {features.map((item) => (
-              <Grid item xs={12} sm={6} md={3} key={item.title} sx={{ display: "flex", justifyContent: "center" }}>
+              <Grid
+                key={item.title}
+                sx={{ display: "flex", justifyContent: "center" }}
+                size={{
+                  xs: 12,
+                  sm: 6,
+                  md: 3
+                }}>
                 <Card
                   sx={{
                     borderRadius: 2,

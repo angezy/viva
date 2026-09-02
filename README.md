@@ -67,6 +67,24 @@ JWT_SECRET=your_secret_key
 
 You may also need additional API-related variables depending on integrations used by the backend.
 
+### HyperSKU supplier integration
+
+HyperSKU is registered as the `HYPERSKU` supplier by migration `019_hypersku_supplier.sql`. Apply the current migrations with the deployment-only migration identity, then configure the server-only HyperSKU values in `bend/.env` or from the admin dashboard at `/dashboard/integrations`:
+
+```env
+HYPERSKU_ENABLED=false
+HYPERSKU_API_BASE_URL=https://api.hypersku.com
+HYPERSKU_API_KEY=your-hypersku-api-key
+HYPERSKU_ACCESS_TOKEN=your-hypersku-access-token
+HYPERSKU_USERNAME=your-hypersku-api-username
+HYPERSKU_PASSWORD=your-hypersku-api-password
+HYPERSKU_TOKEN_URL=https://api.hypersku.com/api/auth/admin/token
+HYPERSKU_AUTH_HEADER_PREFIX=
+HYPERSKU_STORE_CODE=
+```
+
+HyperSKU must enable API access for the account before the connection test can succeed. Use the Integrations page’s **Test API** action after saving credentials; it makes a read-only country-code request. The backend client also exposes HyperSKU’s documented logistics, order creation, order lookup, status, and tracking methods. Keep `HYPERSKU_ENABLED=false` until the supplier SKU mappings and fulfillment workflow have been validated.
+
 To enable customer Google sign-in, add the Google OAuth credentials to `bend/.env` and register the callback URL in Google Cloud:
 
 ```env
@@ -86,45 +104,36 @@ Viva uses MSSQL as its relational database. The database schema includes tables 
 
 ### Database Setup
 
+For a new store, follow [`docs/reusable-store-installation.md`](docs/reusable-store-installation.md). Create an empty MSSQL database, configure `.env`, then run `npm run db:bootstrap` followed by `npm run owner:bootstrap`. The configured database is the only target; no production database is restored or copied. `database/bootstrap.sql` is the ordered SQLCMD/SSMS artifact.
+
 #### Option 1: Run Complete Database Script (Recommended)
 
-The easiest way to set up the entire database schema is to run the comprehensive script:
+The legacy foundation file is retained for the bootstrap runner and is not a
+complete installation by itself. Do not edit a database name into a script.
+The target is selected through `DB_DATABASE`/`MIGRATION_DB_DATABASE`.
 
-1. **Update the database name** in `scripts/create_database.sql`:
-   - Find `YourDatabaseName` and replace it with your desired database name (e.g., `viva_db`)
+For the ordered migration runner:
 
-2. **Run the script** using SSMS or sqlcmd:
-   
-   **Using sqlcmd:**
-   ```bash
-   sqlcmd -S your_server -U your_user -P your_password -i "scripts\create_database.sql"
-   ```
-   linux
-   ```bash
-   sqlcmd -S tcp:yourserver -U yourusername -C -b -i ./scripts/create_database.sql ```
-   
-   **Using SSMS:**
-   - Open SQL Server Management Studio
-   - Connect to your server
-   - File → Open → File
-   - Select `scripts/create_database.sql`
-   - Click Execute (or press F5)
-
-This script automatically creates:
-- All tables with identity PKs, defaults, and constraints
-- All foreign key relationships
-- Database views (homePage_view, MostChosenProducts)
-
-#### Option 2: Run Individual Scripts
-
-If you prefer to run scripts individually, locate them in `bend/TMp/` directory:
-
-```bash
-sqlcmd -S your_server -U your_user -P your_password -d viva_db -i "bend\TMp\create_dashboard_tables.sql"
-sqlcmd -S your_server -U your_user -P your_password -d viva_db -i "bend\TMp\user_tbl.sql"
-sqlcmd -S your_server -U your_user -P your_password -d viva_db -i "bend\TMp\create_header_tbl.sql"
-sqlcmd -S your_server -U your_user -P your_password -d viva_db -i "bend\TMp\create_footer_tbl.sql"
+```powershell
+$env:ALLOW_SCHEMA_MIGRATIONS="true"
+$env:MIGRATION_IDENTITY_CONFIRMED="true"
+npm run db:bootstrap
+npm run owner:bootstrap
 ```
+
+Alternatively, open `database/bootstrap.sql` in SSMS with SQLCMD mode enabled,
+select the empty target database before execution, and run it. The SQLCMD artifact applies the same
+foundation, migrations, and system seed in dependency order. It never restores
+or copies another database.
+
+#### Option 2: Existing-install migration
+
+For an existing installation, take a database backup, verify the configured
+target, and run the same `npm run db:bootstrap` command. The runner applies
+only missing migrations and preserves existing business rows; it refuses a
+non-empty database that does not contain the expected legacy foundation.
+The files under `bend/TMp/` are historical compatibility scripts and are not
+the fresh-store installation path.
 
 ### Database Schema
 
@@ -135,7 +144,7 @@ The complete database schema includes the following tables and relationships:
 - `Username` (NVARCHAR(100), Unique) - Login username
 - `Email` (NVARCHAR(255), Unique) - User email address
 - `PasswordHash` (NVARCHAR(255)) - Hashed password (never store plaintext)
-- `Role` (NVARCHAR(50)) - User role (e.g., 'user', 'admin')
+- `Role` (NVARCHAR(50)) - User role (`owner`, `admin`, or `customer`; legacy `user` is normalized to `customer`)
 - `CreatedAt` (DATETIME) - Account creation timestamp
 - `LastLogin` (DATETIME) - Last login timestamp
 - `LastIP` (NVARCHAR(45)) - Last login IP address
@@ -193,7 +202,7 @@ The complete database schema includes the following tables and relationships:
 - `AddressLine` (NVARCHAR(255)) - Address details
 - `CreatedAt` (DATETIME) - Address creation timestamp
 
-#### **CjImportedProducts_tbl** - Imported products from CJ Dropshipping
+#### **CjImportedProducts_tbl** - Imported supplier products
 - `Id` (INT, PK, Identity) - Unique identifier
 - `Pid` (NVARCHAR(120)) - CJ product ID
 - `ProductId` (INT, FK) - Reference to Products_tbl
@@ -201,6 +210,17 @@ The complete database schema includes the following tables and relationships:
 - `RawJson` (NVARCHAR(MAX)) - Raw CJ API response data
 - `CreatedAt` (DATETIME) - Import timestamp
 - `UpdatedAt` (DATETIME) - Last update timestamp
+
+### CJ custom website connection
+
+The CJ import page stores products in the Weluxo catalog. For a custom website, it also uses CJ's API store flow: save the site product and variants in CJ, then create a CJ product connection so CJ can match the site's product to the CJ product for fulfillment. Configure these server-only variables before importing:
+
+- `CJ_STORE_SYNC_ENABLED=true`
+- `CJ_PRODUCT_CONNECTION_LOGISTICS=PacketPlus` (or a logistics method supported by the CJ account)
+- `CJ_SHOP_ID` only when the CJ account has more than one shop; otherwise the API shop bound to the account is used
+- `CJ_SOURCE_COUNTRY_CODE`, `CJ_TARGET_COUNTRY_CODE`, and `CJ_CONNECTION_DEFAULT_AREA` for the connection defaults
+
+Apply database migration `018_cj_store_product_connections.sql` to retain sync status. Existing local imports can be retried from Dashboard → API Products using **Sync to CJ**. If CJ has no API shop bound to the account, create/authorize the API store in CJ first; an API key alone does not make the local website appear in CJ.
 
 #### **Comments** - User comments and testimonials
 - `CommentId` (INT, PK, Identity) - Unique comment identifier
@@ -308,19 +328,9 @@ Or for development with auto-reload:
 npm run dev
 ```
 
-**Expected Output:**
-```
-Server running on http://localhost:5000
-GraphQL server ready at http://localhost:5000/graphql
-Database connected successfully
-```
-
 **Backend endpoints:**
 - REST API: `http://localhost:5000/api/*`
 - GraphQL: `http://localhost:5000/graphql`
-- Tables endpoint: `http://localhost:5000/api/tables`
-- Views endpoint: `http://localhost:5000/api/views`
-- Table values endpoint: `http://localhost:5000/api/table-values?schema=dbo&name=Products_tbl`
 
 ### Starting the Frontend (fend/)
 
@@ -352,7 +362,7 @@ npm run dev
 
 **Frontend access:**
 - Main app: `http://localhost:3000`
-- Pages are available at various routes like `/shop`, `/blog`, `/tables`, etc.
+- Pages are available at routes such as `/shop` and `/blog`.
 
 ### Starting Both Servers Together
 
@@ -364,7 +374,7 @@ For the easiest approach, start both servers at once from the project root:
 npm run dev
 ```
 
-This runs `scripts/start-dev.js`, which starts both servers simultaneously with labeled output:
+This runs `scripts/start-dev.js`, which starts both servers simultaneously:
 - **Backend** starts on `http://localhost:5000`
 - **Frontend** starts on `http://localhost:3000`
 
@@ -400,7 +410,6 @@ Once both servers are running, you can access:
 
 - **Main App**: [http://localhost:3000](http://localhost:3000)
 - **GraphQL API**: [http://localhost:5000/graphql](http://localhost:5000/graphql) (backend)
-- **Database Explorer**: [http://localhost:3000/tables](http://localhost:3000/tables) (view schema and data)
 
 ### Prerequisites Checklist
 
@@ -449,7 +458,7 @@ Before starting the app, ensure you have completed:
 **Error: "Backend server won't start"**
 - Verify all database environment variables are correctly set in `.env`
 - Check that MSSQL Server is running and accessible from your machine
-- Review backend server logs for specific error messages
+- Verify the backend `/api/health` endpoint and database connectivity
 
 **Frontend not reflecting backend changes**
 - Restart both servers for changes to take effect

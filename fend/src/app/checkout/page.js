@@ -18,13 +18,13 @@ export default function CheckoutPage() {
   const [checkout, setCheckout] = useState(readCheckoutState());
 
   useEffect(() => {
-    setCheckout(readCheckoutState());
-  }, []);
+    queueMicrotask(() => setCheckout(readCheckoutState()));
+  }, [user]);
 
   if (loading) return <CheckoutLoading />;
 
   return (
-    <CheckoutLayout currentStep="overview" items={items} subtotal={subtotal} discount={discount} couponCode={couponCode} shippingMethod={checkout.shipping.method}>
+    <CheckoutLayout currentStep="overview" items={items} subtotal={subtotal} discount={discount} couponCode={couponCode} shippingMethod={checkout.shipping}>
       {error && <Alert severity="error" sx={{ mb: 3 }}>{error}</Alert>}
       {!user ? (
         <CheckoutAuthPrompt />
@@ -58,7 +58,7 @@ export default function CheckoutPage() {
                   <Typography variant="h6" sx={{ fontWeight: 800, mb: 1 }}>Shipping address</Typography>
                   <Typography>{checkout.shipping.fullName || "Address not added"}</Typography>
                   <Typography color="var(--color-text-secondary)">{shippingText(checkout.shipping) || "Choose a shipping address"}</Typography>
-                  <Typography color="primary.light" sx={{ mt: 1 }}>{checkout.shipping.method === "express" ? "Express shipping" : "Standard shipping"}</Typography>
+                  <Typography color="var(--color-primary)" sx={{ mt: 1 }}>{checkout.shipping.label || checkout.shipping.logisticName || "Shipping service not selected"}</Typography>
                 </Box>
                 <Button component={Link} href="/checkout/shipping" variant="outlined" sx={{ color: "var(--color-primary)", borderColor: "var(--color-primary)", borderRadius: 999 }}>Edit</Button>
               </Stack>

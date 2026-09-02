@@ -3,6 +3,7 @@
 import Link from "next/link";
 import { useEffect, useState } from "react";
 import styles from "./adminRecords.module.css";
+import { TablePageSkeleton } from "../../components/LoadingSkeletons";
 
 function display(value) {
   if (value == null || value === "") return "—";
@@ -30,11 +31,12 @@ export default function AdminRecordsPage({ area, title }) {
       .catch(error => setState({ loading: false, error: error.message, errorCode: error.code || "", missingObjects: error.missingObjects || [], data: null }));
   }, [area]);
 
+  if (state.loading) return <TablePageSkeleton />;
+
   const rows = state.data?.rows || [];
   const keys = rows.length ? Object.keys(rows[0]).filter(key => key !== "Id") : [];
   return <main className={styles.page}>
     <div className={styles.header}><div><Link href="/dashboard/Overview">← Overview</Link><h1>{state.data?.title || title}</h1><p>Database records matching the filters selected on the Overview dashboard.</p></div></div>
-    {state.loading && <div className={styles.message}>Loading database records…</div>}
     {state.error && <div className={`${styles.message} ${styles.error}`}>
       <strong>{state.errorCode === "CANONICAL_SCHEMA_NOT_READY" ? "Database upgrade required" : "Unable to load records"}</strong>
       <span>{state.error}</span>

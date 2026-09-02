@@ -73,7 +73,7 @@ export default function NotificationsSection({ loading: parentLoading }) {
             <List>
               {Array.from({ length: 3 }).map((_, i) => (
                 <ListItem key={i}>
-                  <Skeleton width="100%" />
+                  <Skeleton variant="rounded" width="100%" height={48} sx={{ borderRadius: 1.5 }} />
                 </ListItem>
               ))}
             </List>

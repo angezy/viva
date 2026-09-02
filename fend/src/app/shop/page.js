@@ -2,6 +2,7 @@
 "use client";
 import { useEffect, useMemo, useState } from "react";
 import Link from "next/link";
+import { useRouter } from "next/navigation";
 import {
   Container,
   Typography,
@@ -15,10 +16,12 @@ import {
   Stack,
   TextField,
   IconButton,
+  CircularProgress,
 } from "@mui/material";
 import EditIcon from "@mui/icons-material/Edit";
 import { addToCart, fetchSession } from "../lib/apiClient";
 import { toast } from "../lib/notifications";
+import { ProductGridSkeleton } from "../components/LoadingSkeletons";
 
 const DEFAULT_SHOP_CONTENT = {
   hero: {
@@ -53,7 +56,7 @@ function productHref(product, title) {
   return `/product/${encodeURIComponent(slugify(normalizedSlug || title))}`;
 }
 
-function ShopProductCard({ product, title, description, price, image, trending = false, onAdd }) {
+function ShopProductCard({ product, title, description, price, image, trending = false, onAdd, adding = false }) {
   return (
     <Card
       sx={{
@@ -84,8 +87,8 @@ function ShopProductCard({ product, title, description, price, image, trending =
         </CardContent>
       </Box>
       <Box sx={{ px: 2, pb: 2 }}>
-        <Button fullWidth variant="contained" color="primary" size={trending ? "small" : "medium"} sx={{ borderRadius: 999 }} onClick={() => onAdd(product)}>
-          Add to Cart
+        <Button fullWidth variant="contained" color="primary" size={trending ? "small" : "medium"} sx={{ borderRadius: 999 }} onClick={() => onAdd(product)} disabled={adding} data-button-loading-managed="true" startIcon={adding ? <CircularProgress size={16} color="inherit" /> : undefined}>
+          {adding ? "Adding..." : "Add to Cart"}
         </Button>
       </Box>
     </Card>
@@ -93,14 +96,17 @@ function ShopProductCard({ product, title, description, price, image, trending =
 }
 
 export default function ShopPage({ initialContent = null, editable = false, onEdit = {} }) {
+  const router = useRouter();
   const [products, setProducts] = useState([]);
+  const [productsLoading, setProductsLoading] = useState(true);
   const [search, setSearch] = useState("");
   const [sessionUser, setSessionUser] = useState(null);
   const [pageContent, setPageContent] = useState(initialContent || DEFAULT_SHOP_CONTENT);
+  const [addingProductId, setAddingProductId] = useState(null);
 
   useEffect(() => {
     if (initialContent) {
-      setPageContent(initialContent);
+      queueMicrotask(() => setPageContent(initialContent));
       return undefined;
     }
 
@@ -116,14 +122,24 @@ export default function ShopPage({ initialContent = null, editable = false, onEd
 
   useEffect(() => {
     const query = new URLSearchParams(window.location.search).get("search") || "";
-    setSearch(query);
+    queueMicrotask(() => setSearch(query));
   }, []);
 
   useEffect(() => {
+    let mounted = true;
+    queueMicrotask(() => setProductsLoading(true));
     fetch("/api/shop")
       .then((res) => res.json())
-      .then((data) => setProducts(Array.isArray(data) ? data : []))
-      .catch((err) => console.error("Error fetching products:", err));
+      .then((data) => {
+        if (mounted) setProducts(Array.isArray(data) ? data : []);
+      })
+      .catch((err) => console.error("Error fetching products:", err))
+      .finally(() => {
+        if (mounted) setProductsLoading(false);
+      });
+    return () => {
+      mounted = false;
+    };
   }, []);
 
   useEffect(() => {
@@ -156,13 +172,15 @@ export default function ShopPage({ initialContent = null, editable = false, onEd
 
   async function handleAddProduct(product) {
     const title = product.name || product.Name || product.title || "Untitled";
+    const productId = product.id ?? product.PID ?? product.ProductId ?? title;
     const price = typeof product.price === "number" ? product.price : Number(product.Price) || 0;
     const firstImage = Array.isArray(product.images) && product.images.length > 0 ? product.images[0] : null;
     const image = firstImage || product.Img || product.IMG || product.img || product.image || product.imageUrl ||
       "https://images.unsplash.com/photo-1505740420928-5e560c06d30e?auto=format&fit=crop&w=800&q=80";
+    setAddingProductId(String(productId));
     try {
       await addToCart({
-        productId: product.id ?? product.PID ?? product.ProductId ?? title,
+        productId,
         title,
         price: Number(price) || 0,
         image,
@@ -170,7 +188,7 @@ export default function ShopPage({ initialContent = null, editable = false, onEd
       });
       toast.success("Added to cart", {
         description: `${title} is now in your cart.`,
-        action: { label: "View cart", onClick: () => { window.location.href = "/cart"; } },
+        action: { label: "View cart", onClick: () => router.push("/cart") },
         cancel: { label: "Continue shopping" },
       });
     } catch (err) {
@@ -180,6 +198,8 @@ export default function ShopPage({ initialContent = null, editable = false, onEd
       } else {
         toast.error("Could not add item", { description: err.message || "Please try again." });
       }
+    } finally {
+      setAddingProductId(null);
     }
   }
 
@@ -269,7 +289,8 @@ export default function ShopPage({ initialContent = null, editable = false, onEd
                 const firstImage = Array.isArray(product.images) && product.images.length > 0 ? product.images[0] : null;
                 const image = firstImage || product.Img || product.IMG || product.img || product.image || product.imageUrl ||
                   "https://images.unsplash.com/photo-1505740420928-5e560c06d30e?auto=format&fit=crop&w=800&q=80";
-                return <ShopProductCard key={`trending-${product.id ?? product.PID ?? title}`} product={product} title={title} description={description} price={price} image={image} trending onAdd={handleAddProduct} />;
+                const productId = product.id ?? product.PID ?? product.ProductId ?? title;
+                return <ShopProductCard key={`trending-${productId}`} product={product} title={title} description={description} price={price} image={image} trending onAdd={handleAddProduct} adding={addingProductId === String(productId)} />;
               })}
             </Box>
           </Box>
@@ -279,7 +300,9 @@ export default function ShopPage({ initialContent = null, editable = false, onEd
         <Typography variant="h5" sx={{ fontWeight: 800, mb: 3 }}>
           {shopContent.catalogTitle || DEFAULT_SHOP_CONTENT.catalogTitle}
         </Typography>
-        {visibleProducts.length === 0 ? (
+        {productsLoading ? (
+          <ProductGridSkeleton count={8} cardHeight={500} imageHeight={220} columns={3} gridSpacing={3} />
+        ) : visibleProducts.length === 0 ? (
           <Typography variant="body1" color="text.secondary">
             {shopContent.emptyMessage || DEFAULT_SHOP_CONTENT.emptyMessage}
           </Typography>
@@ -305,7 +328,16 @@ export default function ShopPage({ initialContent = null, editable = false, onEd
                 product.imageUrl ||
                 "https://images.unsplash.com/photo-1505740420928-5e560c06d30e?auto=format&fit=crop&w=800&q=80";
 
-              return <Grid item xs={12} sm={6} md={4} key={product.id ?? product.PID ?? title}><ShopProductCard product={product} title={title} description={description} price={price} image={image} onAdd={handleAddProduct} /></Grid>;
+              const productId = product.id ?? product.PID ?? product.ProductId ?? title;
+              return (
+                <Grid
+                  key={productId}
+                  size={{
+                    xs: 12,
+                    sm: 6,
+                    md: 4
+                  }}><ShopProductCard product={product} title={title} description={description} price={price} image={image} onAdd={handleAddProduct} adding={addingProductId === String(productId)} /></Grid>
+              );
             })}
           </Grid>
         )}

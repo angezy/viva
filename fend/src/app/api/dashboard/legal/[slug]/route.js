@@ -3,6 +3,7 @@
 import { NextResponse } from "next/server";
 import { promises as fs } from "fs";
 import path from "path";
+import { requireDashboardAdmin } from "../../auth";
 
 const LEGAL_FILES = {
   "privacy-policy": "privacy-policy.json",
@@ -35,6 +36,8 @@ export async function GET(_request, { params }) {
 }
 
 export async function POST(request, { params }) {
+  const authError = await requireDashboardAdmin("content.manage");
+  if (authError) return authError;
   const { slug } = await params;
   const dataPath = getDataPath(slug);
   if (!dataPath) return NextResponse.json({ error: "Legal page not found" }, { status: 404 });

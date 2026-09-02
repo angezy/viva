@@ -19,11 +19,10 @@ export function getAuthCookieOptions(maxAge = 60 * 60) {
 // Lightweight token verifier for server components (dashboard layout)
 export function verifyToken(token) {
   if (!token || !JWT_SECRET) {
-    console.log('[auth] verifyToken missing token or JWT_SECRET:', { hasToken: !!token, hasSecret: !!JWT_SECRET })
     return null;
-  }
+ }
   try {
-    return jwt.verify(token, JWT_SECRET);
+    return jwt.verify(token, JWT_SECRET, { algorithms: ["HS256"] });
   } catch (_err) {
     return null;
   }

@@ -1,17 +1,9 @@
 -- =====================================================
--- Full Database Rebuild Script
--- SQL Server
+-- Legacy foundation schema for a selected target database.
+-- The caller must select the target database through the connection or
+-- sqlcmd -d. This file never creates, selects, restores, or copies a database.
 -- Tables + Identity PKs + Defaults + Foreign Keys + Views
 -- =====================================================
-
-IF DB_ID(N'YourDatabaseName') IS NULL
-BEGIN
-    CREATE DATABASE [YourDatabaseName];
-END
-GO
-
-USE [YourDatabaseName];
-GO
 
 -- =====================================================
 -- Tables
@@ -167,7 +159,7 @@ CREATE TABLE [dbo].[User_tbl] (
     [Username] nvarchar(100) NOT NULL,
     [Email] nvarchar(255) NOT NULL,
     [PasswordHash] nvarchar(255) NOT NULL,
-    [Role] nvarchar(50) NULL CONSTRAINT [DF_User_Role] DEFAULT (N'user'),
+    [Role] nvarchar(50) NULL CONSTRAINT [DF_User_Role] DEFAULT (N'customer'),
     [CreatedAt] datetime NULL CONSTRAINT [DF_User_CreatedAt] DEFAULT (GETDATE()),
     [LastLogin] datetime NULL,
     [LastIP] nvarchar(45) NULL,

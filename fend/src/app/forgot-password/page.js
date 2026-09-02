@@ -43,7 +43,7 @@ export default function ForgotPasswordPage() {
   useEffect(() => {
     try {
       const savedEmail = localStorage.getItem("signinEmail");
-      if (savedEmail) setEmail(savedEmail);
+      if (savedEmail) queueMicrotask(() => setEmail(savedEmail));
     } catch (_error) {
       // Remembered email is optional.
     }
@@ -95,8 +95,8 @@ export default function ForgotPasswordPage() {
       setError("Passwords do not match.");
       return;
     }
-    if (password.length < 6 || password.length > 64) {
-      setError("Password must be between 6 and 64 characters.");
+    if (password.length < 8 || password.length > 128) {
+      setError("Password must be between 8 and 128 characters.");
       return;
     }
 
@@ -125,7 +125,7 @@ export default function ForgotPasswordPage() {
 
   return (
     <Box sx={{ p: { xs: 3, sm: 4 } }}>
-      <Typography variant="overline" sx={{ color: "#0f766e", fontWeight: 800, letterSpacing: "0.12em" }}>
+      <Typography variant="overline" sx={{ color: "var(--color-primary)", fontWeight: 800, letterSpacing: "0.12em" }}>
         CUSTOMER ACCOUNT
       </Typography>
       <Typography component="h1" variant="h4" sx={{ mt: 0.5, fontWeight: 800 }}>
@@ -175,7 +175,7 @@ export default function ForgotPasswordPage() {
           </Button>
           <Stack direction="row" justifyContent="space-between" alignItems="center">
             <Button type="button" onClick={startOver} disabled={loading} sx={{ color: "#52606d", textTransform: "none" }}>Use a different email</Button>
-            <Button type="button" onClick={handleRequest} disabled={loading} sx={{ color: "#0f766e", textTransform: "none", fontWeight: 700 }}>Resend code</Button>
+            <Button type="button" onClick={handleRequest} disabled={loading} sx={{ color: "var(--color-primary)", textTransform: "none", fontWeight: 700 }}>Resend code</Button>
           </Stack>
         </Stack>
       )}

@@ -5,7 +5,7 @@ import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { Alert, Box, Button, Card, CardContent, Container, Stack, Typography } from "@mui/material";
 import { confirmPayment, createOrder } from "../../lib/apiClient";
-import { clearCheckoutState, isInformationComplete, isShippingComplete, readCheckoutState, shippingCost } from "../components/checkoutState";
+import { clearCheckoutState, readCheckoutState, shippingCost } from "../components/checkoutState";
 
 export default function CheckoutReturnPage() {
   const router = useRouter();
@@ -18,38 +18,31 @@ export default function CheckoutReturnPage() {
     const query = new URLSearchParams(window.location.search);
     const providerStatus = query.get("status") || "pending";
     const sessionId = query.get("session_id") || "";
-    setReference(sessionId || query.get("orderId") || "");
+    queueMicrotask(() => setReference(sessionId || query.get("orderId") || ""));
 
     const isCanceled = ["cancel", "canceled", "cancelled"].includes(providerStatus);
     const isSuccessful = ["success", "succeeded"].includes(providerStatus);
-    setStatus(isCanceled ? "cancelled" : isSuccessful ? "processing" : "pending");
+    queueMicrotask(() => setStatus(isCanceled ? "cancelled" : isSuccessful ? "processing" : "pending"));
 
     if (!isSuccessful || !sessionId || finalized.current) return undefined;
     finalized.current = true;
 
     async function finalizeOrder() {
       const checkout = readCheckoutState();
-      if (!isInformationComplete(checkout) || !isShippingComplete(checkout)) {
-        setStatus("failed");
-        setError("Your checkout details are incomplete. The payment was not attached to an order.");
-        return;
-      }
-
       try {
         await confirmPayment({ paymentId: sessionId });
-        const shipping = checkout.shipping;
+        const shipping = checkout.shipping || {};
         const result = await createOrder({
           paymentId: sessionId,
           paymentMethod: "card",
-          customer: checkout.information,
-          shippingMethod: shipping.method,
+          customer: checkout.information || {},
           shippingAddress: {
             ...shipping,
             email: checkout.information.email,
             phone: checkout.information.phone,
-            shippingMethod: shipping.method,
+            shippingMethod: shipping.logisticName || shipping.method,
           },
-          shippingCost: shippingCost(shipping.method),
+          shippingCost: shippingCost(shipping),
         });
         const orderId = result.order?.id || result.orderId;
         if (!orderId) throw new Error("The payment succeeded but no order number was returned.");

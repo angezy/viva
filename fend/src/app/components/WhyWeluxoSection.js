@@ -82,7 +82,7 @@ export default function WhyWeluxoSection({ initialContent = null, onEdit = {}, e
 
   useEffect(() => {
     if (initialContent) {
-      setContent(initialContent);
+      queueMicrotask(() => setContent(initialContent));
       return;
     }
     let mounted = true;
@@ -140,7 +140,7 @@ export default function WhyWeluxoSection({ initialContent = null, onEdit = {}, e
           </Box>
           <Box sx={{ minHeight: { xs: 270, md: 480 }, position: "relative" }}>
             <Box component="img" src={hero.image} alt={hero.alt || hero.title} sx={{ width: "100%", height: "100%", display: "block", objectFit: "cover" }} />
-            <Box sx={{ position: "absolute", inset: 0, background: "linear-gradient(90deg, rgba(37,99,235,0.14), transparent 45%)" }} />
+            <Box sx={{ position: "absolute", inset: 0, background: "linear-gradient(90deg, color-mix(in srgb, var(--color-primary) 14%, transparent), transparent 45%)" }} />
           </Box>
         </Box>
 
@@ -165,7 +165,12 @@ export default function WhyWeluxoSection({ initialContent = null, onEdit = {}, e
           </Box>
           <Grid container spacing={2}>
             {shoppingItems.map((item, index) => (
-              <Grid item xs={12} sm={6} key={`${item}-${index}`}>
+              <Grid
+                key={`${item}-${index}`}
+                size={{
+                  xs: 12,
+                  sm: 6
+                }}>
                 <Box sx={{ display: "flex", gap: 1.5, alignItems: "flex-start", p: 2.25, bgcolor: "rgba(255,255,255,0.72)", borderRadius: 2.5, height: "100%" }}>
                   <CheckCircleOutlineIcon sx={{ color: "var(--color-primary)", mt: 0.15 }} />
                   <Typography sx={{ fontWeight: 650, lineHeight: 1.5 }}>{item}</Typography>
@@ -188,7 +193,12 @@ export default function WhyWeluxoSection({ initialContent = null, onEdit = {}, e
             {shippingCards.map((card, index) => {
               const Icon = shippingIcons[index % shippingIcons.length];
               return (
-                <Grid item xs={12} md={4} key={`${card.title}-${index}`}>
+                <Grid
+                  key={`${card.title}-${index}`}
+                  size={{
+                    xs: 12,
+                    md: 4
+                  }}>
                   <Card sx={{ height: "100%", borderRadius: 3, bgcolor: "#ffffff", border: "1px solid var(--color-border)", boxShadow: "none" }}>
                     <CardContent sx={{ p: 3 }}>
                       <Icon sx={{ color: "var(--color-accent)", fontSize: 34, mb: 3 }} />
@@ -241,7 +251,12 @@ export default function WhyWeluxoSection({ initialContent = null, onEdit = {}, e
             {qualityCards.map((card, index) => {
               const Icon = qualityIcons[index % qualityIcons.length];
               return (
-                <Grid item xs={12} sm={4} key={`${card.title}-${index}`}>
+                <Grid
+                  key={`${card.title}-${index}`}
+                  size={{
+                    xs: 12,
+                    sm: 4
+                  }}>
                   <Card sx={{ height: "100%", borderRadius: 3, bgcolor: "#ffffff", border: "1px solid var(--color-border)", boxShadow: "none" }}>
                     <CardContent sx={{ p: 3 }}>
                       <Icon sx={{ color: "var(--color-accent)", fontSize: 30, mb: 4 }} />
@@ -264,7 +279,12 @@ export default function WhyWeluxoSection({ initialContent = null, onEdit = {}, e
             </Box>
             <Grid container spacing={1.5}>
               {secureItems.map((item, index) => (
-                <Grid item xs={12} sm={6} key={`${item}-${index}`}>
+                <Grid
+                  key={`${item}-${index}`}
+                  size={{
+                    xs: 12,
+                    sm: 6
+                  }}>
                   <Box sx={{ display: "flex", alignItems: "center", gap: 1.25, p: 2, bgcolor: "#ffffff", border: "1px solid var(--color-border)", borderRadius: 2.5 }}>
                     {index === 0 ? <LockOutlinedIcon sx={{ color: "var(--color-primary)" }} /> : <CheckCircleOutlineIcon sx={{ color: "var(--color-primary)" }} />}
                     <Typography sx={{ fontWeight: 700 }}>{item}</Typography>
@@ -282,7 +302,7 @@ export default function WhyWeluxoSection({ initialContent = null, onEdit = {}, e
           <Typography sx={{ color: "var(--color-text-secondary)", fontSize: { xs: "1.05rem", md: "1.2rem" }, lineHeight: 1.8 }}>{promise.copy}</Typography>
         </Box>
 
-        <Box sx={{ bgcolor: "var(--color-primary-soft)", border: "1px solid rgba(37,99,235,0.16)", borderRadius: { xs: 3, md: 5 }, p: { xs: 3, md: 6 }, textAlign: "center", position: "relative" }}>
+        <Box sx={{ bgcolor: "var(--color-primary-soft)", border: "1px solid color-mix(in srgb, var(--color-primary) 16%, transparent)", borderRadius: { xs: 3, md: 5 }, p: { xs: 3, md: 6 }, textAlign: "center", position: "relative" }}>
           <EditButton onClick={onEdit.finalCta} editable={editable} />
           <Typography variant="h4" sx={{ fontWeight: 800, letterSpacing: "-0.03em", mb: 3 }}>{finalCta.title}</Typography>
           <Button component={Link} href={finalCta.buttonUrl || "/shop"} variant="contained" size="large" endIcon={<ArrowOutwardIcon />} sx={{ bgcolor: "var(--color-accent)", color: "var(--color-text-primary)", borderRadius: 999, px: 3.5, py: 1.25, textTransform: "none", fontWeight: 800, "&:hover": { bgcolor: "var(--color-accent-dark)" } }}>

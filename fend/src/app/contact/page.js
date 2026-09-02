@@ -25,6 +25,7 @@ import {
 } from "@mui/material";
 import defaultHelpContent from "../../../data/help-center.json";
 import ContactSupportPanel from "../components/ContactSupportPanel";
+import { useSiteSettings } from "../components/SiteThemeProvider";
 
 const topics = [
   "Order support",
@@ -54,7 +55,7 @@ const fieldSx = {
     "& fieldset": { borderColor: "var(--color-border)" },
     "&:hover fieldset": { borderColor: "var(--color-primary)" },
     "&.Mui-focused": {
-      boxShadow: "0 0 0 4px rgba(37,99,235,0.1)",
+      boxShadow: "0 0 0 4px color-mix(in srgb, var(--color-primary) 10%, transparent)",
     },
     "&.Mui-focused fieldset": { borderColor: "var(--color-primary)" },
   },
@@ -63,6 +64,7 @@ const fieldSx = {
 };
 
 function ContactPage() {
+  const siteSettings = useSiteSettings();
   const [form, setForm] = useState(initialForm);
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState("");
@@ -166,7 +168,7 @@ function ContactPage() {
               left: -110,
               bottom: -130,
               borderRadius: "50%",
-              background: "rgba(37,99,235,0.1)",
+              background: "color-mix(in srgb, var(--color-primary) 10%, transparent)",
               filter: "blur(4px)",
             },
           }}
@@ -243,7 +245,7 @@ function ContactPage() {
                 </Stack>
                 <Stack direction="row" spacing={1.5} alignItems="center">
                   <Box sx={{ display: "grid", placeItems: "center", width: 36, height: 36, borderRadius: "50%", bgcolor: "var(--color-accent-soft)", color: "var(--color-accent)" }}><MailOutlineRounded fontSize="small" /></Box>
-                  <Box><Typography sx={{ fontWeight: 800, fontSize: 14 }}>support@weluxo.com</Typography><Typography sx={{ color: "#6b7d72", fontSize: 12 }}>For direct support by email.</Typography></Box>
+                  <Box><Typography sx={{ fontWeight: 800, fontSize: 14 }}>{siteSettings.supportEmail}</Typography><Typography sx={{ color: "#6b7d72", fontSize: 12 }}>For direct support by email.</Typography></Box>
                 </Stack>
               </Stack>
             </Box>

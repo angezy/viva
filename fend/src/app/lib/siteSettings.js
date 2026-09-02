@@ -6,8 +6,10 @@ export const SITE_FONT_OPTIONS = [
   { value: "georgia", label: "Georgia", stack: "Georgia, \"Times New Roman\", serif" },
   { value: "times", label: "Times New Roman", stack: "\"Times New Roman\", Times, serif" },
   { value: "courier", label: "Courier New", stack: "\"Courier New\", Courier, monospace" },
-  { value: "custom", label: "Custom font", stack: "system-ui, -apple-system, BlinkMacSystemFont, \"Segoe UI\", sans-serif" },
 ];
+
+export const CUSTOM_FONT_VALUE = "custom";
+export const CUSTOM_FONT_OPTION_PREFIX = "custom:";
 
 export const SITE_FONT_FORMAT_OPTIONS = [
   { value: "woff2", label: "WOFF2" },
@@ -17,11 +19,11 @@ export const SITE_FONT_FORMAT_OPTIONS = [
 ];
 
 export const DEFAULT_SITE_SETTINGS = {
-  siteName: "Weluxo",
-  siteDescription: "Weluxo Shop - Your partner in performance.",
-  siteTagline: "Move with intent",
-  siteUrl: "https://weluxo.com",
-  siteKeywords: "online shop, lifestyle products, performance gear",
+  siteName: process.env.NEXT_PUBLIC_STORE_NAME || "Your Store",
+  siteDescription: `${process.env.NEXT_PUBLIC_STORE_NAME || "Your Store"} - Your online store.`,
+  siteTagline: "Shop with confidence",
+  siteUrl: process.env.NEXT_PUBLIC_SITE_URL || process.env.SITE_URL || "http://localhost:3000",
+  siteKeywords: "online shop, products, ecommerce",
   siteLogoUrl: "",
   siteFaviconUrl: "",
   siteOgImageUrl: "",
@@ -29,34 +31,37 @@ export const DEFAULT_SITE_SETTINGS = {
   customFontName: "",
   customFontUrl: "",
   customFontFormat: "woff2",
-  primaryColor: "#2563eb",
-  primaryDarkColor: "#1746b2",
-  linkHoverColor: "#1746b2",
-  primaryLightColor: "#5b8def",
-  primarySoftColor: "#eef4ff",
-  accentColor: "#f28c28",
-  accentDarkColor: "#c96a0e",
-  accentLightColor: "#ffb15a",
-  accentSoftColor: "#fff4e5",
-  backgroundColor: "#fbf4e8",
-  surfaceColor: "#ffffff",
-  surfaceMutedColor: "#fffaf2",
-  borderColor: "#e7dfd3",
-  textPrimaryColor: "#2b2b2b",
-  textSecondaryColor: "#62656b",
-  successColor: "#2e8b57",
+  customFontVariable: false,
+  customFontId: "",
+  customFonts: [],
+  primaryColor: "#FF6B35",
+  primaryDarkColor: "#B94016",
+  linkHoverColor: "#C94C1B",
+  primaryLightColor: "#FFB38A",
+  primarySoftColor: "#FFF0E8",
+  accentColor: "#315C78",
+  accentDarkColor: "#24465C",
+  accentLightColor: "#A9C5D6",
+  accentSoftColor: "#EDF4F7",
+  backgroundColor: "#F7F3EC",
+  surfaceColor: "#FFFEFC",
+  surfaceMutedColor: "#EEEAE3",
+  borderColor: "#D8D2C8",
+  textPrimaryColor: "#242321",
+  textSecondaryColor: "#68635D",
+  successColor: "#287A65",
   warningColor: "#f28c28",
   errorColor: "#c94a4a",
-  supportEmail: "support@weluxo.com",
+  supportEmail: process.env.NEXT_PUBLIC_SUPPORT_EMAIL || "support@example.com",
   supportPhone: "",
   supportHours: "Support available within 24-48 hours",
-  welcomePopupEnabled: true,
+  welcomePopupEnabled: false,
   welcomePopupEyebrow: "NEW CUSTOMER WELCOME",
-  welcomePopupTitle: "Log in and get 10% off",
-  welcomePopupDescription: "Create your account or log in to unlock 10% off your first order.",
-  welcomePopupButtonLabel: "Log in & claim 10% off",
-  welcomePopupCouponCode: "WELCOME10",
-  welcomePopupFinePrint: "New customers only. One use per customer.",
+  welcomePopupTitle: "Welcome to our store",
+  welcomePopupDescription: "Configure a welcome offer from the owner dashboard when you are ready.",
+  welcomePopupButtonLabel: "Start shopping",
+  welcomePopupCouponCode: "",
+  welcomePopupFinePrint: "",
 };
 
 export function isValidCustomFontName(value) {
@@ -67,8 +72,35 @@ export function isValidCustomFontUrl(value) {
   return /^(?:https?:\/\/|\/uploads\/fonts\/)[^\s"'<>]+$/i.test(String(value || "").trim());
 }
 
+function isValidCustomFontId(value) {
+  return /^[A-Za-z0-9_-]{1,100}$/.test(String(value || "").trim());
+}
+
+function normalizeCustomFonts(value) {
+  const source = Array.isArray(value) ? value : [];
+  return source
+    .map((font) => {
+      const id = String(font?.id || "").trim();
+      const name = String(font?.name || "").trim();
+      const url = String(font?.url || "").trim();
+      const format = SITE_FONT_FORMAT_OPTIONS.some((option) => option.value === font?.format)
+        ? font.format
+        : DEFAULT_SITE_SETTINGS.customFontFormat;
+      if (!isValidCustomFontId(id) || !isValidCustomFontName(name) || !isValidCustomFontUrl(url)) return null;
+      return {
+        id,
+        name,
+        url,
+        format,
+        variable: font?.variable === true || String(font?.variable).toLowerCase() === "true",
+      };
+    })
+    .filter(Boolean)
+    .slice(0, 50);
+}
+
 export function getSiteFontFamily(value, customFontName = "") {
-  if (value === "custom" && isValidCustomFontName(customFontName)) {
+  if (value === CUSTOM_FONT_VALUE && isValidCustomFontName(customFontName)) {
     return `${JSON.stringify(String(customFontName).trim())}, ${SITE_FONT_OPTIONS[0].stack}`;
   }
   return SITE_FONT_OPTIONS.find((option) => option.value === value)?.stack || SITE_FONT_OPTIONS[0].stack;
@@ -76,7 +108,7 @@ export function getSiteFontFamily(value, customFontName = "") {
 
 export function getSiteCustomFontFace(siteSettings = {}) {
   if (
-    siteSettings.fontFamily !== "custom" ||
+    siteSettings.fontFamily !== CUSTOM_FONT_VALUE ||
     !isValidCustomFontName(siteSettings.customFontName) ||
     !isValidCustomFontUrl(siteSettings.customFontUrl)
   ) return "";
@@ -84,7 +116,14 @@ export function getSiteCustomFontFace(siteSettings = {}) {
   const format = SITE_FONT_FORMAT_OPTIONS.some((option) => option.value === siteSettings.customFontFormat)
     ? siteSettings.customFontFormat
     : SITE_FONT_FORMAT_OPTIONS[0].value;
-  return `@font-face{font-family:${JSON.stringify(String(siteSettings.customFontName).trim())};src:url(${JSON.stringify(String(siteSettings.customFontUrl).trim())}) format(\"${format}\");font-display:swap;}`;
+  const cssFormat = {
+    woff2: "woff2",
+    woff: "woff",
+    ttf: "truetype",
+    otf: "opentype",
+  }[format];
+  const weight = siteSettings.customFontVariable === true ? "100 900" : "400";
+  return `@font-face{font-family:${JSON.stringify(String(siteSettings.customFontName).trim())};src:url(${JSON.stringify(String(siteSettings.customFontUrl).trim())}) format(\"${cssFormat}\");font-style:normal;font-weight:${weight};font-display:swap;}`;
 }
 
 export function normalizeSiteSettings(value) {
@@ -100,18 +139,41 @@ export function normalizeSiteSettings(value) {
     result[key] = /^#[0-9a-f]{3}(?:[0-9a-f]{3})?$/i.test(candidate) ? candidate : DEFAULT_SITE_SETTINGS[key];
     return result;
   }, {});
-  const fontFamily = SITE_FONT_OPTIONS.some((option) => option.value === source.fontFamily)
+  const fontFamily = source.fontFamily === CUSTOM_FONT_VALUE || SITE_FONT_OPTIONS.some((option) => option.value === source.fontFamily)
     ? source.fontFamily
     : DEFAULT_SITE_SETTINGS.fontFamily;
-  const customFontName = isValidCustomFontName(source.customFontName) ? String(source.customFontName).trim() : "";
-  const customFontUrl = isValidCustomFontUrl(source.customFontUrl) ? String(source.customFontUrl).trim() : "";
-  const customFontFormat = SITE_FONT_FORMAT_OPTIONS.some((option) => option.value === source.customFontFormat)
+  let customFontName = isValidCustomFontName(source.customFontName) ? String(source.customFontName).trim() : "";
+  let customFontUrl = isValidCustomFontUrl(source.customFontUrl) ? String(source.customFontUrl).trim() : "";
+  let customFontFormat = SITE_FONT_FORMAT_OPTIONS.some((option) => option.value === source.customFontFormat)
     ? source.customFontFormat
     : DEFAULT_SITE_SETTINGS.customFontFormat;
+  let customFontVariable = source.customFontVariable === true
+    || String(source.customFontVariable).toLowerCase() === "true";
+  let customFonts = normalizeCustomFonts(source.customFonts);
+  let customFontId = isValidCustomFontId(source.customFontId) ? String(source.customFontId).trim() : "";
+  const legacyCustomFont = isValidCustomFontName(customFontName) && isValidCustomFontUrl(customFontUrl)
+    ? { id: "legacy", name: customFontName, url: customFontUrl, format: customFontFormat, variable: customFontVariable }
+    : null;
+  if (legacyCustomFont && !customFonts.some((font) => font.id === legacyCustomFont.id || (font.name === legacyCustomFont.name && font.url === legacyCustomFont.url))) {
+    customFonts = [legacyCustomFont, ...customFonts].slice(0, 50);
+  }
+  if (!customFontId || !customFonts.some((font) => font.id === customFontId)) {
+    customFontId = customFonts[0]?.id || "";
+  }
+  if (fontFamily === CUSTOM_FONT_VALUE) {
+    const activeCustomFont = customFonts.find((font) => font.id === customFontId);
+    if (activeCustomFont) {
+      customFontId = activeCustomFont.id;
+      customFontName = activeCustomFont.name;
+      customFontUrl = activeCustomFont.url;
+      customFontFormat = activeCustomFont.format;
+      customFontVariable = activeCustomFont.variable === true;
+    }
+  }
   const welcomePopupEnabled = source.welcomePopupEnabled === undefined
     ? DEFAULT_SITE_SETTINGS.welcomePopupEnabled
     : source.welcomePopupEnabled === true || String(source.welcomePopupEnabled).toLowerCase() === "true";
-  return { ...DEFAULT_SITE_SETTINGS, ...source, fontFamily, customFontName, customFontUrl, customFontFormat, welcomePopupEnabled, ...safeColors };
+  return { ...DEFAULT_SITE_SETTINGS, ...source, fontFamily, customFontName, customFontUrl, customFontFormat, customFontVariable, customFontId, customFonts, welcomePopupEnabled, ...safeColors };
 }
 
 export async function fetchSiteSettings() {

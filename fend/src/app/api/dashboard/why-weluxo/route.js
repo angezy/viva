@@ -3,6 +3,7 @@
 import { NextResponse } from "next/server";
 import { promises as fs } from "fs";
 import path from "path";
+import { requireDashboardAdmin } from "../auth";
 import defaultContent from "../../../../../data/why-weluxo.json";
 
 const dataPath = path.join(process.cwd(), "data", "why-weluxo.json");
@@ -31,6 +32,8 @@ export async function GET() {
 }
 
 export async function POST(req) {
+  const authError = await requireDashboardAdmin("content.manage");
+  if (authError) return authError;
   try {
     const body = await req.json();
     if (!body || typeof body !== "object" || !body.content) {

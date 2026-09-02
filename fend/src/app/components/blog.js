@@ -44,7 +44,7 @@ export default function BlogSection({ initialContent = null, onEdit = {} }) {
 
   useEffect(() => {
     if (initialContent) {
-      setContent(initialContent);
+      queueMicrotask(() => setContent(initialContent));
       return;
     }
     fetch("/api/dashboard/blog")
@@ -138,48 +138,55 @@ export default function BlogSection({ initialContent = null, onEdit = {} }) {
                 ? `/blog/${post.id}`
                 : "#";
               return (
-              <Grid item xs={12} sm={6} md={4} key={post.id || post.title} sx={{ display: "flex", justifyContent: "center" }}>
-                <Card
-                  sx={{
-                    width: "100%",
-                    minWidth: 0,
-                    maxWidth: 300,
-                    height: 500,
-                    borderRadius: 3,
-                    bgcolor: "#ffffff",
-                    border: "1px solid var(--color-border)",
-                    display: "flex",
-                    flexDirection: "column",
-                  }}
-                >
-                  <CardActionArea
-                    component={slug !== "#" ? LinkWrapper : "div"}
-                    href={slug}
-                    sx={{ height: "100%", display: "flex", flexDirection: "column", alignItems: "stretch", color: "var(--color-text-primary)" }}
+                <Grid
+                  key={post.id || post.title}
+                  sx={{ display: "flex", justifyContent: "center" }}
+                  size={{
+                    xs: 12,
+                    sm: 6,
+                    md: 4
+                  }}>
+                  <Card
+                    sx={{
+                      width: "100%",
+                      minWidth: 0,
+                      maxWidth: 300,
+                      height: 500,
+                      borderRadius: 3,
+                      bgcolor: "#ffffff",
+                      border: "1px solid var(--color-border)",
+                      display: "flex",
+                      flexDirection: "column",
+                    }}
                   >
-                    {post.image && (
-                      <CardMedia component="img" height="180" image={post.image} alt={post.alt || post.title} sx={{ objectFit: "cover" }} />
-                    )}
-                    <CardContent sx={{ flexGrow: 1, display: "flex", flexDirection: "column", gap: 1.5 }}>
-                      <Stack direction="row" spacing={1} alignItems="center">
-                        {post.tags?.slice(0, 2).map((tag) => (
-                          <Chip key={tag} label={tag} size="small" color="primary" />
-                        ))}
-                        <Typography variant="caption" sx={{ color: "var(--color-text-secondary)" }}>
-                          {post.date}
+                    <CardActionArea
+                      component={slug !== "#" ? LinkWrapper : "div"}
+                      href={slug}
+                      sx={{ height: "100%", display: "flex", flexDirection: "column", alignItems: "stretch", color: "var(--color-text-primary)" }}
+                    >
+                      {post.image && (
+                        <CardMedia component="img" height="180" image={post.image} alt={post.alt || post.title} sx={{ objectFit: "cover" }} />
+                      )}
+                      <CardContent sx={{ flexGrow: 1, display: "flex", flexDirection: "column", gap: 1.5 }}>
+                        <Stack direction="row" spacing={1} alignItems="center">
+                          {post.tags?.slice(0, 2).map((tag) => (
+                            <Chip key={tag} label={tag} size="small" color="primary" />
+                          ))}
+                          <Typography variant="caption" sx={{ color: "var(--color-text-secondary)" }}>
+                            {post.date}
+                          </Typography>
+                        </Stack>
+                        <Typography variant="h6" sx={{ fontWeight: 800, color: "var(--color-text-primary)", lineHeight: 1.25 }}>
+                          {post.title}
                         </Typography>
-                      </Stack>
-                      <Typography variant="h6" sx={{ fontWeight: 800, color: "var(--color-text-primary)", lineHeight: 1.25 }}>
-                        {post.title}
-                      </Typography>
-                      <Typography sx={{ color: "var(--color-text-secondary)", lineHeight: 1.55 }}>{post.excerpt}</Typography>
-                      <Typography variant="caption" sx={{ color: "var(--color-primary)", mt: "auto" }}>
-                        By {post.author || "Team"}
-                      </Typography>
-                    </CardContent>
-                  </CardActionArea>
-                </Card>
-              </Grid>
+                        <Typography sx={{ color: "var(--color-text-secondary)", lineHeight: 1.55 }}>{post.excerpt}</Typography>
+                        <Typography variant="caption" sx={{ color: "var(--color-primary)", mt: "auto" }}>
+                          By {post.author || "Team"}
+                        </Typography>
+                      </CardContent>
+                    </CardActionArea>
+                  </Card>
+                </Grid>
               );
             })}
           </Grid>

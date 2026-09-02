@@ -44,7 +44,7 @@ export default function TestimonialSection() {
 
   // simulate async fetch
   useEffect(() => {
-    setLoading(true);
+    queueMicrotask(() => setLoading(true));
     const t = setTimeout(() => {
       setItems(testimonials);
       setLoading(false);
@@ -111,7 +111,13 @@ export default function TestimonialSection() {
         {loading
           ? // show 3 skeleton cards while loading
             [0, 1, 2].map((n) => (
-              <Grid item xs={12} sm={6} md={4} key={n}>
+              <Grid
+                key={n}
+                size={{
+                  xs: 12,
+                  sm: 6,
+                  md: 4
+                }}>
                 <Card elevation={0} sx={{ p: 3, borderRadius: "20px" }}>
                   <CardContent>
                     <Box display="flex" alignItems="center" mb={2}>
@@ -128,7 +134,13 @@ export default function TestimonialSection() {
               </Grid>
             ))
           : items.map((t, i) => (
-              <Grid item xs={12} sm={6} md={4} key={i}>
+              <Grid
+                key={i}
+                size={{
+                  xs: 12,
+                  sm: 6,
+                  md: 4
+                }}>
                 <Card
                   elevation={3}
                   sx={{

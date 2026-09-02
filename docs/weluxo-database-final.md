@@ -17,7 +17,7 @@ Generated 2026-08-10T18:26:21.247Z. This package contains structure and source-c
 - Primary identifiers are UNIQUEIDENTIFIER with NEWSEQUENTIALID defaults; human references remain separate.
 - Financial values use DECIMAL(19,4), rates use DECIMAL(19,8), currencies CHAR(3), and countries CHAR(2).
 - Customer lifetime metrics are derived from Commerce.Orders instead of duplicated in CRM.Customers.
-- CJdropshipping is represented as a supplier integration, not a platform-level special case.
+- Supplier integrations are represented generically, not as platform-level special cases.
 - Posted journal entries are protected by triggers and corrected through reversal entries.
 - Overview access requires an authenticated administrator and excludes passwords, secrets, tokens, raw PII, and payment-card data.
 

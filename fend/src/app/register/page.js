@@ -4,6 +4,8 @@ import React, { useState, useEffect } from 'react'
 import { useRouter } from 'next/navigation'
 import TextField from '@mui/material/TextField'
 import Button from '@mui/material/Button'
+import Checkbox from '@mui/material/Checkbox'
+import FormControlLabel from '@mui/material/FormControlLabel'
 import Avatar from '@mui/material/Avatar'
 import LockOutlinedIcon from '@mui/icons-material/LockOutlined'
 import Typography from '@mui/material/Typography'
@@ -16,7 +18,7 @@ import styles from './register.module.css'
 
 export default function RegisterPage() {
   const router = useRouter()
-  const [form, setForm] = useState({ username: '', email: '', password: '' })
+  const [form, setForm] = useState({ username: '', email: '', password: '', emailMarketing: false })
   const [errors, setErrors] = useState({})
   const [loading, setLoading] = useState(false)
   const [serverError, setServerError] = useState('')
@@ -26,7 +28,7 @@ export default function RegisterPage() {
     try {
       const raw = localStorage.getItem('registerForm')
       if (raw) {
-        setForm(JSON.parse(raw))
+        queueMicrotask(() => setForm(JSON.parse(raw)))
       }
     } catch (e) {
       // ignore
@@ -37,7 +39,7 @@ export default function RegisterPage() {
     const e = {}
     if (!form.username || form.username.length < 3) e.username = 'Username must be at least 3 characters'
     if (!form.email || !/^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(form.email)) e.email = 'Invalid email address'
-    if (!form.password || form.password.length < 6) e.password = 'Password must be at least 6 characters'
+    if (!form.password || form.password.length < 8 || form.password.length > 128) e.password = 'Password must be between 8 and 128 characters'
     return e
   }
 
@@ -136,6 +138,10 @@ export default function RegisterPage() {
             margin="normal"
             error={!!errors.email}
             helperText={errors.email}
+          />
+          <FormControlLabel
+            control={<Checkbox checked={Boolean(form.emailMarketing)} onChange={(event) => setForm(prev => ({ ...prev, emailMarketing: event.target.checked }))} />}
+            label="Send me Weluxo product news and offers"
           />
           <TextField
             label="Password"

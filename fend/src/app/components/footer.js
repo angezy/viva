@@ -16,11 +16,11 @@ import {
   VerifiedOutlined,
 } from "@mui/icons-material";
 import { Box, Button, Container, Divider, IconButton, Link as MuiLink, Skeleton, Stack, Typography } from "@mui/material";
-import { DEFAULT_SITE_SETTINGS, fetchSiteSettings } from "../lib/siteSettings";
 import { DEFAULT_SITE_CHROME, fetchSiteChrome } from "../lib/siteChrome";
+import { useSiteSettings } from "./SiteThemeProvider";
 
 const DEFAULT_FOOTER = {
-  logoText: "Weluxo",
+  logoText: process.env.NEXT_PUBLIC_STORE_NAME || "Your Store",
   description: "Thoughtful gear and guidance for the way you move.",
   homeLabel: "Home",
   homeHref: "/",
@@ -71,35 +71,18 @@ function FooterColumn({ title, links }) {
 }
 
 export default function Footer({ initialChrome = null }) {
-  const [footer, setFooter] = useState(null);
+  const [footer, setFooter] = useState(initialChrome?.footer || null);
   const [chrome, setChrome] = useState(initialChrome);
-  const [loading, setLoading] = useState(true);
-  const [siteSettings, setSiteSettings] = useState(DEFAULT_SITE_SETTINGS);
-
-  useEffect(() => {
-    let active = true;
-
-    fetch("/api/footer", { cache: "no-store" })
-      .then((response) => {
-        if (!response.ok) throw new Error(`HTTP ${response.status}`);
-        return response.json();
-      })
-      .then((data) => {
-        if (!active) return;
-        const record = Array.isArray(data) ? data[0] : data;
-        setFooter(record && typeof record === "object" ? record : null);
-      })
-      .catch((error) => console.error("Error fetching footer:", error))
-      .finally(() => active && setLoading(false));
-
-    return () => {
-      active = false;
-    };
-  }, []);
+  const [loading, setLoading] = useState(false);
+  const siteSettings = useSiteSettings();
 
   useEffect(() => {
     if (initialChrome) {
-      setChrome(initialChrome);
+      queueMicrotask(() => {
+        setChrome(initialChrome);
+        setFooter(initialChrome.footer || null);
+        setLoading(false);
+      });
       return undefined;
     }
 
@@ -115,10 +98,6 @@ export default function Footer({ initialChrome = null }) {
       active = false;
     };
   }, [initialChrome]);
-
-  useEffect(() => {
-    fetchSiteSettings().then(setSiteSettings).catch(() => undefined);
-  }, []);
 
   const displayFooter = {
     ...DEFAULT_FOOTER,
@@ -183,9 +162,9 @@ export default function Footer({ initialChrome = null }) {
           <Box sx={{ gridColumn: { xs: "1 / -1", md: "auto" } }}>
             {loading ? (
               <>
-                <Skeleton variant="text" width={150} height={38} sx={{ bgcolor: "rgba(43,43,43,0.08)" }} />
-                <Skeleton variant="text" width="90%" sx={{ bgcolor: "rgba(43,43,43,0.08)" }} />
-                <Skeleton variant="text" width="72%" sx={{ bgcolor: "rgba(43,43,43,0.08)" }} />
+                <Skeleton variant="text" width={150} height={34} sx={{ bgcolor: "#eee8df" }} />
+                <Skeleton variant="text" width="90%" sx={{ bgcolor: "#eee8df" }} />
+                <Skeleton variant="text" width="72%" sx={{ bgcolor: "#eee8df" }} />
               </>
             ) : (
               <>

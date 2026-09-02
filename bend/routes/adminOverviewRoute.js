@@ -1,8 +1,7 @@
 const express = require('express');
-const jwt = require('jsonwebtoken');
 const sql = require('mssql');
 const { getPool } = require('../utils/dbConnection');
-const { ADMIN_AUTH_COOKIE_NAME } = require('../utils/cookieOptions');
+const { requirePermission } = require('../utils/rbac');
 
 const router = express.Router();
 
@@ -17,20 +16,7 @@ function asNumber(value) {
   return Number.isFinite(parsed) ? parsed : 0;
 }
 
-function requireAdmin(req, res, next) {
-  const authorization = req.headers?.authorization || '';
-  const bearer = authorization.toLowerCase().startsWith('bearer ') ? authorization.slice(7).trim() : null;
-  const token = bearer || req.cookies?.[ADMIN_AUTH_COOKIE_NAME];
-  if (!token || !process.env.JWT_SECRET) return res.status(401).json({ error: 'Authentication required' });
-  try {
-    const user = jwt.verify(token, process.env.JWT_SECRET);
-    if (String(user.role || '').toLowerCase() !== 'admin') return res.status(403).json({ error: 'Administrator access required' });
-    req.adminUser = user;
-    next();
-  } catch (_error) {
-    return res.status(401).json({ error: 'Invalid or expired session' });
-  }
-}
+const requireAdmin = requirePermission('analytics.read', 'adminUser');
 
 function utcStart(date) {
   return new Date(Date.UTC(date.getUTCFullYear(), date.getUTCMonth(), date.getUTCDate()));
@@ -156,7 +142,7 @@ async function buildOptimizedOverview(pool, req, range) {
     SUM(CASE WHEN [PaymentStatus] IN (N'Paid', N'PartiallyRefunded', N'Refunded') THEN CONVERT(BIGINT, 1) ELSE CONVERT(BIGINT, 0) END) AS [PaidOrders],
     SUM(CASE WHEN [PaymentStatus] IN (N'Pending', N'Authorized') THEN CONVERT(BIGINT, 1) ELSE CONVERT(BIGINT, 0) END) AS [PendingOrders],
     SUM(CASE WHEN [OrderStatus] = N'Cancelled' THEN CONVERT(BIGINT, 1) ELSE CONVERT(BIGINT, 0) END) AS [CancelledOrders],
-    COALESCE(SUM([TaxAmount]), 0) AS [TaxCollected],
+    COALESCE(SUM(CASE WHEN [OrderStatus] <> N'Cancelled' AND [PaymentStatus] IN (N'Paid', N'PartiallyRefunded', N'Refunded') THEN [TaxAmount] ELSE 0 END), 0) AS [TaxCollected],
     SUM(CASE WHEN [CreatedAt] >= @TodayStart AND [CreatedAt] < @TomorrowStart THEN CONVERT(BIGINT, 1) ELSE CONVERT(BIGINT, 0) END) AS [OrdersToday],
     SUM(CASE WHEN [CreatedAt] >= @MonthStart AND [CreatedAt] < @TomorrowStart THEN CONVERT(BIGINT, 1) ELSE CONVERT(BIGINT, 0) END) AS [OrdersThisMonth],
     COALESCE(SUM(CASE WHEN [CreatedAt] >= @TodayStart AND [CreatedAt] < @TomorrowStart AND [OrderStatus] <> N'Cancelled' AND [PaymentStatus] IN (N'Paid', N'PartiallyRefunded', N'Refunded') THEN [TotalAmount] - [RefundedAmount] ELSE 0 END), 0) AS [RevenueToday],
@@ -167,17 +153,27 @@ async function buildOptimizedOverview(pool, req, range) {
   FROM FilteredOrders;`;
 
   const itemMetrics = `WITH FilteredOrders AS (
-    SELECT o.[Id], o.[CreatedAt] FROM [Commerce].[Orders] o WHERE ${orderFilter}
+    SELECT o.[Id], o.[OrderStatus], o.[PaymentStatus]
+    FROM [Commerce].[Orders] o WHERE ${orderFilter}
   )
-  SELECT COALESCE(SUM(oi.[TotalAmount]), 0) AS [GrossSales],
-         COALESCE(SUM(COALESCE(oi.[UnitCost], pv.[CostPrice], 0) * oi.[Quantity]), 0) AS [COGS]
+  SELECT COALESCE(SUM(CASE WHEN o.[OrderStatus] <> N'Cancelled'
+        AND o.[PaymentStatus] IN (N'Paid', N'PartiallyRefunded', N'Refunded')
+        THEN oi.[TotalAmount] ELSE 0 END), 0) AS [GrossSales],
+         COALESCE(SUM(CASE WHEN o.[OrderStatus] <> N'Cancelled'
+        AND o.[PaymentStatus] IN (N'Paid', N'PartiallyRefunded', N'Refunded')
+        THEN COALESCE(oi.[UnitCost], pv.[CostPrice], 0) * oi.[Quantity] ELSE 0 END), 0) AS [COGS]
   FROM [Commerce].[OrderItems] oi
   LEFT JOIN [Commerce].[ProductVariants] pv ON pv.[Id] = oi.[VariantId]
   JOIN FilteredOrders o ON o.[Id] = oi.[OrderId];`;
 
   const financeMetrics = `
     SELECT
-      (SELECT COALESCE(SUM([Amount]), 0) FROM [ERP].[Refunds] WHERE [CreatedAt] >= @StartAt AND [CreatedAt] < @EndAt AND (@Currency IS NULL OR [Currency] = @Currency)) AS [RefundAmount],
+      (SELECT COALESCE(SUM(r.[Amount]), 0)
+       FROM [ERP].[Refunds] r
+       JOIN [Commerce].[Orders] o ON o.[Id] = r.[OrderId]
+       WHERE r.[CreatedAt] >= @StartAt AND r.[CreatedAt] < @EndAt
+         AND (@Currency IS NULL OR r.[Currency] = @Currency)
+         AND ${orderDimensionFilter}) AS [RefundAmount],
       (SELECT COALESCE(SUM([TotalAmount]), 0) FROM [ERP].[Expenses] WHERE [ExpenseDate] >= CONVERT(DATE, @StartAt) AND [ExpenseDate] < CONVERT(DATE, @EndAt) AND (@Currency IS NULL OR [Currency] = @Currency)) AS [OperatingExpenses],
       (SELECT COALESCE(SUM(CASE WHEN [Direction] = N'Incoming' THEN [Amount] ELSE -[Amount] END), 0) FROM [ERP].[Payments] WHERE [Status] = N'Paid' AND COALESCE([ProcessedAt], [CreatedAt]) < @EndAt AND (@Currency IS NULL OR [Currency] = @Currency)) AS [CashPosition],
       (SELECT COALESCE(SUM([BalanceAmount]), 0) FROM [ERP].[Invoices] WHERE [Status] NOT IN (N'Paid', N'Void') AND (@Currency IS NULL OR [Currency] = @Currency)) AS [AccountsReceivable],
@@ -195,12 +191,30 @@ async function buildOptimizedOverview(pool, req, range) {
       (SELECT COALESCE(SUM(([SellingPrice] - [CostPrice]) * [AvailableQuantity]), 0) FROM [Commerce].[ProductVariants] WHERE [Status] = N'Active') AS [InventoryProfitPotential];`;
 
   const fulfillmentMetrics = `WITH FilteredOrders AS (
-    SELECT o.[Id] FROM [Commerce].[Orders] o WHERE ${orderFilter}
+    SELECT o.[Id], o.[OrderStatus], o.[FulfillmentStatus]
+    FROM [Commerce].[Orders] o WHERE ${orderFilter}
+  ), EffectiveFulfillment AS (
+    SELECT o.[Id], CASE
+      WHEN o.[OrderStatus] = N'Cancelled' THEN N'Cancelled'
+      WHEN o.[OrderStatus] = N'Delivered' OR o.[FulfillmentStatus] = N'Delivered'
+        OR EXISTS (SELECT 1 FROM [Commerce].[Shipments] s WHERE s.[OrderId] = o.[Id] AND s.[Status] = N'Delivered')
+        THEN N'Delivered'
+      WHEN o.[OrderStatus] IN (N'Shipped', N'In Transit', N'Out for Delivery')
+        OR o.[FulfillmentStatus] IN (N'Shipped', N'In Transit', N'Out for Delivery')
+        OR EXISTS (SELECT 1 FROM [Commerce].[Shipments] s WHERE s.[OrderId] = o.[Id] AND s.[Status] IN (N'Shipped', N'In Transit', N'Out for Delivery'))
+        THEN N'Shipped'
+      ELSE o.[FulfillmentStatus]
+    END AS [FulfillmentStatus]
+    FROM FilteredOrders o
   )
   SELECT
-    (SELECT COUNT_BIG(*) FROM [Commerce].[Shipments] s JOIN FilteredOrders o ON o.[Id] = s.[OrderId] WHERE s.[Status] = N'Shipped') AS [ShippedOrders],
-    (SELECT COUNT_BIG(*) FROM [Commerce].[Shipments] s JOIN FilteredOrders o ON o.[Id] = s.[OrderId] WHERE s.[Status] = N'Delivered') AS [DeliveredOrders],
-    (SELECT COUNT_BIG(*) FROM [Commerce].[TrackingEvents] te JOIN [Commerce].[Shipments] s ON s.[Id] = te.[ShipmentId] JOIN FilteredOrders o ON o.[Id] = s.[OrderId] WHERE te.[Status] IN (N'Exception', N'Failed', N'Returned')) AS [ShippingExceptions];`;
+    COALESCE((SELECT COUNT_BIG(*) FROM EffectiveFulfillment WHERE [FulfillmentStatus] = N'Shipped'), 0) AS [ShippedOrders],
+    COALESCE((SELECT COUNT_BIG(*) FROM EffectiveFulfillment WHERE [FulfillmentStatus] = N'Delivered'), 0) AS [DeliveredOrders],
+    COALESCE((SELECT COUNT_BIG(DISTINCT o.[Id])
+      FROM [Commerce].[TrackingEvents] te
+      JOIN [Commerce].[Shipments] s ON s.[Id] = te.[ShipmentId]
+      JOIN FilteredOrders o ON o.[Id] = s.[OrderId]
+      WHERE te.[Status] IN (N'Exception', N'Failed', N'Returned')), 0) AS [ShippingExceptions];`;
 
   const supplierMetrics = `SELECT
     (SELECT COUNT_BIG(*) FROM [Commerce].[Suppliers] WHERE [Status] = N'Active' AND (@SupplierId IS NULL OR [Id] = @SupplierId)) AS [ActiveSuppliers],
@@ -285,9 +299,12 @@ async function buildOptimizedOverview(pool, req, range) {
   const loyaltyRow = loyalty[0] || {};
   const grossSales = asNumber(itemRow.GrossSales);
   const cogs = asNumber(itemRow.COGS);
+  const refundAmount = asNumber(financeRow.RefundAmount);
   const operatingExpenses = asNumber(financeRow.OperatingExpenses);
   const campaignRevenue = asNumber(marketingRow.CampaignRevenue);
   const campaignBudget = asNumber(marketingRow.CampaignBudget);
+  const netSales = grossSales - refundAmount;
+  const grossProfit = netSales - cogs;
 
   return {
     generatedAt: new Date().toISOString(),
@@ -310,12 +327,12 @@ async function buildOptimizedOverview(pool, req, range) {
       revenuePeriod: asNumber(row.RevenuePeriod), revenueToday: asNumber(row.RevenueToday), revenueThisMonth: asNumber(row.RevenueThisMonth),
       ordersPeriod: asNumber(row.OrdersPeriod), ordersToday: asNumber(row.OrdersToday), ordersThisMonth: asNumber(row.OrdersThisMonth),
       averageOrderValue: asNumber(row.AverageOrderValue), paidOrders: asNumber(row.PaidOrders), pendingOrders: asNumber(row.PendingOrders),
-      cancelledOrders: asNumber(row.CancelledOrders), refundAmount: asNumber(financeRow.RefundAmount)
+      cancelledOrders: asNumber(row.CancelledOrders), refundAmount
     },
     finance: {
-      grossSales, cogs, grossProfit: grossSales - cogs,
-      grossMarginPercent: grossSales > 0 ? ((grossSales - cogs) / grossSales) * 100 : 0,
-      operatingExpenses, netProfit: grossSales - cogs - operatingExpenses,
+      grossSales, netSales, cogs, grossProfit,
+      grossMarginPercent: netSales > 0 ? (grossProfit / netSales) * 100 : 0,
+      operatingExpenses, netProfit: grossProfit - operatingExpenses,
       cashPosition: asNumber(financeRow.CashPosition), accountsReceivable: asNumber(financeRow.AccountsReceivable), accountsPayable: asNumber(financeRow.AccountsPayable),
       taxCollected: asNumber(row.TaxCollected), taxPayable: asNumber(financeRow.TaxPayable)
     },

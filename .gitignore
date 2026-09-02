@@ -42,6 +42,7 @@ Thumbs.db
 # Uploads / runtime artifacts
 public/uploads/*
 !public/uploads/.gitkeep
+bend/private_uploads/
 
 # Temporary files
 .tmp/

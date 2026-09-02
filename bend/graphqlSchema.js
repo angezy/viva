@@ -34,27 +34,27 @@ const typeDefs = gql`
 const resolvers = {
   Query: {
     products: async () => {
-      const result = await sql.query`SELECT * FROM Products`;
+      const result = await sql.query`SELECT TOP (100) ProductId, name, price FROM Products ORDER BY ProductId`;
       return result.recordset;
     },
     product: async (_, { ProductId }) => {
-      const result = await sql.query`SELECT * FROM Products WHERE ProductId = ${ProductId}`;
+      const result = await sql.query`SELECT TOP (1) ProductId, name, price FROM Products WHERE ProductId = ${ProductId}`;
       return result.recordset[0];
     },
     categories: async () => {
-      const result = await sql.query`SELECT * FROM Categories`;
+      const result = await sql.query`SELECT TOP (100) CategoryId, name, products FROM Categories ORDER BY CategoryId`;
       return result.recordset;
     },
     category: async (_, { CategoryId }) => {
-      const result = await sql.query`SELECT * FROM Categories WHERE CategoryId = ${CategoryId}`;
+      const result = await sql.query`SELECT TOP (1) CategoryId, name, products FROM Categories WHERE CategoryId = ${CategoryId}`;
       return result.recordset[0];
     },
     shopItems: async () => {
-      const result = await sql.query`SELECT * FROM ShopItems`;
+      const result = await sql.query`SELECT TOP (100) id, name, price FROM ShopItems ORDER BY id`;
       return result.recordset;
     },
     homeContent: async () => {
-      const result = await sql.query`SELECT * FROM HomeContent`;
+      const result = await sql.query`SELECT TOP (100) id, message FROM HomeContent ORDER BY id`;
       return result.recordset;
     },
   },
