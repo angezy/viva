@@ -1,5 +1,7 @@
 import { NextResponse } from "next/server";
 
+const ALLOWED_FRAME_ANCESTORS = "'self' https://nickwebproject.com https://www.nickwebproject.com";
+
 function contentSecurityPolicy(nonce) {
   const development = process.env.NODE_ENV !== "production";
   return [
@@ -17,7 +19,7 @@ function contentSecurityPolicy(nonce) {
     "worker-src 'self' blob:",
     "object-src 'none'",
     "base-uri 'self'",
-    "frame-ancestors 'none'",
+    `frame-ancestors ${ALLOWED_FRAME_ANCESTORS}`,
     "form-action 'self'",
     ...(development ? [] : ["upgrade-insecure-requests"]),
     "report-uri /api/security/csp-report",

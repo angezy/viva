@@ -49,6 +49,15 @@ test("CSP protects executable script without unsafe-inline", () => {
   assert.match(proxy, /Content-Security-Policy-Report-Only/);
 });
 
+test("CSP permits the approved embedding origins", () => {
+  const proxy = read("fend/src/proxy.js");
+  assert.match(proxy, /frame-ancestors/);
+  assert.match(proxy, /https:\/\/nickwebproject\.com/);
+  assert.match(proxy, /https:\/\/www\.nickwebproject\.com/);
+  assert.doesNotMatch(proxy, /frame-ancestors 'none'/);
+  assert.doesNotMatch(read("fend/next.config.mjs"), /X-Frame-Options/);
+});
+
 test("application role explicitly denies DDL", () => {
   const role = read("database/production_app_role.sql");
   for (const permission of ["ALTER", "CONTROL", "CREATE TABLE", "VIEW DEFINITION"]) {
