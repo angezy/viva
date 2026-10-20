@@ -63,7 +63,19 @@ export default function CategoryProductGrid({ products = [], categoryName = "" }
                 </Link>
                 <CardContent sx={{ display: "flex", flexDirection: "column", flexGrow: 1 }}>
                   <Typography variant="overline" sx={{ color: "secondary.light", letterSpacing: 1.5 }}>{product.brand}</Typography>
-                  <Typography variant="h6" sx={{ fontWeight: 800, mb: 1 }}>{product.title}</Typography>
+                  <Typography
+                    variant="h6"
+                    sx={{
+                      fontWeight: 800,
+                      mb: 1,
+                      display: "-webkit-box",
+                      WebkitBoxOrient: "vertical",
+                      WebkitLineClamp: 2,
+                      overflow: "hidden",
+                    }}
+                  >
+                    {product.title}
+                  </Typography>
                   <Typography variant="body2" sx={{ color: "var(--color-text-secondary)", display: "-webkit-box", WebkitBoxOrient: "vertical", WebkitLineClamp: 3, overflow: "hidden", minHeight: 60 }}>
                     {product.description}
                   </Typography>

@@ -129,7 +129,7 @@ export default function ProductCarousel() {
 
                     <CardContent sx={{ flexGrow: 1, display: "flex", flexDirection: "column" }}>
                       <Stack direction="row" justifyContent="space-between" alignItems="center" sx={{ mb: 1 }}>
-                        <Typography variant="h6" sx={{ fontWeight: 700 }} noWrap>
+                        <Typography variant="h6" sx={{ fontWeight: 700, display: "-webkit-box", WebkitBoxOrient: "vertical", WebkitLineClamp: 2, overflow: "hidden" }}>
                           {title}
                         </Typography>
                         <Chip label={`$${price}`} color="primary" size="small" sx={{ fontWeight: 600 }} />
