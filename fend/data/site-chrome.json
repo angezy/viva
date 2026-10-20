@@ -19,11 +19,6 @@
     "aboutLabel": "About",
     "helpLabel": "Help",
     "helpTooltip": "Find answers for orders, shipping, returns, and account support.",
-    "categoryLinks": [
-      { "label": "Training", "href": "/category/training" },
-      { "label": "Strength", "href": "/category/strength" },
-      { "label": "Recovery", "href": "/category/recovery" }
-    ],
     "aboutLinks": [
       { "label": "About Weluxo", "href": "/aboutus" },
       { "label": "How it works", "href": "/how-it-works" },

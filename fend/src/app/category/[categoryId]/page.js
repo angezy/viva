@@ -44,7 +44,7 @@ function getImage(product) {
 }
 
 function normalizeProduct(product = {}) {
-  const category = product.category || product.Category || "Collection";
+  const category = product.category || product.Category || "";
   const title = hideSupplierBranding(product.name || product.Name || product.title, "Untitled product");
   const price = Number(product.price ?? product.Price ?? 0);
 

@@ -3238,6 +3238,12 @@ async function deleteProductChildren(request, productId) {
       DELETE FROM [Integration].[CjImportMappings] WHERE ProductId = @ProductId;
       DELETE FROM [Commerce].[StorefrontProductAddresses] WHERE ProductId = @ProductId;
       DELETE FROM [Commerce].[StorefrontProductImages] WHERE ProductId = @ProductId;
+      IF OBJECT_ID(N'[dbo].[SavedProducts_tbl]', N'U') IS NOT NULL
+        DELETE FROM [dbo].[SavedProducts_tbl] WHERE ProductId = @ProductId;
+      IF OBJECT_ID(N'[dbo].[ProductImages_tbl]', N'U') IS NOT NULL
+        DELETE FROM [dbo].[ProductImages_tbl] WHERE ProductId = @ProductId;
+      IF OBJECT_ID(N'[dbo].[ProductAddress_tbl]', N'U') IS NOT NULL
+        DELETE FROM [dbo].[ProductAddress_tbl] WHERE ProductId = @ProductId;
       IF OBJECT_ID(N'[dbo].[ProductVideos_tbl]', N'U') IS NOT NULL
         DELETE FROM [dbo].[ProductVideos_tbl] WHERE ProductId = @ProductId;
     `);
@@ -3635,6 +3641,32 @@ function normalizeCjProductData(raw, pid) {
       rich.totalInventoryNum
   );
 
+  const findVariantArray = (value, depth = 0) => {
+    if (!value || depth > 5 || typeof value !== "object") return [];
+    if (Array.isArray(value)) {
+      const looksLikeVariant = value.some((item) => item && typeof item === "object" && (item.vid || item.variantId || item.variantSku || item.variantSKU || item.sku || item.productSku || item.skuCode));
+      if (looksLikeVariant) return value;
+      for (const item of value) { const nested = findVariantArray(item, depth + 1); if (nested.length) return nested; }
+      return [];
+    }
+    for (const [key, child] of Object.entries(value)) {
+      if (/variant|sku|productSku/i.test(key)) { const nested = findVariantArray(child, depth + 1); if (nested.length) return nested; }
+    }
+    for (const child of Object.values(value)) { const nested = findVariantArray(child, depth + 1); if (nested.length) return nested; }
+    return [];
+  };
+  const variantSources = findVariantArray(rich);
+  const variantsFromDetail = variantSources.length ? variantSources : findVariantArray(detailData);
+  const allVariantSources = variantsFromDetail.length ? variantsFromDetail : findVariantArray(raw);
+  const variants = [...new Map(allVariantSources.map((variant, index) => {
+    const variantPrice = parsePriceRange(variant?.price ?? variant?.sellPrice ?? variant?.variantPrice ?? variant?.costPrice);
+    const variantSku = variant?.variantSku || variant?.sku || variant?.productSku || variant?.variantSKU || variant?.code;
+    const variantName = variant?.variantNameEn || variant?.variantName || variant?.name || variant?.label || `Variant ${index + 1}`;
+    const variantStock = Number(variant?.stock ?? variant?.inventory ?? variant?.quantity ?? variant?.warehouseInventoryNum);
+    const variantImage = extractCjImageUrls([variant?.image, variant?.imageUrl, variant?.variantImage, variant?.mainImage])[0] || cover;
+    return { id: String(variant?.vid || variant?.variantId || variant?.id || variantSku || index), sku: String(variantSku || `${pid}-${index + 1}`).trim(), name: String(variantName).trim(), price: Number.isFinite(variantPrice.min) ? variantPrice.min : (Number.isFinite(priceRange.min) ? priceRange.min : 0), stock: Number.isFinite(variantStock) ? variantStock : (Number.isFinite(stockValue) ? stockValue : 0), image: variantImage };
+  }).filter((variant) => variant.sku).map((variant) => [variant.sku, variant])).values()];
+
   const uniqImages = [...new Set(images)];
 
   return {
@@ -3651,6 +3683,7 @@ function normalizeCjProductData(raw, pid) {
     image: cover || placeholder,
     images: uniqImages.length ? uniqImages : cover ? [cover] : [placeholder],
     stock: Number.isFinite(stockValue) ? stockValue : 0,
+    variants,
     address: rich.warehouseName || rich.address || rich.location || "",
     buyerReviews,
     buyerReviewTotal: Number.isFinite(reportedBuyerReviewTotal) ? Math.max(0, reportedBuyerReviewTotal) : buyerReviews.length,
@@ -4111,6 +4144,29 @@ async function insertOrUpdateCjProduct(pool, pid, desiredSalePrice, cjPayload, d
   return decorated;
 }
 
+async function persistSelectedCjVariants(pool, legacyProductId, selectedVariants = [], fallback = {}) {
+  if (!(await getCanonicalCatalogState(pool)) || !Array.isArray(selectedVariants) || !selectedVariants.length) return;
+  const productResult = await pool.request().input("LegacyProductId", sql.Int, Number(legacyProductId)).query("SELECT TOP 1 [Id] FROM [Commerce].[Products] WHERE [LegacyProductId] = @LegacyProductId");
+  const productId = normalizeResult(productResult)[0]?.Id;
+  if (!productId) return;
+  for (const variant of selectedVariants) {
+    const sku = String(variant.sku || "").trim().slice(0, 100);
+    if (!sku) continue;
+    const request = pool.request().input("ProductId", sql.UniqueIdentifier, productId).input("SKU", sql.NVarChar(100), sku)
+      .input("VariantName", sql.NVarChar(255), String(variant.name || sku).slice(0, 255))
+      .input("CostPrice", sql.Decimal(19, 4), numericValue(variant.buyPrice, fallback.buyPrice || 0))
+      .input("SellingPrice", sql.Decimal(19, 4), numericValue(variant.salePrice, fallback.salePrice || 0))
+      .input("Currency", sql.Char(3), "USD")
+      .input("AvailableQuantity", sql.Decimal(19, 4), Math.max(0, numericValue(variant.stock, 0)));
+    const existing = await request.query("SELECT TOP 1 [Id] FROM [Commerce].[ProductVariants] WHERE [ProductId] = @ProductId AND [SKU] = @SKU");
+    const variantId = normalizeResult(existing)[0]?.Id;
+    if (variantId) {
+      await request.input("VariantId", sql.UniqueIdentifier, variantId).query("UPDATE [Commerce].[ProductVariants] SET [VariantName]=@VariantName,[CostPrice]=@CostPrice,[SellingPrice]=@SellingPrice,[AvailableQuantity]=@AvailableQuantity,[UpdatedAt]=SYSUTCDATETIME() WHERE [Id]=@VariantId AND [ProductId]=@ProductId");
+    } else {
+      await request.query("INSERT INTO [Commerce].[ProductVariants] ([ProductId],[SKU],[VariantName],[Status],[CostPrice],[SellingPrice],[Currency],[AvailableQuantity]) VALUES (@ProductId,@SKU,@VariantName,N'Active',@CostPrice,@SellingPrice,@Currency,@AvailableQuantity)");
+    }
+  }
+}
 async function loadCjImports(pool) {
   const ensured = await ensureCjImportsTable(pool);
   if (!ensured) return [];
@@ -6784,6 +6840,7 @@ router.post("/api/cj/import", requireIntegrationsManage, async (req, res) => {
     const pid = (req.body?.pid ?? req.body?.Pid ?? req.body?.PID ?? "").toString().trim();
     const salePriceInput = req.body?.salePrice ?? req.body?.salesPrice ?? req.body?.price ?? req.body?.Price;
     const buyPriceInput = req.body?.buyPrice ?? req.body?.costPrice ?? req.body?.CostPrice;
+    const selectedVariants = Array.isArray(req.body?.variants) ? req.body.variants : [];
 
     if (!pid) {
       return res.status(400).json({ error: "pid is required" });
@@ -6816,6 +6873,7 @@ router.post("/api/cj/import", requireIntegrationsManage, async (req, res) => {
       return res.status(404).json({ error: "Unable to find CJ product" });
     }
     const product = await insertOrUpdateCjProduct(pool, pid, salePrice, cjData, buyPrice);
+    await persistSelectedCjVariants(pool, product.id, selectedVariants, { salePrice, buyPrice });
 
     if (!product) {
       return res.status(500).json({ error: "Unable to import CJ product" });
@@ -7174,15 +7232,23 @@ router.delete("/api/products/:productId", requireProductsManage, async (req, res
 
   try {
     const pool = await getPool();
-    await deleteProductChildren(pool.request(), productId);
-    const result = await pool
-      .request()
-      .input("ProductId", sql.Int, productId)
-      .query(`
-        DELETE FROM [dbo].[Products_tbl]
-        OUTPUT DELETED.*
-        WHERE PID = @ProductId
-      `);
+    const transaction = new sql.Transaction(pool);
+    await transaction.begin();
+    let result;
+    try {
+      await deleteProductChildren(new sql.Request(transaction), productId);
+      result = await new sql.Request(transaction)
+        .input("ProductId", sql.Int, productId)
+        .query(`
+          DELETE FROM [dbo].[Products_tbl]
+          OUTPUT DELETED.*
+          WHERE PID = @ProductId
+        `);
+      await transaction.commit();
+    } catch (err) {
+      await transaction.rollback();
+      throw err;
+    }
 
     const rows = normalizeResult(result);
     if (!rows.length) {

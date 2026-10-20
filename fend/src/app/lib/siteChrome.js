@@ -21,11 +21,6 @@ export const DEFAULT_SITE_CHROME = {
     aboutLabel: "About",
     helpLabel: "Help",
     helpTooltip: "Find answers for orders, shipping, returns, and account support.",
-    categoryLinks: [
-      { label: "Training", href: "/category/training" },
-      { label: "Strength", href: "/category/strength" },
-      { label: "Recovery", href: "/category/recovery" },
-    ],
     aboutLinks: [
       { label: `About ${DEFAULT_STORE_NAME}`, href: "/aboutus" },
       { label: "How it works", href: "/how-it-works" },
@@ -71,9 +66,6 @@ export const DEFAULT_SITE_CHROME = {
     shopLinks: [
       { label: "Shop", href: "/shop" },
       { label: "Trending", href: "/shop#trending-collection" },
-      { label: "Training", href: "/category/training" },
-      { label: "Strength", href: "/category/strength" },
-      { label: "Recovery", href: "/category/recovery" },
     ],
     supportLinks: [
       { label: "Help center", href: "/help-center" },

@@ -22,6 +22,10 @@ visitor's browser. Do not prefix it with `NEXT_PUBLIC_`.
 On the backend, configure its existing database variables (`DB_USER`,
 `DB_PASSWORD`, `DB_SERVER`, and `DB_DATABASE`) plus the same `JWT_SECRET`.
 
+`NEXT_PUBLIC_GA4_MEASUREMENT_ID` is optional. Configure it from the dashboard's
+Integrations page or the frontend environment before building; analytics events
+are consent-gated.
+
 ## Run
 
 ```bash

@@ -115,7 +115,8 @@ export default function SignupPage() {
       if (!response.ok) throw new Error(data.error || data.message || "Signup failed");
 
       toast.success("Account created", { description: "You can now sign in.", duration: 1200 });
-      router.push("/signin");
+      const next = new URLSearchParams(window.location.search).get("next");
+      router.push(next && next.startsWith("/") ? "/signin?next=" + encodeURIComponent(next) : "/signin");
     } catch (submitError) {
       setError(submitError.message || "Signup failed");
       toast.error("Signup failed", { description: submitError.message || "Please try again." });

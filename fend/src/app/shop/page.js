@@ -77,7 +77,18 @@ function ShopProductCard({ product, title, description, price, image, trending =
         <CardMedia component="img" height={trending ? 180 : 220} image={image} alt={title} sx={{ objectFit: "cover" }} />
         <CardContent sx={{ flexGrow: 1, display: "flex", flexDirection: "column", minHeight: trending ? 190 : 210 }}>
           {trending && <Chip label="Trending" size="small" sx={{ alignSelf: "flex-start", mb: 1.5, backgroundColor: "var(--color-accent-soft)", color: "var(--color-accent-dark)", fontWeight: 700 }} />}
-          <Typography variant="h6" sx={{ fontWeight: 700 }}>{title}</Typography>
+          <Typography
+            variant="h6"
+            sx={{
+              fontWeight: 700,
+              display: "-webkit-box",
+              WebkitBoxOrient: "vertical",
+              WebkitLineClamp: 2,
+              overflow: "hidden",
+            }}
+          >
+            {title}
+          </Typography>
           <Typography variant="body2" sx={{ color: "var(--color-text-secondary)", mb: 2, display: "-webkit-box", WebkitLineClamp: 2, WebkitBoxOrient: "vertical", overflow: "hidden" }}>
             {description}
           </Typography>

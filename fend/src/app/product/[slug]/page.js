@@ -197,7 +197,7 @@ function normalizeProduct(product = {}) {
     slug: getProductSlug(product),
     title,
     description: hideSupplierBranding(product.description || product.Description, "No description available."),
-    category: product.category || product.Category || "Collection",
+    category: product.category || product.Category || "",
     brand: hideSupplierBranding(product.brand || product.Brand, "Weluxo"),
     price,
     salePrice: Number.isFinite(Number(product.salePrice ?? product.SalePrice)) ? Number(product.salePrice ?? product.SalePrice) : price,
@@ -392,7 +392,7 @@ export default function ProductPage() {
   const relatedProducts = useMemo(() => {
     if (!product) return [];
     return products
-      .filter((item) => item.slug !== product.slug && item.category === product.category)
+      .filter((item) => product.category && item.slug !== product.slug && item.category === product.category)
       .slice(0, 4);
   }, [product, products]);
 
@@ -592,7 +592,7 @@ export default function ProductPage() {
           sx={{ mb: { xs: 3, md: 4 }, color: "var(--color-text-secondary)", fontSize: 13 }}
         >
           <Link href="/shop">Shop</Link>
-          <Link href={`/shop?category=${encodeURIComponent(product.category)}`}>{product.category}</Link>
+          {product.category && <Link href={`/shop?category=${encodeURIComponent(product.category)}`}>{product.category}</Link>}
           <Typography sx={{ color: "var(--color-text-primary)", fontSize: "inherit", fontWeight: 700 }} noWrap>{product.title}</Typography>
         </Breadcrumbs>
 
@@ -707,7 +707,7 @@ export default function ProductPage() {
                   {product.title}
                 </Typography>
                 <Stack direction="row" alignItems="center" spacing={1.25} flexWrap="wrap" useFlexGap>
-                  <Chip label={product.category} size="small" sx={{ bgcolor: "var(--color-accent-soft)", color: "var(--color-accent-dark)", fontWeight: 850 }} />
+                  {product.category && <Chip label={product.category} size="small" sx={{ bgcolor: "var(--color-accent-soft)", color: "var(--color-accent-dark)", fontWeight: 850 }} />}
                   <Stack direction="row" spacing={0.6} alignItems="center" sx={{ color: "var(--color-text-secondary)", fontSize: 13 }}>
                     <CheckCircleRounded sx={{ fontSize: 17, color: "var(--color-success)" }} />
                     <Typography component="span" sx={{ fontSize: "inherit" }}>Quality checked</Typography>
@@ -836,7 +836,7 @@ export default function ProductPage() {
                 }}>
                 <Stack spacing={1.25}>
                   {[
-                    ["Category", product.category],
+                    ...(product.category ? [["Category", product.category]] : []),
                     ["Brand", product.brand],
                     ...(product.sku ? [["SKU", product.sku]] : []),
                   ].map(([label, value]) => (

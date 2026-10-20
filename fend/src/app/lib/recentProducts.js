@@ -40,7 +40,7 @@ export function rememberProduct(product = {}) {
     key,
     slug: String(slug).replace(/^\/product\//, "").replace(/^\//, ""),
     title,
-    category: product.category || product.Category || "Collection",
+    category: product.category || product.Category || "",
     image: product.image || product.img || product.Img || product.IMG || product.imageUrl || (Array.isArray(product.images) ? product.images[0] : "") || "",
     price: Number(product.price ?? product.Price ?? 0) || 0,
     viewedAt: Date.now(),

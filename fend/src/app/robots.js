@@ -8,6 +8,7 @@ export default async function robots() {
         userAgent: "*",
         allow: "/",
         disallow: [
+          "/private/",
           "/api/",
           "/dashboard/",
           "/admin/",

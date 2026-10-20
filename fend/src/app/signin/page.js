@@ -50,7 +50,9 @@ export default function SignInPage() {
       const session = await fetchSession();
       window.dispatchEvent(new CustomEvent("weluxo:session-updated", { detail: session?.user || null }));
       toast.success('Logged in!', { description: 'Redirecting to your panel...', duration: 700 });
-      setTimeout(() => router.push('/account'), 700);
+      const next = new URLSearchParams(window.location.search).get("next");
+      const destination = next && next.startsWith("/") ? next : "/account";
+      setTimeout(() => router.push(destination), 700);
     } catch (err) {
       setError(err.message || 'Network error')
       toast.error('Network error', { description: err.message || 'Something went wrong' })

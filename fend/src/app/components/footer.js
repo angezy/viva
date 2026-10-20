@@ -168,9 +168,14 @@ export default function Footer({ initialChrome = null }) {
               </>
             ) : (
               <>
-                 <Typography component={Link} href="/" sx={{ display: "inline-block", color: "var(--color-text-primary)", fontSize: 27, fontWeight: 950, letterSpacing: "-0.05em", transition: "color 160ms ease", "&:hover": { color: "var(--color-link-hover)" } }}>
-                  {displayFooter.logoText}
-                </Typography>
+                <Box component={Link} href="/" sx={{ display: "inline-flex", flexDirection: "column", alignItems: "flex-start", color: "var(--color-primary)", transition: "color 160ms ease", "&:hover": { color: "var(--color-link-hover)" } }}>
+                  <Typography sx={{ color: "var(--color-primary)", fontSize: 32, fontWeight: 950, lineHeight: 1, letterSpacing: "-0.05em" }}>
+                    {displayFooter.logoText}
+                  </Typography>
+                  <Typography sx={{ mt: 0.7, color: "var(--color-text-primary)", fontSize: 10, lineHeight: 1, letterSpacing: "0.18em", fontWeight: 800 }}>
+                    {siteSettings.siteTagline || "Move with intent"}
+                  </Typography>
+                </Box>
                 <Typography sx={{ maxWidth: 280, mt: 1.5, color: "var(--color-text-secondary)", fontSize: 14, lineHeight: 1.7 }}>
                   {displayFooter.description}
                 </Typography>

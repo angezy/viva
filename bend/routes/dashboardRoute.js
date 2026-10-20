@@ -23,6 +23,8 @@ const fontUploadsDir = path.join(__dirname, '..', 'public', 'uploads', 'fonts');
 fs.mkdirSync(fontUploadsDir, { recursive: true });
 const marketingUploadsDir = path.join(__dirname, '..', 'public', 'uploads', 'marketing');
 fs.mkdirSync(marketingUploadsDir, { recursive: true });
+const siteAssetsUploadsDir = path.join(__dirname, '..', 'public', 'uploads', 'site');
+fs.mkdirSync(siteAssetsUploadsDir, { recursive: true });
 const fontUpload = multer({
   storage: multer.diskStorage({
     destination: (_req, _file, callback) => callback(null, fontUploadsDir),
@@ -65,6 +67,22 @@ router.get('/api/dashboard/integrations', requirePermission('integrations.manage
   res.set('Cache-Control', 'no-store');
   res.json(readIntegrationConfig());
 });
+const siteAssetUpload = multer({
+  storage: multer.diskStorage({
+    destination: (_req, _file, callback) => callback(null, siteAssetsUploadsDir),
+    filename: (_req, file, callback) => {
+      const extension = path.extname(file.originalname).toLowerCase();
+      callback(null, `site-${Date.now()}-${Math.round(Math.random() * 1e9)}${extension}`);
+    },
+  }),
+  limits: { fileSize: 5 * 1024 * 1024 },
+  fileFilter: (_req, file, callback) => {
+    const allowed = new Set(['image/jpeg', 'image/png', 'image/webp', 'image/gif']);
+    if (!allowed.has(file.mimetype)) return callback(new Error('Only JPEG, PNG, WEBP, and GIF images are supported'));
+    callback(null, true);
+  },
+});
+
 const marketingImageUpload = multer({
   storage: multer.diskStorage({
     destination: (_req, _file, callback) => callback(null, marketingUploadsDir),
@@ -573,6 +591,23 @@ router.patch('/api/dashboard/notifications/:notificationId', requireNotification
     console.error('/api/dashboard/notifications PATCH error:', err);
     res.status(500).json({ error: 'Unable to update notification' });
   }
+});
+
+// Upload a public site logo or favicon for use by the storefront metadata and shell.
+router.post('/api/dashboard/settings/asset-upload', requireSettingsManage, (req, res) => {
+  siteAssetUpload.single('image')(req, res, async (error) => {
+    if (error) return res.status(400).json({ error: error.message || 'Unable to upload image' });
+    const assetType = String(req.body?.assetType || '').trim();
+    if (!['logo', 'favicon'].includes(assetType)) {
+      if (req.file) await fs.promises.unlink(req.file.path).catch(() => {});
+      return res.status(400).json({ error: 'Choose whether this image is a logo or favicon' });
+    }
+    if (!req.file) return res.status(400).json({ error: 'Choose a JPEG, PNG, WEBP, or GIF image' });
+    if (!(await validateUploadedFiles(req.file, 'image'))) {
+      return res.status(400).json({ error: 'Uploaded image content does not match its declared type' });
+    }
+    res.json({ url: `/uploads/site/${req.file.filename}`, assetType, name: req.file.originalname });
+  });
 });
 
 // Upload a custom site font for use by the typography settings.

@@ -23,7 +23,7 @@ import WarningAmberOutlinedIcon from "@mui/icons-material/WarningAmberOutlined";
 
 const GROUP_ICONS = {
   database: StorageOutlinedIcon, sendpulse: EmailOutlinedIcon, cj: LocalShippingOutlinedIcon, hypersku: LocalShippingOutlinedIcon,
-  google: GoogleIcon, telegram: SendOutlinedIcon, stripe: CreditCardOutlinedIcon,
+  google: GoogleIcon, ga4: GoogleIcon, telegram: SendOutlinedIcon, stripe: CreditCardOutlinedIcon,
   chatbot: SmartToyOutlinedIcon, support: NotificationsNoneOutlinedIcon, tinymce: ArticleOutlinedIcon,
 };
 

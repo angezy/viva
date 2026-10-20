@@ -85,6 +85,11 @@ const INTEGRATION_GROUPS = [
   },
   { id: "support", title: "Support notifications", target: "backend", optional: true, description: "Optional webhook delivery for internal support ticket notifications.", fields: [["SUPPORT_NOTIFICATION_WEBHOOK_URL", "Notification webhook URL", "url"]] },
   { id: "tinymce", title: "TinyMCE editor", target: "frontend", optional: true, description: "Browser-safe API key for the blog and support rich-text editors. Restart the frontend after saving.", fields: [["NEXT_PUBLIC_TINYMCE_API_KEY", "TinyMCE API key", "secret"]] },
+  {
+    id: 'ga4', title: 'Google Analytics 4', target: 'frontend', optional: true,
+    description: 'Consent-aware storefront measurement through a Google Analytics 4 measurement ID. Restart the frontend after saving.',
+    fields: [['NEXT_PUBLIC_GA4_MEASUREMENT_ID', 'Measurement ID', 'text']],
+  },
 ].map((group) => ({
   ...group,
   fields: group.fields.map(([key, label, type, restartRequired = false, target = group.target]) => ({ key, label, type, restartRequired, target })),

@@ -12,7 +12,7 @@ import {
   Typography,
 } from "@mui/material";
 
-export default function CategoryProductGrid({ products = [], categoryName = "Collection" }) {
+export default function CategoryProductGrid({ products = [], categoryName = "" }) {
   const [search, setSearch] = useState("");
   const query = search.trim().toLowerCase();
   const filteredProducts = useMemo(

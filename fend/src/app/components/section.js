@@ -17,9 +17,12 @@ import {
 import PlayArrowIcon from "@mui/icons-material/PlayArrow";
 import EditIcon from "@mui/icons-material/Edit";
 import Link from "next/link";
+import { useRouter } from "next/navigation";
 import ResumeShoppingSection from "./ResumeShoppingSection";
 import CustomerReviewsSection from "./CustomerReviewsSection";
 import { ProductGridSkeleton } from "./LoadingSkeletons";
+import { addToCart } from "../lib/apiClient";
+import { toast } from "../lib/notifications";
 
 const API_BASE_URL = "";
 
@@ -135,9 +138,11 @@ const FALLBACK = {
 };
 
 export default function HeroSection({ initialContent = null, onEdit = {} }) {
+  const router = useRouter();
   const [content, setContent] = useState(initialContent);
   const [productsFromDb, setProductsFromDb] = useState(null);
   const [productsLoading, setProductsLoading] = useState(true);
+  const [addingProductId, setAddingProductId] = useState(null);
 
   // Keep local state in sync with provided content (dashboard view)
   useEffect(() => {
@@ -227,6 +232,25 @@ export default function HeroSection({ initialContent = null, onEdit = {} }) {
       </IconButton>
     ) : null;
 
+  async function handleAddToCart(item, title, image, rawPrice) {
+    const productId = item.id ?? item.PID ?? item.ProductId ?? item.productId ?? title;
+    const price = typeof rawPrice === "number" ? rawPrice : Number.parseFloat(String(rawPrice).replace(/[^\d.-]/g, "")) || 0;
+    setAddingProductId(String(productId));
+    try {
+      await addToCart({ productId, title, price, image, quantity: 1 });
+      toast.success("Added to cart", {
+        description: `${title} is now in your cart.`,
+        action: { label: "View cart", onClick: () => router.push("/cart") },
+        cancel: { label: "Continue shopping" },
+      });
+    } catch (error) {
+      toast.error(error.message === "unauthorized" ? "Cart session expired" : "Could not add item", {
+        description: error.message === "unauthorized" ? "Please try adding the item again." : error.message || "Please try again.",
+      });
+    } finally {
+      setAddingProductId(null);
+    }
+  }
   return (
     <Box
       sx={{
@@ -543,10 +567,14 @@ export default function HeroSection({ initialContent = null, onEdit = {} }) {
                           <Button
                             variant="contained"
                             size="small"
-                            href="/cart"
+                            onClick={(event) => {
+                              event.stopPropagation();
+                              handleAddToCart(item, title, img, rawPrice);
+                            }}
+                            disabled={addingProductId === String(item.id ?? item.PID ?? item.ProductId ?? item.productId ?? title)}
                             sx={{ mt: 1.5, borderRadius: 1.5, textTransform: "none", pointerEvents: "auto", position: "relative", zIndex: 3 }}
                           >
-                            Add to cart
+                            {addingProductId === String(item.id ?? item.PID ?? item.ProductId ?? item.productId ?? title) ? "Adding..." : "Add to cart"}
                           </Button>
                         </Box>
                         {gallery.length > 1 && (

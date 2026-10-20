@@ -56,12 +56,6 @@ const DEFAULT_HEADER = {
   LogoUrl: "",
 };
 
-const categoryLinks = [
-  { label: "Training", href: "/category/training" },
-  { label: "Strength", href: "/category/strength" },
-  { label: "Recovery", href: "/category/recovery" },
-];
-
 const aboutLinks = [
   { label: `About ${process.env.NEXT_PUBLIC_STORE_NAME || "Your Store"}`, href: "/aboutus" },
   { label: "How it works", href: "/how-it-works" },
@@ -90,6 +84,20 @@ function formatPrice(value) {
   return `$${amount.toFixed(2)}`;
 }
 
+function slugify(value) {
+  return String(value || "")
+    .normalize("NFKD")
+    .replace(/[\u0300-\u036f]/g, "")
+    .toLowerCase()
+    .trim()
+    .replace(/[^a-z0-9]+/g, "-")
+    .replace(/^-+|-+$/g, "");
+}
+
+function getProductCategory(product) {
+  return String(product?.category || product?.Category || "").trim();
+}
+
 export default function Header({ initialHeader = null, initialChrome = null, disableNav = false }) {
   const router = useRouter();
   const [header, setHeader] = useState(initialHeader || initialChrome?.header || DEFAULT_HEADER);
@@ -108,6 +116,7 @@ export default function Header({ initialHeader = null, initialChrome = null, dis
   const [accountAnchor, setAccountAnchor] = useState(null);
   const [aboutAnchor, setAboutAnchor] = useState(null);
   const [shopAnchor, setShopAnchor] = useState(null);
+  const [catalogCategories, setCatalogCategories] = useState([]);
   const aboutCloseTimer = useRef(null);
   const aboutHoverState = useRef({ button: false, menu: false });
   const shopCloseTimer = useRef(null);
@@ -140,6 +149,31 @@ export default function Header({ initialHeader = null, initialChrome = null, dis
       active = false;
     };
   }, [initialChrome]);
+
+  useEffect(() => {
+    let active = true;
+    fetch("/api/shop", { cache: "no-store" })
+      .then((response) => (response.ok ? response.json() : []))
+      .then((products) => {
+        if (!active || !Array.isArray(products)) return;
+        const categories = new Map();
+        products.forEach((product) => {
+          const label = getProductCategory(product);
+          const slug = slugify(label);
+          if (label && slug && !categories.has(slug)) {
+            categories.set(slug, { label, href: `/category/${encodeURIComponent(slug)}` });
+          }
+        });
+        setCatalogCategories([...categories.values()].sort((a, b) => a.label.localeCompare(b.label)));
+      })
+      .catch(() => {
+        if (active) setCatalogCategories([]);
+      });
+
+    return () => {
+      active = false;
+    };
+  }, []);
 
   useEffect(() => {
     let active = true;
@@ -192,11 +226,12 @@ export default function Header({ initialHeader = null, initialChrome = null, dis
     blogLabel: chrome?.header?.blogLabel ?? displayHeader.Blog ?? DEFAULT_SITE_CHROME.header.blogLabel,
     aboutLabel: chrome?.header?.aboutLabel ?? displayHeader.AboutUs ?? DEFAULT_SITE_CHROME.header.aboutLabel,
   };
-  const displayCategoryLinks = Array.isArray(headerCopy.categoryLinks) ? headerCopy.categoryLinks : categoryLinks;
+  const displayCategoryLinks = catalogCategories;
+  const hasCategories = displayCategoryLinks.length > 0;
   const displayAboutLinks = Array.isArray(headerCopy.aboutLinks) ? headerCopy.aboutLinks : aboutLinks;
   const brandName = siteSettings.siteName || displayHeader.Name || process.env.NEXT_PUBLIC_STORE_NAME || "Your Store";
-  const brandLogo = siteSettings.siteLogoUrl || displayHeader.LogoUrl || "";
   const brandTagline = siteSettings.siteTagline || "Move with intent";
+
   const cartOpen = Boolean(cartAnchor);
   const cartCount = cartItems.reduce((sum, item) => sum + (Number(item.quantity) || 0), 0);
   const accountOpen = Boolean(accountAnchor);
@@ -356,16 +391,17 @@ export default function Header({ initialHeader = null, initialChrome = null, dis
   };
 
   const logo = loading ? (
-    <Skeleton variant="rounded" width={42} height={42} />
+    <Skeleton variant="text" width={145} height={42} />
   ) : (
     <Fade in={fadeIn} timeout={450}>
-      <Avatar
-        src={brandLogo || undefined}
-        alt={brandName}
-        sx={{ width: 42, height: 42, bgcolor: "var(--color-primary)", color: "#ffffff", fontWeight: 900, fontSize: 15 }}
-      >
-        {brandName.slice(0, 2).toUpperCase()}
-      </Avatar>
+      <Box sx={{ display: "flex", flexDirection: "column", alignItems: "flex-start" }}>
+        <Typography className="header-brand-name" sx={{ color: "var(--color-primary)", fontWeight: 950, fontSize: { xs: 24, md: 28 }, lineHeight: 1, letterSpacing: "-0.045em" }}>
+          {brandName}
+        </Typography>
+        <Typography sx={{ mt: 0.6, color: "var(--color-text-primary)", fontSize: 10, lineHeight: 1, letterSpacing: "0.18em", fontWeight: 800 }}>
+          {brandTagline}
+        </Typography>
+      </Box>
     </Fade>
   );
 
@@ -388,10 +424,7 @@ export default function Header({ initialHeader = null, initialChrome = null, dis
 
           <Box component={Link} href="/" onClick={handleNav("/")} sx={{ ...headerLinkSx, display: "flex", alignItems: "center", gap: 1.25, minWidth: { xs: "auto", md: 170 }, flexShrink: 0, color: "var(--color-text-primary)" }}>
             {logo}
-            <Box sx={{ display: { xs: "none", sm: "block" } }}>
-              {loading ? <Skeleton variant="text" width={105} height={30} /> : <Typography className="header-brand-name" sx={{ fontWeight: 950, fontSize: { sm: 20, md: 22 }, letterSpacing: "-0.045em" }}>{brandName}</Typography>}
-              <Typography sx={{ display: { xs: "none", md: "block" }, color: "var(--color-text-secondary)", fontSize: 10, letterSpacing: "0.18em", fontWeight: 800 }}>{brandTagline}</Typography>
-            </Box>
+
           </Box>
 
           <Box component="form" onSubmit={submitSearch} sx={{ display: { xs: "none", md: "flex" }, alignItems: "center", flex: 1, maxWidth: 620, bgcolor: "var(--color-surface-muted)", border: "1px solid var(--color-border)", borderRadius: 999, px: 1.5, py: 0.25, transition: "border-color 160ms ease, box-shadow 160ms ease", "&:focus-within": { borderColor: "var(--color-primary)", boxShadow: "0 0 0 4px color-mix(in srgb, var(--color-primary) 12%, transparent)" } }}>
@@ -421,7 +454,7 @@ export default function Header({ initialHeader = null, initialChrome = null, dis
           <Box component="nav" aria-label="Primary navigation" sx={{ display: { xs: "none", md: "flex" }, alignItems: "center", justifyContent: "center", gap: 0.5, borderTop: "1px solid var(--color-border)", px: 3, minHeight: 49 }}>
           <Button component={Link} href="/shop" onClick={handleNav("/shop")} sx={{ ...headerLinkSx, color: "var(--color-text-primary)", textTransform: "none", fontWeight: 850, px: 2 }}>{headerCopy.shopAllLabel}</Button>
           <Button component={Link} href="/shop#trending-collection" onClick={handleNav("/shop#trending-collection")} sx={{ ...headerLinkSx, color: "var(--color-text-primary)", textTransform: "none", fontWeight: 700, px: 2 }}>{headerCopy.trendingLabel}</Button>
-          <Button onMouseEnter={handleShopMouseEnter} onMouseLeave={handleShopMouseLeave} onFocus={openShopMenu} onClick={openShopMenu} onKeyDown={(event) => { if (event.key === "Enter" || event.key === " ") openShopMenu(event); }} endIcon={<ExpandMore sx={{ fontSize: 17 }} />} aria-haspopup="menu" aria-expanded={shopOpen ? "true" : undefined} sx={{ ...headerLinkSx, color: "var(--color-text-primary)", textTransform: "none", fontWeight: 700, px: 2 }}>{headerCopy.categoriesLabel}</Button>
+          {hasCategories && <Button onMouseEnter={handleShopMouseEnter} onMouseLeave={handleShopMouseLeave} onFocus={openShopMenu} onClick={openShopMenu} onKeyDown={(event) => { if (event.key === "Enter" || event.key === " ") openShopMenu(event); }} endIcon={<ExpandMore sx={{ fontSize: 17 }} />} aria-haspopup="menu" aria-expanded={shopOpen ? "true" : undefined} sx={{ ...headerLinkSx, color: "var(--color-text-primary)", textTransform: "none", fontWeight: 700, px: 2 }}>{headerCopy.categoriesLabel}</Button>}
           <Button component={Link} href="/blog" onClick={handleNav("/blog")} sx={{ ...headerLinkSx, color: "var(--color-text-primary)", textTransform: "none", fontWeight: 700, px: 2 }}>{headerCopy.blogLabel}</Button>
           <Button
             onMouseEnter={handleAboutMouseEnter}
@@ -520,13 +553,15 @@ export default function Header({ initialHeader = null, initialChrome = null, dis
 
       <Drawer anchor="left" open={mobileOpen} onClose={() => setMobileOpen(false)} PaperProps={{ sx: { width: "min(88vw, 360px)", bgcolor: "var(--color-background)", color: "var(--color-text-primary)" } }}>
         <Box role="presentation" sx={{ p: 2.5 }}>
-           <Stack direction="row" alignItems="center" justifyContent="space-between" sx={{ mb: 3 }}><Box sx={{ ...headerLinkSx, display: "flex", alignItems: "center", gap: 1.25, color: "var(--color-text-primary)" }} component={Link} href="/" onClick={handleNav("/")}>{logo}<Typography sx={{ fontWeight: 950, fontSize: 21, letterSpacing: "-0.04em" }}>{brandName}</Typography></Box><IconButton onClick={() => setMobileOpen(false)} aria-label="Close navigation" sx={{ ...headerLinkSx, "&:hover": { color: "var(--color-link-hover)", bgcolor: "var(--color-primary-soft)" } }}><Close /></IconButton></Stack>
+           <Stack direction="row" alignItems="center" justifyContent="space-between" sx={{ mb: 3 }}><Box sx={{ ...headerLinkSx, display: "flex", alignItems: "center", gap: 1.25, color: "var(--color-text-primary)" }} component={Link} href="/" onClick={handleNav("/")}>{logo}</Box><IconButton onClick={() => setMobileOpen(false)} aria-label="Close navigation" sx={{ ...headerLinkSx, "&:hover": { color: "var(--color-link-hover)", bgcolor: "var(--color-primary-soft)" } }}><Close /></IconButton></Stack>
           <Box component="form" onSubmit={submitSearch} sx={{ display: "flex", alignItems: "center", bgcolor: "var(--color-surface-muted)", border: "1px solid var(--color-border)", borderRadius: 999, px: 1.5, mb: 2.5 }}><Search sx={{ color: "var(--color-text-secondary)", mr: 1 }} /><InputBase value={searchQuery} onChange={(event) => setSearchQuery(event.target.value)} placeholder={headerCopy.mobileSearchPlaceholder} inputProps={{ "aria-label": headerCopy.searchPlaceholder }} sx={{ flex: 1, py: 0.8 }} /></Box>
           <List disablePadding>
              <ListItem disablePadding><ListItemButton component={Link} href="/shop" onClick={handleNav("/shop")} sx={{ ...headerMenuLinkSx, borderRadius: 2, fontWeight: 850 }}>{headerCopy.shopAllLabel}</ListItemButton></ListItem>
              <ListItem disablePadding><ListItemButton component={Link} href="/shop#trending-collection" onClick={handleNav("/shop#trending-collection")} sx={{ ...headerMenuLinkSx, borderRadius: 2 }}>{headerCopy.trendingLabel}</ListItemButton></ListItem>
-            <Typography sx={{ mt: 2, mb: 0.5, px: 2, color: "#718078", fontSize: 11, letterSpacing: "0.14em", fontWeight: 850 }}>{headerCopy.categoryHeading}</Typography>
-             {displayCategoryLinks.map((item) => <ListItem key={item.href} disablePadding><ListItemButton component={Link} href={item.href} onClick={handleNav(item.href)} sx={{ ...headerMenuLinkSx, borderRadius: 2 }}>{item.label}</ListItemButton></ListItem>)}
+            {hasCategories && <>
+              <Typography sx={{ mt: 2, mb: 0.5, px: 2, color: "#718078", fontSize: 11, letterSpacing: "0.14em", fontWeight: 850 }}>{headerCopy.categoryHeading}</Typography>
+              {displayCategoryLinks.map((item) => <ListItem key={item.href} disablePadding><ListItemButton component={Link} href={item.href} onClick={handleNav(item.href)} sx={{ ...headerMenuLinkSx, borderRadius: 2 }}>{item.label}</ListItemButton></ListItem>)}
+            </>}
             <Divider sx={{ my: 1.5 }} />
              <ListItem disablePadding><ListItemButton component={Link} href="/blog" onClick={handleNav("/blog")} sx={{ ...headerMenuLinkSx, borderRadius: 2 }}>{headerCopy.blogLabel}</ListItemButton></ListItem>
              {displayAboutLinks.map((item) => <ListItem key={item.href} disablePadding><ListItemButton component={Link} href={item.href} onClick={handleNav(item.href)} sx={{ ...headerMenuLinkSx, borderRadius: 2 }}>{item.label}</ListItemButton></ListItem>)}

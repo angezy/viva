@@ -8,6 +8,8 @@ import {
   Card,
   CardContent,
   CardHeader,
+  Checkbox,
+  FormControlLabel,
   Chip,
   Divider,
   Grid,
@@ -69,6 +71,7 @@ export default function ApiProductsPage() {
     connectionLogistics: "",
   })
   const [preview, setPreview] = useState(null)
+  const [selectedVariants, setSelectedVariants] = useState([])
   const [lookupLoading, setLookupLoading] = useState(false)
   const [shops, setShops] = useState({ loading: true, items: [], error: "" })
 
@@ -76,10 +79,10 @@ export default function ApiProductsPage() {
     const trimmedPid = pid.trim()
     const trimmedSalePrice = String(salePrice).trim()
     const trimmedBuyPrice = String(buyPrice).trim()
-    return trimmedPid.length > 0 && trimmedSalePrice.length > 0 && trimmedBuyPrice.length > 0
+    return trimmedPid.length > 0 && trimmedSalePrice.length > 0 && trimmedBuyPrice.length > 0 && (!preview?.variants?.length || selectedVariants.some((variant) => variant.selected))
       && Number.isFinite(Number(trimmedSalePrice)) && Number(Number(trimmedSalePrice)) >= 0
       && Number.isFinite(Number(trimmedBuyPrice)) && Number(Number(trimmedBuyPrice)) >= 0
-  }, [pid, salePrice, buyPrice])
+  }, [pid, salePrice, buyPrice, preview, selectedVariants])
 
   async function runPing() {
     try {
@@ -156,13 +159,16 @@ export default function ApiProductsPage() {
         }
         throw new Error(data?.error || "Lookup failed")
       }
-      setPreview(data.product || null)
+      const product = data.product || null
+      setPreview(product)
+      setSelectedVariants((product?.variants || []).map((variant) => ({ ...variant, selected: true, salePrice: salePrice || "", buyPrice: buyPrice || Number(variant.price || 0).toFixed(2) })))
       if (String(buyPrice).trim() === "" && data.product?.price !== undefined) {
         setBuyPrice(Number(data.product.price || 0).toFixed(2))
       }
       setSnack(`Fetched details for ${pid.trim()}`)
     } catch (err) {
       setPreview(null)
+      setSelectedVariants([])
       setError(err.message || "Unable to fetch product")
     } finally {
       setLookupLoading(false)
@@ -177,7 +183,7 @@ export default function ApiProductsPage() {
       const res = await fetch(`${API_BASE_URL}/api/cj/import`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ pid: pid.trim(), salePrice, buyPrice }),
+        body: JSON.stringify({ pid: pid.trim(), salePrice, buyPrice, variants: selectedVariants.filter((variant) => variant.selected).map(({ id, sku, name, stock, salePrice: variantSalePrice, buyPrice: variantBuyPrice }) => ({ id, sku, name, stock, salePrice: variantSalePrice || salePrice, buyPrice: variantBuyPrice || buyPrice })) }),
       })
       const data = await res.json()
       if (!res.ok) {
@@ -423,6 +429,20 @@ export default function ApiProductsPage() {
                       <Typography variant="body2" color="text.secondary" sx={{ mb: 1 }}>
                         Buyer reviews: {Number(preview.buyerReviewTotal || preview.buyerReviews?.length || 0)}
                       </Typography>
+                      {preview.variants?.length > 0 && (
+                        <Box sx={{ mt: 2 }}>
+                          <Typography variant="subtitle2" sx={{ mb: 1, fontWeight: 700 }}>Choose variants to publish</Typography>
+                          <Stack spacing={1}>
+                            {selectedVariants.map((variant, index) => (
+                              <Stack key={variant.id || variant.sku} direction={{ xs: "column", sm: "row" }} spacing={1} alignItems={{ sm: "center" }} sx={{ p: 1, border: "1px solid #e2e8f0", borderRadius: 1 }}>
+                                <FormControlLabel control={<Checkbox checked={variant.selected !== false} onChange={(event) => setSelectedVariants((current) => current.map((item, itemIndex) => itemIndex === index ? { ...item, selected: event.target.checked } : item))} />} label={`${variant.name} (${variant.sku})`} sx={{ flex: 1, mr: 0 }} />
+                                <TextField size="small" label="Sale" type="number" value={variant.salePrice || ""} onChange={(event) => setSelectedVariants((current) => current.map((item, itemIndex) => itemIndex === index ? { ...item, salePrice: event.target.value } : item))} inputProps={{ min: 0, step: "0.01" }} sx={{ width: 110 }} />
+                                <TextField size="small" label="Buy" type="number" value={variant.buyPrice || ""} onChange={(event) => setSelectedVariants((current) => current.map((item, itemIndex) => itemIndex === index ? { ...item, buyPrice: event.target.value } : item))} inputProps={{ min: 0, step: "0.01" }} sx={{ width: 110 }} />
+                              </Stack>
+                            ))}
+                          </Stack>
+                        </Box>
+                      )}
                       <Typography variant="body2" sx={{ color: "primary.main", fontWeight: 700 }}>
                         Source price: {preview.priceText ? preview.priceText : Number(preview.price || 0).toFixed(2)}
                       </Typography>

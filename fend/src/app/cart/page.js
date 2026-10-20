@@ -2,6 +2,7 @@
 
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import Link from "next/link";
+import { useRouter } from "next/navigation";
 import { Country } from "country-state-city";
 import {
   Add,
@@ -145,7 +146,7 @@ function CartItem({ item, pending, onQuantity, onRemove, onSave }) {
                   {item.title || "Product"}
                 </Typography>
                 <Typography variant="body2" sx={{ color: "var(--color-primary)", mt: 0.25 }}>
-                  {hideSupplierBranding(item.brand, "Weluxo")} · {item.category || "Collection"}
+                  {hideSupplierBranding(item.brand, "Weluxo")}{item.category ? ` · ${item.category}` : ""}
                 </Typography>
               </Box>
               <IconButton aria-label={`Remove ${item.title || "item"}`} onClick={() => onRemove(item.productId)} disabled={pending} sx={{ color: "var(--color-text-secondary)", p: 0.5 }}>
@@ -211,6 +212,7 @@ function TrustSection() {
 }
 
 export default function CartPage() {
+  const router = useRouter();
   const siteSettings = useSiteSettings();
   const exitCouponCode = String(siteSettings?.welcomePopupEnabled ? siteSettings?.welcomePopupCouponCode || "" : "").trim();
   const [user, setUser] = useState({ id: "guest", guest: true });
@@ -234,6 +236,7 @@ export default function CartPage() {
   const [recommended, setRecommended] = useState([]);
   const [recommendedPendingId, setRecommendedPendingId] = useState(null);
   const [exitOpen, setExitOpen] = useState(false);
+  const [checkoutAuthOpen, setCheckoutAuthOpen] = useState(false);
 
   const countryOptions = useMemo(
     () => Country.getAllCountries().map((country) => ({ code: country.isoCode, label: country.name })).sort((a, b) => a.label.localeCompare(b.label)),
@@ -421,6 +424,27 @@ export default function CartPage() {
     }
   }
 
+  function handleProceedToCheckout() {
+    if (!items.length || loading) return;
+    if (user && !user.guest) {
+      router.push("/checkout");
+      return;
+    }
+    setCheckoutAuthOpen(true);
+  }
+
+  function continueAsGuest() {
+    const current = readCheckoutState();
+    // Keep this checkout explicitly guest-owned. Guest orders are keyed by the
+    // server's guest identity and cannot be claimed by a later account.
+    updateCheckoutState({
+      information: { ...current.information, guest: true, ownerEmail: "" },
+      shipping: { ...current.shipping, ownerEmail: "" },
+    });
+    setCheckoutAuthOpen(false);
+    router.push("/checkout");
+  }
+
   const summary = (
     <Card sx={{ width: "100%", minWidth: 0, bgcolor: "#ffffff", color: "var(--color-text-primary)", border: "1px solid var(--color-border)", borderRadius: 3, position: { md: "sticky" }, top: { md: 24 } }}>
       <CardContent sx={{ p: { xs: 2.5, sm: 3 } }}>
@@ -431,7 +455,7 @@ export default function CartPage() {
         {discount > 0 && <Stack direction="row" justifyContent="space-between" sx={{ mb: 1.25 }}><Typography color="var(--color-text-secondary)">Discount {appliedCoupon && `(${appliedCoupon})`}</Typography><Typography color="var(--color-success)">-{money(discount)}</Typography></Stack>}
         <Divider sx={{ borderColor: "var(--color-border)", my: 2 }} />
         <Stack direction="row" justifyContent="space-between" alignItems="baseline" sx={{ mb: 2.5 }}><Typography variant="h6" sx={{ fontWeight: 900 }}>Total</Typography><Typography variant="h5" sx={{ fontWeight: 900 }}>{money(total)}</Typography></Stack>
-        <Button component={Link} href={items.length ? "/checkout" : undefined} disabled={!items.length || loading} fullWidth variant="contained" size="large" sx={{ borderRadius: 999, py: 1.5, fontWeight: 900 }}>{loading ? "Loading cart..." : "Proceed to checkout"}</Button>
+        <Button onClick={handleProceedToCheckout} disabled={!items.length || loading} fullWidth variant="contained" size="large" sx={{ borderRadius: 999, py: 1.5, fontWeight: 900 }}>{loading ? "Loading cart..." : "Proceed to checkout"}</Button>
         <Stack direction="row" spacing={1} justifyContent="center" sx={{ mt: 1.5, color: "var(--color-text-secondary)" }}><LockOutlined sx={{ fontSize: 17 }} /><Typography variant="caption">Secure checkout</Typography></Stack>
         <TrustSection />
       </CardContent>
@@ -485,6 +509,24 @@ export default function CartPage() {
           </Box>
         )}
       </Container>
+
+      <Dialog open={checkoutAuthOpen} onClose={() => setCheckoutAuthOpen(false)} maxWidth="xs" fullWidth PaperProps={{ sx: { borderRadius: 3, p: 1 } }}>
+        <DialogTitle sx={{ fontWeight: 900, pb: 1 }}>How would you like to checkout?</DialogTitle>
+        <DialogContent>
+          <Typography color="text.secondary" sx={{ mb: 2.5 }}>
+            Sign in or create an account to keep your orders together, or purchase as a guest.
+          </Typography>
+          <Stack spacing={1.25}>
+            <Button component={Link} href="/signin?next=%2Fcheckout" variant="contained" fullWidth onClick={() => setCheckoutAuthOpen(false)} sx={{ borderRadius: 999, py: 1.25, fontWeight: 800 }}>Sign in</Button>
+            <Button component={Link} href="/signup?next=%2Fcheckout" variant="outlined" fullWidth onClick={() => setCheckoutAuthOpen(false)} sx={{ borderRadius: 999, py: 1.25, fontWeight: 800, color: "var(--color-primary)", borderColor: "var(--color-primary)" }}>Sign up</Button>
+            <Button variant="text" fullWidth onClick={continueAsGuest} sx={{ borderRadius: 999, py: 1.1, fontWeight: 800, color: "var(--color-text-secondary)" }}>Continue as guest</Button>
+          </Stack>
+          <Typography variant="caption" color="text.secondary" sx={{ display: "block", textAlign: "center", mt: 2 }}>
+            Guest purchases are private and will not appear in an account created later with the same email or phone number.
+          </Typography>
+        </DialogContent>
+        <DialogActions sx={{ px: 2, pb: 1 }}><Button onClick={() => setCheckoutAuthOpen(false)}>Cancel</Button></DialogActions>
+      </Dialog>
 
       {exitCouponCode && <Dialog open={exitOpen} onClose={() => setExitOpen(false)} PaperProps={{ sx: { borderRadius: 3, p: 1 } }}><DialogTitle sx={{ fontWeight: 900 }}>{siteSettings.welcomePopupTitle}</DialogTitle><DialogContent><Typography color="text.secondary">{siteSettings.welcomePopupDescription} Use code {exitCouponCode} at checkout.</Typography></DialogContent><DialogActions><Button onClick={() => setExitOpen(false)}>Keep browsing</Button><Button variant="contained" onClick={async () => { try { const result = await applyCartCoupon(exitCouponCode); const nextCoupon = { code: result.code || exitCouponCode, discountPercent: Number(result.discountPercent) || 0, expiresAt: result.expiresAt || null }; couponRef.current = nextCoupon; setCouponDiscountPercent(nextCoupon.discountPercent); setCouponCode(exitCouponCode); setAppliedCoupon(nextCoupon.code); setDiscount(Number(result.discount) || 0); updateCheckoutState({ coupon: { ...nextCoupon, discount: Number(result.discount) || 0 } }); setNotice(`${exitCouponCode} applied. Your discount is ready.`); } catch (err) { setError(err.message || "Unable to apply discount"); } setExitOpen(false); }}>{siteSettings.welcomePopupButtonLabel || "Apply discount"}</Button></DialogActions></Dialog>}
     </Box>

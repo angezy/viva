@@ -658,14 +658,6 @@ export default function PageEditor() {
             <Input key={field} label={field.replace(/([A-Z])/g, " $1").replace(/^./, (letter) => letter.toUpperCase())} value={header[field] || ""} onChange={(v) => updateHeader(field, v)} />
           ))}
 
-          <h4 style={{ margin: "12px 0 0" }}>Header category links</h4>
-          {(header.categoryLinks || []).map((link, index) => (
-            <div key={`category-${index}`} style={{ border: "1px solid #eee", borderRadius: 8, padding: 10, background: "#fafafa" }}>
-              <div style={{ fontWeight: 600, marginBottom: 6 }}>Category {index + 1}</div>
-              <Input label="Label" value={link?.label || ""} onChange={(v) => updateHeaderLink("categoryLinks", index, "label", v)} />
-              <Input label="URL" value={link?.href || ""} onChange={(v) => updateHeaderLink("categoryLinks", index, "href", v)} />
-            </div>
-          ))}
           <h4 style={{ margin: "12px 0 0" }}>Header about links</h4>
           {(header.aboutLinks || []).map((link, index) => (
             <div key={`about-${index}`} style={{ border: "1px solid #eee", borderRadius: 8, padding: 10, background: "#fafafa" }}>

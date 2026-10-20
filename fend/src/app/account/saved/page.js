@@ -154,7 +154,7 @@ export default function SavedProductsPage() {
                     <Image className={styles.savedImage} src={productImage(item)} alt={item.alt || productName(item)} width={480} height={480} sizes="(max-width: 600px) 100vw, 240px" unoptimized />
                   </Link>
                   <div className={styles.savedCardBody}>
-                    <div className={styles.savedMeta}>{hideSupplierBranding(item.brand, "Weluxo")} · {item.category || "Collection"}</div>
+                    <div className={styles.savedMeta}>{hideSupplierBranding(item.brand, "Weluxo")}{item.category ? ` · ${item.category}` : ""}</div>
                     <Link href={`/product/${id}`} className={styles.savedTitle}>{productName(item)}</Link>
                     <div className={styles.savedPrice}>{money(item.price)}</div>
                     <div className={styles.savedActions}>

@@ -24,7 +24,7 @@ export const DEFAULT_SITE_SETTINGS = {
   siteTagline: "Shop with confidence",
   siteUrl: process.env.NEXT_PUBLIC_SITE_URL || process.env.SITE_URL || "http://localhost:3000",
   siteKeywords: "online shop, products, ecommerce",
-  siteLogoUrl: "",
+  siteLogoUrl: "/Frame 2.svg",
   siteFaviconUrl: "",
   siteOgImageUrl: "",
   fontFamily: "system",

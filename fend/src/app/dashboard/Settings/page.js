@@ -108,8 +108,8 @@ const FIELD_GROUPS = [
       { key: "siteName", label: "Site name", required: true },
       { key: "siteTagline", label: "Tagline" },
       { key: "siteDescription", label: "Site description", multiline: true, minRows: 3, required: true },
-      { key: "siteLogoUrl", label: "Logo URL", placeholder: "https://example.com/logo.svg" },
-      { key: "siteFaviconUrl", label: "Favicon URL", placeholder: "https://example.com/favicon.ico" },
+      { key: "siteLogoUrl", label: "Logo", type: "asset", assetType: "logo", accept: "image/png,image/jpeg,image/webp,image/gif", helperText: "PNG, JPEG, WEBP, or GIF · max 5 MB" },
+      { key: "siteFaviconUrl", label: "Favicon", type: "asset", assetType: "favicon", accept: "image/png,image/jpeg,image/webp,image/gif", helperText: "PNG, JPEG, WEBP, or GIF · max 5 MB" },
     ],
   },
   {
@@ -183,8 +183,11 @@ export default function SiteSettingsPage() {
   const [saving, setSaving] = useState(false);
   const [hydrated, setHydrated] = useState(false);
   const [uploadingFont, setUploadingFont] = useState(false);
+  const [uploadingAsset, setUploadingAsset] = useState("");
   const [customFontDialogOpen, setCustomFontDialogOpen] = useState(false);
   const customFontInputRef = useRef(null);
+  const logoInputRef = useRef(null);
+  const faviconInputRef = useRef(null);
   const [customFontDraft, setCustomFontDraft] = useState({
     name: "",
     url: "",
@@ -286,6 +289,34 @@ export default function SiteSettingsPage() {
     }
   };
 
+  const uploadAsset = async (event, fieldKey, assetType) => {
+    const file = event.target.files?.[0];
+    event.target.value = "";
+    if (!file) return;
+
+    setUploadingAsset(assetType);
+    setMessage("");
+    setError("");
+    try {
+      const payload = new FormData();
+      payload.append("assetType", assetType);
+      payload.append("image", file);
+      const response = await fetch("/api/dashboard/settings/asset-upload", {
+        method: "POST",
+        credentials: "include",
+        body: payload,
+      });
+      const body = await response.json().catch(() => ({}));
+      if (!response.ok) throw new Error(body.error || `Unable to upload ${assetType}`);
+
+      updateField(fieldKey, body.url);
+      setMessage(`${assetType === "logo" ? "Logo" : "Favicon"} uploaded. Save site settings to publish it.`);
+    } catch (uploadError) {
+      setError(uploadError.message || `Unable to upload ${assetType}`);
+    } finally {
+      setUploadingAsset("");
+    }
+  };
   const applyCustomFont = () => {
     const name = String(customFontDraft.name || "").trim();
     const url = String(customFontDraft.url || "").trim();
@@ -432,7 +463,23 @@ export default function SiteSettingsPage() {
                           xs: 12,
                           sm: field.fullWidth || field.key === "siteDescription" || field.key === "siteKeywords" ? 12 : 6
                         }}>
-                        {field.type === "color" ? (
+                        {field.type === "asset" ? (
+                          <Stack spacing={1}>
+                            <Stack direction="row" spacing={1.5} alignItems="center">
+                              <Box sx={{ width: field.assetType === "favicon" ? 52 : 92, height: 52, display: "grid", placeItems: "center", border: "1px solid #e2e8f0", borderRadius: 2, bgcolor: "#f8fafc", overflow: "hidden" }}>
+                                {form[field.key] ? <Box component="img" src={form[field.key]} alt={`${field.label} preview`} sx={{ maxWidth: "100%", maxHeight: "100%", objectFit: "contain" }} /> : <Typography sx={{ color: "#94a3b8", fontSize: 11 }}>No file</Typography>}
+                              </Box>
+                              <Box sx={{ minWidth: 0, flex: 1 }}>
+                                <Typography sx={{ color: "#0f172a", fontSize: 13, fontWeight: 750 }}>{form[field.key] ? "Uploaded" : "No image selected"}</Typography>
+                                <Typography sx={{ color: "#64748b", fontSize: 12 }}>{field.helperText}</Typography>
+                              </Box>
+                              <Button type="button" variant="outlined" startIcon={<CloudUploadOutlinedIcon />} onClick={() => (field.assetType === "logo" ? logoInputRef : faviconInputRef).current?.click()} disabled={hydrated && (loading || saving || Boolean(uploadingAsset))} sx={{ flexShrink: 0, textTransform: "none", fontWeight: 800 }}>
+                                {uploadingAsset === field.assetType ? "Uploading..." : "Upload"}
+                              </Button>
+                              <input ref={field.assetType === "logo" ? logoInputRef : faviconInputRef} hidden type="file" accept={field.accept} onChange={(event) => uploadAsset(event, field.key, field.assetType)} />
+                            </Stack>
+                          </Stack>
+                        ) : field.type === "color" ? (
                           <Stack direction="row" spacing={1} alignItems="flex-start">
                             <TextField
                               type="color"
