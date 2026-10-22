@@ -17,6 +17,7 @@ const adminOverviewRouter = require("./routes/adminOverviewRoute");
 const adminRecordsRouter = require("./routes/adminRecordsRoute");
 const reviewAdminRouter = require("./routes/reviewAdminRoute");
 const chatRouter = require("./routes/chatRoute");
+const contentRouter = require("./routes/contentRoute");
 const { closePool, getPool } = require("./utils/dbConnection");
 const { stripeWebhook } = require("./routes/stripeWebhookRoute");
 const { startCustomerEmailAutomationWorker } = require("./utils/customerEmailAutomation");
@@ -171,6 +172,7 @@ app.use("/", adminRecordsRouter);
 app.use("/", reviewAdminRouter);
 app.use("/", supportRouter);
 app.use("/", chatRouter);
+app.use("/", contentRouter);
 app.use("/", router);
 
 async function startApolloServer() {
