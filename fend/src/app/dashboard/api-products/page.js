@@ -79,7 +79,13 @@ export default function ApiProductsPage() {
     const trimmedPid = pid.trim()
     const trimmedSalePrice = String(salePrice).trim()
     const trimmedBuyPrice = String(buyPrice).trim()
-    return trimmedPid.length > 0 && trimmedSalePrice.length > 0 && trimmedBuyPrice.length > 0 && (!preview?.variants?.length || selectedVariants.some((variant) => variant.selected))
+    const selected = selectedVariants.filter((variant) => variant.selected !== false)
+    const variantPricesValid = selected.every((variant) => {
+      const sale = variant.salePrice || trimmedSalePrice
+      const buy = variant.buyPrice || trimmedBuyPrice
+      return Number.isFinite(Number(sale)) && Number(sale) >= 0 && Number.isFinite(Number(buy)) && Number(buy) >= 0
+    })
+    return trimmedPid.length > 0 && trimmedSalePrice.length > 0 && trimmedBuyPrice.length > 0 && (!preview?.variants?.length || selected.length > 0) && variantPricesValid
       && Number.isFinite(Number(trimmedSalePrice)) && Number(Number(trimmedSalePrice)) >= 0
       && Number.isFinite(Number(trimmedBuyPrice)) && Number(Number(trimmedBuyPrice)) >= 0
   }, [pid, salePrice, buyPrice, preview, selectedVariants])
@@ -431,7 +437,14 @@ export default function ApiProductsPage() {
                       </Typography>
                       {preview.variants?.length > 0 && (
                         <Box sx={{ mt: 2 }}>
-                          <Typography variant="subtitle2" sx={{ mb: 1, fontWeight: 700 }}>Choose variants to publish</Typography>
+                          <Stack direction={{ xs: "column", sm: "row" }} justifyContent="space-between" alignItems={{ sm: "center" }} sx={{ mb: 1 }}>
+                            <Typography variant="subtitle2" sx={{ fontWeight: 700 }}>Choose variants to publish ({selectedVariants.filter((variant) => variant.selected !== false).length}/{selectedVariants.length})</Typography>
+                            <Stack direction="row" spacing={1}>
+                              <Button size="small" onClick={() => setSelectedVariants((current) => current.map((variant) => ({ ...variant, selected: true })))}>Select all</Button>
+                              <Button size="small" onClick={() => setSelectedVariants((current) => current.map((variant) => ({ ...variant, selected: false })))}>Clear</Button>
+                            </Stack>
+                          </Stack>
+                          <Typography variant="caption" color="text.secondary" sx={{ display: "block", mb: 1 }}>Only checked variants will be displayed and connected to CJ. Set a different selling or buy price per variant when needed.</Typography>
                           <Stack spacing={1}>
                             {selectedVariants.map((variant, index) => (
                               <Stack key={variant.id || variant.sku} direction={{ xs: "column", sm: "row" }} spacing={1} alignItems={{ sm: "center" }} sx={{ p: 1, border: "1px solid #e2e8f0", borderRadius: 1 }}>

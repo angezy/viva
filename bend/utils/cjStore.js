@@ -217,6 +217,7 @@ async function syncCjStoreProduct({
   currency = "USD",
   raw,
   defaultPlatformVariantId,
+  selectedVariants,
 } = {}, options = {}) {
   const env = options.env || process.env;
   const result = {
@@ -269,6 +270,18 @@ async function syncCjStoreProduct({
         // is temporarily unavailable; the manual connection can be retried.
         result.error = String(error?.providerMessage || error?.message || "CJ variants could not be loaded").slice(0, 600);
       }
+    }
+
+    // The dashboard lets the operator publish only a subset of CJ variants.
+    // Keep the provider connection aligned with that choice rather than
+    // silently syncing every variant returned by CJ.
+    if (Array.isArray(selectedVariants) && selectedVariants.length && records.length) {
+      const selectedKeys = new Set(selectedVariants.flatMap((variant) => [
+        text(variant?.id, 100).toLowerCase(),
+        text(variant?.sku, 200).toLowerCase(),
+      ].filter(Boolean)));
+      const selectedRecords = records.filter((record) => selectedKeys.has(record.cjVariantId.toLowerCase()) || selectedKeys.has(record.sku.toLowerCase()));
+      if (selectedRecords.length) records = selectedRecords;
     }
 
     const storeVariants = toStoreVariants(records, {

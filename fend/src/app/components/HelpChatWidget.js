@@ -84,26 +84,35 @@ export default function HelpChatWidget({ floating = true, initialOpen = false, t
   const [input, setInput] = useState("");
   const [sending, setSending] = useState(false);
   const [config, setConfig] = useState(DEFAULT_CONFIG);
-  const [conversationId, setConversationId] = useState(getConversationId);
-  const [conversationToken, setConversationToken] = useState(getStoredConversationToken);
-  const [visitor, setVisitor] = useState(getStoredVisitor);
+  // Do not read browser storage during the first render. The server cannot
+  // see sessionStorage, so doing so makes the server and client trees differ.
+  const [conversationId, setConversationId] = useState("");
+  const [conversationToken, setConversationToken] = useState("");
+  const [visitor, setVisitor] = useState({ name: "", email: "" });
   const [signedIn, setSignedIn] = useState(false);
   const [visitorChecked, setVisitorChecked] = useState(false);
   const [visitorError, setVisitorError] = useState("");
-  const [started, setStarted] = useState(() => Boolean(getStoredConversationToken()));
+  const [started, setStarted] = useState(false);
   const [starting, setStarting] = useState(false);
-  const [humanSupportEnabled, setHumanSupportEnabled] = useState(() => {
-    if (typeof window === "undefined") return false;
-    return window.sessionStorage.getItem("weluxoChatHumanSupport") === "true";
-  });
+  const [humanSupportEnabled, setHumanSupportEnabled] = useState(false);
   const [lastReplyId, setLastReplyId] = useState(0);
   const [latestAgentId, setLatestAgentId] = useState(0);
   const [historyLoaded, setHistoryLoaded] = useState(false);
   const [unreadCount, setUnreadCount] = useState(0);
-  const [messages, setMessages] = useState(() => [
-    greetingMessage(DEFAULT_CONFIG.greeting),
-    ...loadSessionChatMessages(conversationId),
-  ]);
+  const [messages, setMessages] = useState(() => [greetingMessage(DEFAULT_CONFIG.greeting)]);
+
+  useEffect(() => {
+    const id = getConversationId();
+    const token = getStoredConversationToken();
+    setConversationId(id);
+    setConversationToken(token);
+    setVisitor(getStoredVisitor());
+    setHumanSupportEnabled(() => {
+      try { return window.sessionStorage.getItem("weluxoChatHumanSupport") === "true"; } catch (_error) { return false; }
+    });
+    setStarted(Boolean(token));
+    setMessages([greetingMessage(DEFAULT_CONFIG.greeting), ...loadSessionChatMessages(id)]);
+  }, []);
 
   useEffect(() => {
     let active = true;

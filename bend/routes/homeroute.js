@@ -3405,7 +3405,7 @@ function extractCjProductImage(raw) {
   }
 }
 
-async function syncImportedCjProduct(pool, { pid, productId, product, raw } = {}) {
+async function syncImportedCjProduct(pool, { pid, productId, product, raw, selectedVariants } = {}) {
   const normalizedProductId = Number(productId);
   const normalizedProduct = product || {};
   const image = extractCjProductImage(raw) || normalizedProduct.img || normalizedProduct.image || "";
@@ -3419,6 +3419,7 @@ async function syncImportedCjProduct(pool, { pid, productId, product, raw } = {}
     currency: normalizedProduct.currency || "USD",
     raw,
     defaultPlatformVariantId: normalizedProduct.variantId || "",
+    selectedVariants,
   });
   await updateCjImportSyncState(pool, pid, sync);
   return sync;
@@ -3641,23 +3642,25 @@ function normalizeCjProductData(raw, pid) {
       rich.totalInventoryNum
   );
 
-  const findVariantArray = (value, depth = 0) => {
-    if (!value || depth > 5 || typeof value !== "object") return [];
+  // CJ can return variants under multiple keys. Collect all variant records
+  // instead of stopping at the first array found in the response.
+  const collectVariantRecords = (value, depth = 0, records = []) => {
+    if (!value || depth > 8 || typeof value !== "object") return records;
     if (Array.isArray(value)) {
-      const looksLikeVariant = value.some((item) => item && typeof item === "object" && (item.vid || item.variantId || item.variantSku || item.variantSKU || item.sku || item.productSku || item.skuCode));
-      if (looksLikeVariant) return value;
-      for (const item of value) { const nested = findVariantArray(item, depth + 1); if (nested.length) return nested; }
-      return [];
+      value.forEach((item) => {
+        if (item && typeof item === "object" && (item.vid || item.variantId || item.variantSku || item.variantSKU || item.sku || item.productSku || item.skuCode)) records.push(item);
+        collectVariantRecords(item, depth + 1, records);
+      });
+      return records;
     }
-    for (const [key, child] of Object.entries(value)) {
-      if (/variant|sku|productSku/i.test(key)) { const nested = findVariantArray(child, depth + 1); if (nested.length) return nested; }
-    }
-    for (const child of Object.values(value)) { const nested = findVariantArray(child, depth + 1); if (nested.length) return nested; }
-    return [];
+    Object.values(value).forEach((child) => collectVariantRecords(child, depth + 1, records));
+    return records;
   };
-  const variantSources = findVariantArray(rich);
-  const variantsFromDetail = variantSources.length ? variantSources : findVariantArray(detailData);
-  const allVariantSources = variantsFromDetail.length ? variantsFromDetail : findVariantArray(raw);
+  const allVariantSources = [
+    ...collectVariantRecords(rich),
+    ...collectVariantRecords(detailData),
+    ...collectVariantRecords(raw),
+  ];
   const variants = [...new Map(allVariantSources.map((variant, index) => {
     const variantPrice = parsePriceRange(variant?.price ?? variant?.sellPrice ?? variant?.variantPrice ?? variant?.costPrice);
     const variantSku = variant?.variantSku || variant?.sku || variant?.productSku || variant?.variantSKU || variant?.code;
@@ -3729,11 +3732,28 @@ function looksLikeCjPid(value) {
   return /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(input);
 }
 
+let cjRequestChain = Promise.resolve();
+let cjLastRequestAt = 0;
+const cjProductLookupCache = new Map();
+const CJ_PRODUCT_LOOKUP_CACHE_TTL_MS = 90 * 1000;
+
+function queueCjRequest(task) {
+  const run = cjRequestChain.then(async () => {
+    const minimumInterval = Math.max(0, Number(process.env.CJ_REQUEST_MIN_INTERVAL_MS || 1100));
+    const waitMs = Math.max(0, minimumInterval - (Date.now() - cjLastRequestAt));
+    if (waitMs > 0) await new Promise((resolve) => setTimeout(resolve, waitMs));
+    cjLastRequestAt = Date.now();
+    return task();
+  });
+  cjRequestChain = run.catch(() => undefined);
+  return run;
+}
+
 async function cjFetchJson(url, { method = "GET", headers = {} } = {}) {
   const fetchFn = typeof fetch === "function" ? fetch : null;
   if (!fetchFn) return { ok: false, status: 0, payload: null, retryAfterSeconds: null };
 
-  const response = await fetchFn(url, { method, headers });
+  const response = await queueCjRequest(() => fetchFn(url, { method, headers }));
   const retryAfterSeconds = response.status === 429 ? getRetryAfterSeconds(response) : null;
   const payload = await response.json().catch(() => null);
   return { ok: response.ok, status: response.status, payload, retryAfterSeconds };
@@ -3802,11 +3822,11 @@ async function getCjAccessToken() {
 
   try {
     cjTokenPromise = (async () => {
-      const resp = await fetchFn(CJ_TOKEN_ENDPOINT, {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ apiKey }),
-      });
+      const resp = await queueCjRequest(() => fetchFn(CJ_TOKEN_ENDPOINT, {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ apiKey }),
+        }));
       const payload = await resp.json().catch(() => null);
       if (payload?.result && payload?.data?.accessToken) {
         const expiry = payload.data.accessTokenExpiryDate
@@ -3842,6 +3862,17 @@ async function fetchCjProduct(pid) {
   const input = String(pid || "").trim();
   if (!input) return null;
 
+  const cached = cjProductLookupCache.get(input.toLowerCase());
+  if (cached && Date.now() - cached.createdAt < CJ_PRODUCT_LOOKUP_CACHE_TTL_MS) {
+    return cached.payload;
+  }
+  if (cached) cjProductLookupCache.delete(input.toLowerCase());
+
+  const cacheResult = (payload) => {
+    if (payload) cjProductLookupCache.set(input.toLowerCase(), { createdAt: Date.now(), payload });
+    return payload;
+  };
+
   const base =
     process.env.CJ_API_BASE_URL ||
     process.env.CJ_API_BASE ||
@@ -3865,10 +3896,22 @@ async function fetchCjProduct(pid) {
 
   const headers = { "Content-Type": "application/json", "CJ-Access-Token": accessToken };
 
-  const tryDetail = async (candidate) => {
+  const fetchAllCjVariants = async (productId, headers) => {
+    const variantsBase = process.env.CJ_API_VARIANTS_URL || "https://developers.cjdropshipping.com/api2.0/v1/product/variant/query";
+    const url = `${variantsBase}${variantsBase.includes("?") ? "&" : "?"}pid=${encodeURIComponent(String(productId || "").trim())}`;
+    const response = await cjFetchJson(url, { headers });
+    if (response.status === 429) throw new CjRateLimitError("CJ rate limited (variants)", response.retryAfterSeconds);
+    const data = response.payload?.data;
+    return response.ok && response.payload?.result && Array.isArray(data) ? data : [];
+  };
+
+  const tryDetail = async (candidate, preferredKey = "") => {
     const value = String(candidate || "").trim();
     if (!value) return null;
-    const params = ["pid", "productId", "id", "PID"];
+    // CJ accepts one of pid/productSku/variantSku. Sending the same lookup
+    // through legacy aliases creates unnecessary requests and can trigger CJ's
+    // detail endpoint rate limit.
+    const params = [preferredKey || "pid"];
     for (const key of params) {
       const url = `${base}${base.includes("?") ? "&" : "?"}${key}=${encodeURIComponent(value)}`;
       const detailRes = await cjFetchJson(url, { headers });
@@ -3879,6 +3922,18 @@ async function fetchCjProduct(pid) {
       if (payload && payload.result === false) continue;
       if (detailRes.ok && payload?.data) {
         const reviewPid = payload.data?.pid || payload.data?.product?.pid || payload.data?.productInfo?.pid || value;
+        // The product query response is not guaranteed to contain variants.
+        // CJ exposes the authoritative complete list through variant/query.
+        // Fetch it by PID and merge it into the response used by the dashboard.
+        try {
+          const variantList = await fetchAllCjVariants(reviewPid, headers);
+          if (variantList.length && payload.data && typeof payload.data === "object" && !Array.isArray(payload.data)) {
+            payload.data = { ...payload.data, variants: variantList };
+          }
+        } catch (variantError) {
+          if (variantError?.name === "CjRateLimitError") throw variantError;
+          console.warn("CJ variant lookup failed:", variantError?.message || variantError);
+        }
         return attachCjProductContent(payload, reviewPid, headers);
       }
     }
@@ -3887,6 +3942,12 @@ async function fetchCjProduct(pid) {
 
   let resolvedPid = shouldTreatAsPid ? input : null;
   if (!resolvedPid) {
+    // Product query accepts both productSku and variantSku and returns the
+    // product PID. This is more reliable than listV2, which may return only
+    // one matching variant for a SKU family.
+    const directDetail = await tryDetail(input, "variantSku") || await tryDetail(input, "productSku");
+    if (directDetail) return cacheResult(directDetail);
+
     const listUrl = `${listBase}${listBase.includes("?") ? "&" : "?"}page=1&size=20&keyWord=${encodeURIComponent(input)}&features=enable_description`;
     const listRes = await cjFetchJson(listUrl, { headers });
     if (listRes.status === 429) {
@@ -3925,18 +3986,18 @@ async function fetchCjProduct(pid) {
       const candidateId = best?.id ? String(best.id).trim() : "";
       if (candidateId) {
         const detail = await tryDetail(candidateId);
-        if (detail) return detail;
+        if (detail) return cacheResult(detail);
       }
 
       // Some listV2 responses don't include the pid; still return the list item so UI can show details.
-      return { data: { ...listPayload?.data, productList: [best] }, result: true };
+      return cacheResult({ data: { ...listPayload?.data, productList: [best] }, result: true });
     }
 
     resolvedPid = String(candidatePid);
   }
 
   const detail = await tryDetail(resolvedPid);
-  return detail;
+  return cacheResult(detail);
 }
 
 
@@ -6886,6 +6947,7 @@ router.post("/api/cj/import", requireIntegrationsManage, async (req, res) => {
       productId: product.id,
       product,
       raw: cjData,
+      selectedVariants,
     });
 
     res.status(201).json({
