@@ -3662,11 +3662,11 @@ function normalizeCjProductData(raw, pid) {
     ...collectVariantRecords(raw),
   ];
   const variants = [...new Map(allVariantSources.map((variant, index) => {
-    const variantPrice = parsePriceRange(variant?.price ?? variant?.sellPrice ?? variant?.variantPrice ?? variant?.costPrice);
+    const variantPrice = parsePriceRange(variant?.price ?? variant?.sellPrice ?? variant?.variantSellPrice ?? variant?.variantPrice ?? variant?.costPrice ?? variant?.variantCostPrice);
     const variantSku = variant?.variantSku || variant?.sku || variant?.productSku || variant?.variantSKU || variant?.code;
     const variantName = variant?.variantNameEn || variant?.variantName || variant?.name || variant?.label || `Variant ${index + 1}`;
-    const variantStock = Number(variant?.stock ?? variant?.inventory ?? variant?.quantity ?? variant?.warehouseInventoryNum);
-    const variantImage = extractCjImageUrls([variant?.image, variant?.imageUrl, variant?.variantImage, variant?.mainImage])[0] || cover;
+    const variantStock = Number(variant?.stock ?? variant?.inventory ?? variant?.quantity ?? variant?.warehouseInventoryNum ?? variant?.totalInventoryNum);
+    const variantImage = extractCjImageUrls([variant?.image, variant?.imageUrl, variant?.variantImage, variant?.variantImageUrl, variant?.img, variant?.mainImage])[0] || cover;
     return { id: String(variant?.vid || variant?.variantId || variant?.id || variantSku || index), sku: String(variantSku || `${pid}-${index + 1}`).trim(), name: String(variantName).trim(), price: Number.isFinite(variantPrice.min) ? variantPrice.min : (Number.isFinite(priceRange.min) ? priceRange.min : 0), stock: Number.isFinite(variantStock) ? variantStock : (Number.isFinite(stockValue) ? stockValue : 0), image: variantImage };
   }).filter((variant) => variant.sku).map((variant) => [variant.sku, variant])).values()];
 
@@ -3896,9 +3896,9 @@ async function fetchCjProduct(pid) {
 
   const headers = { "Content-Type": "application/json", "CJ-Access-Token": accessToken };
 
-  const fetchAllCjVariants = async (productId, headers) => {
+  const fetchAllCjVariants = async (lookup, headers, lookupKey = "pid") => {
     const variantsBase = process.env.CJ_API_VARIANTS_URL || "https://developers.cjdropshipping.com/api2.0/v1/product/variant/query";
-    const url = `${variantsBase}${variantsBase.includes("?") ? "&" : "?"}pid=${encodeURIComponent(String(productId || "").trim())}`;
+    const url = `${variantsBase}${variantsBase.includes("?") ? "&" : "?"}${lookupKey}=${encodeURIComponent(String(lookup || "").trim())}`;
     const response = await cjFetchJson(url, { headers });
     if (response.status === 429) throw new CjRateLimitError("CJ rate limited (variants)", response.retryAfterSeconds);
     const data = response.payload?.data;
@@ -3945,7 +3945,23 @@ async function fetchCjProduct(pid) {
     // Product query accepts both productSku and variantSku and returns the
     // product PID. This is more reliable than listV2, which may return only
     // one matching variant for a SKU family.
-    const directDetail = await tryDetail(input, "variantSku") || await tryDetail(input, "productSku");
+    // For a product SKU, this endpoint is the authoritative source and
+    // returns the whole SKU family. Avoid the detail endpoint here because it
+    // is rate-limited more aggressively by CJ.
+    const productSkuVariants = await fetchAllCjVariants(input, headers, "productSku");
+    if (productSkuVariants.length) {
+      return cacheResult({
+        result: true,
+        data: {
+          productSku: input,
+          variants: productSkuVariants,
+          image: productSkuVariants[0]?.variantImage || productSkuVariants[0]?.image || "",
+          nameEn: productSkuVariants[0]?.variantNameEn || input,
+        },
+      });
+    }
+
+    const directDetail = await tryDetail(input, "variantSku");
     if (directDetail) return cacheResult(directDetail);
 
     const listUrl = `${listBase}${listBase.includes("?") ? "&" : "?"}page=1&size=20&keyWord=${encodeURIComponent(input)}&features=enable_description`;
